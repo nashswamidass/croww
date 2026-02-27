@@ -1,60 +1,298 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import {
+    collection,
+    query,
+    where,
+    getDocs,
+    doc,
+    getDoc,
+    setDoc,
+    or
+} from 'firebase/firestore';
+import { db } from './firebaseConfig';
 
-const USER_DATA_KEY = 'croww_user_data';
+const USERS_COLLECTION = 'users';
 
 export const userService = {
     /**
-     * Save user data to storage
+     * Get all service providers and businesses for the marketplace
      */
-    saveUser: async (userData) => {
+    getServiceProviders: async () => {
         try {
-            await AsyncStorage.setItem(USER_DATA_KEY, JSON.stringify(userData));
-            return true;
+            const q = query(
+                collection(db, USERS_COLLECTION),
+                where('userType', 'in', ['provider', 'business'])
+            );
+            const querySnapshot = await getDocs(q);
+            const providers = [];
+            querySnapshot.forEach((doc) => {
+                providers.push({ id: doc.id, ...doc.data() });
+            });
+            return providers;
         } catch (error) {
-            console.error('Error saving user data:', error);
-            return false;
+            console.error("Error fetching providers: ", error);
+            throw error;
         }
     },
 
     /**
-     * Get current user data
+     * Get a specific user/provider by ID
      */
-    getUser: async () => {
+    getUserById: async (userId) => {
         try {
-            const data = await AsyncStorage.getItem(USER_DATA_KEY);
-            return data ? JSON.parse(data) : null;
+            // Extreme safety guard for Production
+            if (!userId) {
+                console.warn("getUserById called with null/undefined userId");
+                return null;
+            }
+
+            const cleanId = typeof userId === 'string' ? userId : (userId.id || userId.uid || String(userId));
+
+            if (!cleanId || cleanId === 'undefined' || cleanId === '[object Object]') {
+                console.warn("Invalid cleanId in getUserById:", cleanId);
+                return null;
+            }
+
+            const docRef = doc(db, USERS_COLLECTION, cleanId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return null;
         } catch (error) {
-            console.error('Error getting user data:', error);
+            console.error("Error fetching user: ", error);
+            // Don't re-throw to prevent UI crashes if this is called in a loop (like ChatList)
             return null;
         }
     },
 
     /**
-     * Check if user is business account
+     * Get marketplace settings (enabled categories, etc.)
      */
-    isBusiness: async () => {
-        const user = await userService.getUser();
-        return user?.userType === 'business';
+    getMarketplaceSettings: async () => {
+        try {
+            const docRef = doc(db, 'app_settings', 'marketplace');
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return docSnap.data();
+            }
+            return null;
+        } catch (error) {
+            console.error("Error fetching marketplace settings: ", error);
+            return null;
+        }
     },
 
     /**
-     * Check if user is service provider
+     * Save user data to both Firestore and Local Storage
+     * @param {Object} userData 
+     * @returns {Promise<boolean>} Success status
      */
-    isProvider: async () => {
-        const user = await userService.getUser();
-        return user?.userType === 'provider';
+    saveUser: async (userData) => {
+        try {
+            if (!userData.id) throw new Error("User ID is required to save user");
+
+            // 1. Save to Firestore
+            await setDoc(doc(db, USERS_COLLECTION, userData.id), userData, { merge: true });
+
+            // 2. Update Local Storage
+            await userService.saveUserToStorage(userData);
+
+            return true;
+        } catch (error) {
+            console.error("Error saving user: ", error);
+            return false;
+        }
     },
 
     /**
-     * Sign out / Clear user data
+     * Add a staff member to a business
+     * @param {string} businessId 
+     * @param {Object} staffData 
+     */
+    addStaff: async (businessId, staffData) => {
+        try {
+            const userRef = doc(db, USERS_COLLECTION, businessId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const currentData = userSnap.data();
+                const staff = currentData.staff || [];
+                const newStaff = {
+                    id: 'staff-' + Date.now(),
+                    ...staffData,
+                    createdAt: new Date().toISOString()
+                };
+
+                await setDoc(userRef, {
+                    staff: [...staff, newStaff]
+                }, { merge: true });
+
+                // Update local storage if this is the current user
+                const currentUser = await userService.getUser();
+                if (currentUser && currentUser.id === businessId) {
+                    await userService.saveUserToStorage({
+                        ...currentUser,
+                        staff: [...staff, newStaff]
+                    });
+                }
+
+                return newStaff;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error adding staff: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Remove a staff member from a business
+     * @param {string} businessId 
+     * @param {string} staffId 
+     */
+    removeStaff: async (businessId, staffId) => {
+        try {
+            const userRef = doc(db, USERS_COLLECTION, businessId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const currentData = userSnap.data();
+                const staff = currentData.staff || [];
+                const updatedStaff = staff.filter(s => s.id !== staffId);
+
+                await setDoc(userRef, { staff: updatedStaff }, { merge: true });
+
+                // Update local storage if this is the current user
+                const currentUser = await userService.getUser();
+                if (currentUser && currentUser.id === businessId) {
+                    await userService.saveUserToStorage({
+                        ...currentUser,
+                        staff: updatedStaff
+                    });
+                }
+
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Error removing staff: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Add a service package to a provider
+     * @param {string} userId 
+     * @param {Object} packageData 
+     */
+    addPackage: async (userId, packageData) => {
+        try {
+            const userRef = doc(db, USERS_COLLECTION, userId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const currentData = userSnap.data();
+                const packages = currentData.packages || [];
+                const newPackage = {
+                    id: 'pkg-' + Date.now(),
+                    ...packageData,
+                    createdAt: new Date().toISOString()
+                };
+
+                await setDoc(userRef, {
+                    packages: [...packages, newPackage]
+                }, { merge: true });
+
+                // Update local storage if this is the current user
+                const currentUser = await userService.getUser();
+                if (currentUser && currentUser.id === userId) {
+                    await userService.saveUserToStorage({
+                        ...currentUser,
+                        packages: [...packages, newPackage]
+                    });
+                }
+
+                return newPackage;
+            }
+            return null;
+        } catch (error) {
+            console.error("Error adding package: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Remove a service package from a provider
+     * @param {string} userId 
+     * @param {string} packageId 
+     */
+    removePackage: async (userId, packageId) => {
+        try {
+            const userRef = doc(db, USERS_COLLECTION, userId);
+            const userSnap = await getDoc(userRef);
+
+            if (userSnap.exists()) {
+                const currentData = userSnap.data();
+                const packages = currentData.packages || [];
+                const updatedPackages = packages.filter(p => p.id !== packageId);
+
+                await setDoc(userRef, { packages: updatedPackages }, { merge: true });
+
+                // Update local storage if this is the current user
+                const currentUser = await userService.getUser();
+                if (currentUser && currentUser.id === userId) {
+                    await userService.saveUserToStorage({
+                        ...currentUser,
+                        packages: updatedPackages
+                    });
+                }
+
+                return true;
+            }
+            return false;
+        } catch (error) {
+            console.error("Error removing package: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Save user data to local storage
+     * @param {Object} userData 
+     */
+    saveUserToStorage: async (userData) => {
+        try {
+            await AsyncStorage.setItem('user', JSON.stringify(userData));
+        } catch (error) {
+            console.error("Error saving user data locally: ", error);
+        }
+    },
+
+    /**
+     * Get user data from local storage
+     * @returns {Promise<Object|null>}
+     */
+    getUser: async () => {
+        try {
+            const userStr = await AsyncStorage.getItem('user');
+            return userStr ? JSON.parse(userStr) : null;
+        } catch (error) {
+            console.error("Error getting user data locally: ", error);
+            return null;
+        }
+    },
+
+    /**
+     * Clear local user data
      */
     logout: async () => {
         try {
-            await AsyncStorage.removeItem(USER_DATA_KEY);
-            return true;
+            await AsyncStorage.removeItem('user');
         } catch (error) {
-            console.error('Error during logout:', error);
-            return false;
+            console.error("Error clearing local user data: ", error);
         }
     }
 };
+
+console.log('USER_SERVICE_KEYS:', Object.keys(userService));

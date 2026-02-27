@@ -6,29 +6,48 @@ import Typography from '../../components/Typography';
 import NotionInput from '../../components/NotionInput';
 import NotionCard from '../../components/NotionCard';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
-import { EVENTS } from '../../data/mockEvents';
+import { eventService } from '../../services/eventService';
+import { ActivityIndicator } from 'react-native';
+import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
 
 const EventSearchScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [filteredEvents, setFilteredEvents] = useState(EVENTS);
+    const [events, setEvents] = useState([]);
+    const [filteredEvents, setFilteredEvents] = useState([]);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const results = EVENTS.filter(event =>
-            event.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.category.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        const fetchEvents = async () => {
+            try {
+                const data = await eventService.getEvents();
+                setEvents(data);
+                setFilteredEvents(data);
+            } catch (error) {
+                console.error("Error fetching events for search:", error);
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchEvents();
+    }, []);
+
+    useEffect(() => {
+        const results = events.filter(event =>
+            event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+            event.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
             event.location?.toLowerCase().includes(searchQuery.toLowerCase())
         );
         setFilteredEvents(results);
-    }, [searchQuery]);
+    }, [searchQuery, events]);
 
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
                 <View style={styles.headerTop}>
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                        <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+                        <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
                     </TouchableOpacity>
-                    <Typography variant="h1">Search Events</Typography>
+                    <Typography variant="h2">Search Events</Typography>
                 </View>
                 <NotionInput
                     placeholder="Search titles, categories, locations..."
@@ -51,15 +70,13 @@ const EventSearchScreen = ({ navigation }) => {
                         <TouchableOpacity
                             key={event.id}
                             style={styles.eventCard}
-                            onPress={() => navigation.navigate('EventDetail', { event })}
+                            onPress={() => navigation.navigate('EventDetail', { id: event.id, event })}
                         >
                             <NotionCard style={styles.cardInner}>
-                                {event.imageUri ? (
-                                    <Image source={{ uri: event.imageUri }} style={styles.eventImage} />
+                                {getValidImageUri(event.imageUri) ? (
+                                    <Image source={{ uri: getValidImageUri(event.imageUri) }} style={styles.eventImage} />
                                 ) : (
-                                    <View style={styles.imagePlaceholder}>
-                                        <Ionicons name="image-outline" size={24} color={COLORS.secondary} />
-                                    </View>
+                                    <Image source={{ uri: DEFAULT_EVENT_IMAGE }} style={styles.eventImage} />
                                 )}
                                 <View style={styles.eventInfo}>
                                     <Typography variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>

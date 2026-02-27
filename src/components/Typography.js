@@ -21,21 +21,18 @@ const Typography = ({
 
 const styles = StyleSheet.create({
     h1: {
-        fontSize: FONT_SIZES.xxl,
+        fontSize: 24, // Reduced from 26
         fontWeight: '700',
         letterSpacing: -0.5,
-        marginBottom: 8,
     },
     h2: {
-        fontSize: FONT_SIZES.xl,
+        fontSize: 20, // Reduced from 22
         fontWeight: '600',
         letterSpacing: -0.3,
-        marginBottom: 6,
     },
     h3: {
-        fontSize: FONT_SIZES.l,
+        fontSize: 16,
         fontWeight: '600',
-        marginBottom: 4,
     },
     body: {
         fontSize: FONT_SIZES.m,

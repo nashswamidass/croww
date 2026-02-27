@@ -3,17 +3,24 @@ import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-nat
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import BuddyRequestCard from '../../components/BuddyRequestCard';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import { SPACING, COLORS } from '../../constants/theme';
-import { getBuddyRequests, joinBuddyRequest, leaveBuddyRequest } from '../../services/buddyService';
+import { getBuddyRequests, leaveBuddyRequest, getJoinRequests, requestToJoinBuddy, approveJoinRequest, ignoreJoinRequest } from '../../services/buddyService';
 import { Ionicons } from '@expo/vector-icons';
+import { auth } from '../../services/firebaseConfig';
 
 const EventBuddyScreen = ({ route, navigation }) => {
     const { event } = route.params || {};
     const [buddyRequests, setBuddyRequests] = useState([]);
+    const [joinRequests, setJoinRequests] = useState([]); // Requests I've sent
+    const [pendingApprovals, setPendingApprovals] = useState({}); // Requests others sent for my groups
     const [loading, setLoading] = useState(true);
     const [filter, setFilter] = useState('all');
-    const [joinedRequests, setJoinedRequests] = useState([]);
+
+
+    // We don't need separate joinedRequests state if we read from request.joinedUsers
+    // But to force re-render or keep track of local changes, we can just reload requests.
+    const currentUser = auth.currentUser;
 
     useEffect(() => {
         loadBuddyRequests();
@@ -29,6 +36,20 @@ const EventBuddyScreen = ({ route, navigation }) => {
 
             const requests = await getBuddyRequests(event?.id, filters);
             setBuddyRequests(requests);
+
+            // Fetch requests I've sent
+            const mySentRequests = await getJoinRequests();
+            setJoinRequests(mySentRequests);
+
+            // For my own groups, fetch pending approvals
+            const myGroups = requests.filter(r => r.userId === currentUser?.uid);
+            const approvals = {};
+            for (const group of myGroups) {
+                const groupApprovals = await getJoinRequests(group.id, 'pending', group.userId);
+                approvals[group.id] = groupApprovals;
+            }
+            setPendingApprovals(approvals);
+
         } catch (error) {
             console.error('Error loading buddy requests:', error);
         } finally {
@@ -36,15 +57,31 @@ const EventBuddyScreen = ({ route, navigation }) => {
         }
     };
 
-    const handleJoin = async (requestId) => {
-        const result = await joinBuddyRequest(requestId);
+    const handleJoin = async (requestId, ownerId) => {
+        const result = await requestToJoinBuddy(requestId, ownerId);
 
         if (result.success) {
-            Alert.alert('Success!', result.message);
-            setJoinedRequests([...joinedRequests, requestId]);
+            Alert.alert('Requested!', result.message);
             loadBuddyRequests();
         } else {
             Alert.alert('Oops!', result.message);
+        }
+    };
+
+    const handleApprove = async (joinRequestId) => {
+        const result = await approveJoinRequest(joinRequestId);
+        if (result.success) {
+            Alert.alert('Success', 'Member added to group!');
+            loadBuddyRequests();
+        } else {
+            Alert.alert('Error', result.message);
+        }
+    };
+
+    const handleIgnore = async (joinRequestId) => {
+        const result = await ignoreJoinRequest(joinRequestId);
+        if (result.success) {
+            loadBuddyRequests();
         }
     };
 
@@ -60,7 +97,6 @@ const EventBuddyScreen = ({ route, navigation }) => {
                     onPress: async () => {
                         const result = await leaveBuddyRequest(requestId);
                         if (result.success) {
-                            setJoinedRequests(joinedRequests.filter(id => id !== requestId));
                             loadBuddyRequests();
                         }
                     }
@@ -149,10 +185,24 @@ const EventBuddyScreen = ({ route, navigation }) => {
                         <BuddyRequestCard
                             key={request.id}
                             request={request}
-                            onJoin={() => handleJoin(request.id)}
+                            onJoin={() => handleJoin(request.id, request.userId)}
                             onLeave={() => handleLeave(request.id)}
-                            hasJoined={joinedRequests.includes(request.id)}
-                            isOwn={request.userId === 'current-user'}
+                            onChat={() => navigation.navigate('Chat', {
+                                recipientId: 'GROUP',
+                                recipientName: request.userName + "'s Group",
+                                chatId: request.chatId
+                            })}
+                            hasJoined={request.joinedUsers && request.joinedUsers.includes(currentUser?.uid)}
+                            isOwn={request.userId === currentUser?.uid}
+                            pendingJoin={joinRequests.find(jr => jr.buddyRequestId === request.id)}
+                            pendingApprovals={pendingApprovals[request.id] || []}
+                            onApprove={handleApprove}
+                            onIgnore={handleIgnore}
+                            onPress={() => navigation.navigate('BuddyRequestDetail', {
+                                requestId: request.id,
+                                event: event
+                            })}
+                            onProfilePress={(userId) => navigation.navigate('ServiceDetail', { serviceId: userId })}
                         />
                     ))
                 )}
@@ -162,7 +212,7 @@ const EventBuddyScreen = ({ route, navigation }) => {
 
             {/* Create Button */}
             <View style={styles.createButtonContainer}>
-                <NotionButton
+                <AntigravityButton
                     title="Create Buddy Request"
                     onPress={handleCreateRequest}
                     icon="add-circle"

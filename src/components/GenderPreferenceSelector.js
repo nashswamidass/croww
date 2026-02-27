@@ -55,42 +55,48 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.l,
     },
     label: {
-        fontWeight: '600',
-        marginBottom: SPACING.xs,
+        fontWeight: '700',
+        fontSize: 16,
+        marginBottom: 4,
+        color: COLORS.primary,
     },
     subtitle: {
         color: COLORS.secondary,
         marginBottom: SPACING.m,
+        fontSize: 13,
     },
     optionsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
-        gap: SPACING.m,
+        justifyContent: 'space-between',
     },
     option: {
-        flex: 1,
-        minWidth: '45%',
+        width: '48%',
         backgroundColor: COLORS.surface,
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: COLORS.border,
         borderRadius: BORDER_RADIUS.m,
         padding: SPACING.m,
         alignItems: 'center',
         justifyContent: 'center',
+        marginBottom: SPACING.m,
     },
     optionSelected: {
         borderColor: COLORS.accent,
         backgroundColor: COLORS.accent + '10',
+        borderWidth: 2,
     },
     icon: {
-        marginBottom: SPACING.xs,
+        fontSize: 24,
+        marginBottom: 4,
     },
     optionText: {
         color: COLORS.secondary,
+        fontSize: 14,
     },
     optionTextSelected: {
         color: COLORS.accent,
-        fontWeight: '600',
+        fontWeight: '700',
     },
 });
 

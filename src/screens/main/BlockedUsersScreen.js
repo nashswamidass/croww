@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { showAlert } from '../../utils/showAlert';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
@@ -7,13 +8,10 @@ import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 const BlockedUsersScreen = ({ navigation }) => {
-    const [blockedUsers, setBlockedUsers] = useState([
-        { id: 1, name: 'John Smith', avatar: 'https://i.pravatar.cc/150?img=33', blockedDate: 'Jan 15, 2026' },
-        { id: 2, name: 'Jane Doe', avatar: 'https://i.pravatar.cc/150?img=44', blockedDate: 'Jan 10, 2026' },
-    ]);
+    const [blockedUsers, setBlockedUsers] = useState([]);
 
     const handleUnblock = (user) => {
-        Alert.alert(
+        showAlert(
             'Unblock User',
             `Are you sure you want to unblock ${user.name}?`,
             [
@@ -22,7 +20,7 @@ const BlockedUsersScreen = ({ navigation }) => {
                     text: 'Unblock',
                     onPress: () => {
                         setBlockedUsers(blockedUsers.filter(u => u.id !== user.id));
-                        Alert.alert('Success', `${user.name} has been unblocked`);
+                        showAlert('Success', `${user.name} has been unblocked`);
                     }
                 }
             ]

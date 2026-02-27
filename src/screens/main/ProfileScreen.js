@@ -5,30 +5,23 @@ import { useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import VerificationBadge from '../../components/VerificationBadge';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { userService } from '../../services/userService';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useAuth } from '../../context/AuthContext';
 
 const ProfileScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
+    const { user: authUser, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('events');
-    const [userData, setUserData] = useState(null);
-    const [loading, setLoading] = useState(true);
 
-    useFocusEffect(
-        useCallback(() => {
-            const loadUser = async () => {
-                const data = await userService.getUser();
-                setUserData(data);
-                setLoading(false);
-            };
-            loadUser();
-        }, [])
-    );
+    // Use authUser as the source of truth, but still support the fallback for UI development
+    const user = authUser || defaultUser;
+    const loading = authLoading;
 
     // Fallback/Mock for display if storage is empty
     const defaultUser = {
@@ -67,7 +60,6 @@ const ProfileScreen = ({ navigation }) => {
         ]
     };
 
-    const user = userData || defaultUser;
     const isBusiness = user.userType === 'business';
     const isProvider = user.userType === 'provider';
 
@@ -297,21 +289,21 @@ const ProfileScreen = ({ navigation }) => {
                         {/* Action Buttons */}
                         <View style={styles.actionButtons}>
                             {isBusiness ? (
-                                <NotionButton
+                                <AntigravityButton
                                     title="Post Event"
                                     icon="add-circle-outline"
                                     style={{ flex: 1, marginRight: SPACING.s }}
                                     onPress={() => navigation.navigate('CreateEvent')}
                                 />
                             ) : (
-                                <NotionButton
+                                <AntigravityButton
                                     title={isProvider ? "Manage" : "Edit Profile"}
                                     icon={isProvider ? "briefcase-outline" : "create-outline"}
                                     style={{ flex: 1, marginRight: SPACING.s }}
                                     onPress={() => navigation.navigate('EditProfile')}
                                 />
                             )}
-                            <NotionButton
+                            <AntigravityButton
                                 title={isBusiness ? "Analytics" : (isProvider ? "Share" : "Share")}
                                 icon={isBusiness ? "analytics-outline" : "share-outline"}
                                 variant="secondary"

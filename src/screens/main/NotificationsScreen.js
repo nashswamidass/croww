@@ -1,56 +1,70 @@
-import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import { SPACING, COLORS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { notificationService } from '../../services/notificationService';
 
 const NotificationsScreen = ({ navigation }) => {
-    const notifications = [
-        {
-            id: 1,
-            type: 'buddy_join',
-            title: 'Sarah joined your buddy group',
-            message: 'Sarah M. joined your group for Sunset Beach Party',
-            time: '5 min ago',
-            read: false,
-            icon: 'people',
-            color: COLORS.accent
-        },
-        {
-            id: 2,
-            type: 'event_reminder',
-            title: 'Event starting soon',
-            message: 'Tech Networking Mixer starts in 2 hours',
-            time: '1 hour ago',
-            read: false,
-            icon: 'time',
-            color: COLORS.accents.blue
-        },
-        {
-            id: 3,
-            type: 'friend_request',
-            title: 'New friend request',
-            message: 'Mike R. sent you a friend request',
-            time: '3 hours ago',
-            read: true,
-            icon: 'person-add',
-            color: COLORS.success
-        },
-        {
-            id: 4,
-            type: 'event_update',
-            title: 'Event updated',
-            message: 'Jazz in the Park venue has been changed',
-            time: '1 day ago',
-            read: true,
-            icon: 'information-circle',
-            color: COLORS.secondary
-        },
-    ];
+    const [notifications, setNotifications] = useState([]);
+    const [loading, setLoading] = useState(true);
 
-    const handleNotificationPress = (notification) => {
-        Alert.alert(notification.title, notification.message);
+    useEffect(() => {
+        const unsubscribe = notificationService.getNotifications((data) => {
+            setNotifications(data);
+            setLoading(false);
+        });
+        return () => unsubscribe();
+    }, []);
+
+    const handleNotificationPress = async (notification) => {
+        if (!notification.read) {
+            await notificationService.markAsRead(notification.id);
+        }
+
+        // Logic to navigate based on notification type
+        if (notification.data?.requestId) {
+            // Find the event ID for this request if possible, 
+            // or just navigate to EventBuddyScreen with a "search for request" logic
+            // For now, simpler: Alert with info
+            Alert.alert(notification.title, notification.message);
+        } else {
+            Alert.alert(notification.title, notification.message);
+        }
+    };
+
+    const handleMarkAllRead = async () => {
+        setLoading(true);
+        await notificationService.markAllAsRead();
+        setLoading(false);
+    };
+
+    const getIconDetails = (type) => {
+        switch (type) {
+            case 'buddy_request_join':
+                return { icon: 'person-add', color: COLORS.accent };
+            case 'buddy_request_approved':
+                return { icon: 'checkmark-circle', color: COLORS.success };
+            case 'event_reminder':
+                return { icon: 'time', color: COLORS.accents.blue };
+            case 'friend_request':
+                return { icon: 'person-add', color: COLORS.success };
+            default:
+                return { icon: 'notifications', color: COLORS.secondary };
+        }
+    };
+
+    const formatTime = (timestamp) => {
+        if (!timestamp) return '';
+        const date = timestamp.toDate ? timestamp.toDate() : new Date(timestamp);
+        const now = new Date();
+        const diffInSeconds = Math.floor((now - date) / 1000);
+
+        if (diffInSeconds < 60) return 'Just now';
+        if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+        if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+        return date.toLocaleDateString();
     };
 
     return (
@@ -63,8 +77,12 @@ const NotificationsScreen = ({ navigation }) => {
                 >
                     <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
-                <Typography variant="h2">Notifications</Typography>
-                <TouchableOpacity style={styles.markAllButton}>
+                <Typography variant="h2" style={{ flex: 1, marginLeft: SPACING.s }}>Notifications</Typography>
+                <TouchableOpacity
+                    style={styles.markAllButton}
+                    onPress={handleMarkAllRead}
+                    disabled={notifications.every(n => n.read)}
+                >
                     <Typography variant="small" style={{ color: COLORS.accent }}>
                         Mark all read
                     </Typography>
@@ -75,35 +93,40 @@ const NotificationsScreen = ({ navigation }) => {
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
-                {notifications.map((notification) => (
-                    <TouchableOpacity
-                        key={notification.id}
-                        style={[
-                            styles.notificationCard,
-                            !notification.read && styles.unreadCard
-                        ]}
-                        onPress={() => handleNotificationPress(notification)}
-                        activeOpacity={0.7}
-                    >
-                        <View style={[styles.iconContainer, { backgroundColor: notification.color + '20' }]}>
-                            <Ionicons name={notification.icon} size={24} color={notification.color} />
-                        </View>
-                        <View style={styles.notificationContent}>
-                            <View style={styles.notificationHeader}>
-                                <Typography variant="body" style={{ fontWeight: '600', flex: 1 }}>
-                                    {notification.title}
-                                </Typography>
-                                {!notification.read && <View style={styles.unreadDot} />}
+                {loading && notifications.length === 0 ? (
+                    <ActivityIndicator color={COLORS.accent} style={{ marginTop: 40 }} />
+                ) : notifications.map((notification) => {
+                    const { icon, color } = getIconDetails(notification.type);
+                    return (
+                        <TouchableOpacity
+                            key={notification.id}
+                            style={[
+                                styles.notificationCard,
+                                !notification.read && styles.unreadCard
+                            ]}
+                            onPress={() => handleNotificationPress(notification)}
+                            activeOpacity={0.7}
+                        >
+                            <View style={[styles.iconContainer, { backgroundColor: color + '20' }]}>
+                                <Ionicons name={icon} size={24} color={color} />
                             </View>
-                            <Typography variant="small" style={{ color: COLORS.secondary, marginTop: 4 }}>
-                                {notification.message}
-                            </Typography>
-                            <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: 4 }}>
-                                {notification.time}
-                            </Typography>
-                        </View>
-                    </TouchableOpacity>
-                ))}
+                            <View style={styles.notificationContent}>
+                                <View style={styles.notificationHeader}>
+                                    <Typography variant="body" style={{ fontWeight: '600', flex: 1 }}>
+                                        {notification.title}
+                                    </Typography>
+                                    {!notification.read && <View style={styles.unreadDot} />}
+                                </View>
+                                <Typography variant="small" style={{ color: COLORS.secondary, marginTop: 4 }}>
+                                    {notification.message}
+                                </Typography>
+                                <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: 4 }}>
+                                    {formatTime(notification.createdAt)}
+                                </Typography>
+                            </View>
+                        </TouchableOpacity>
+                    );
+                })}
 
                 {notifications.length === 0 && (
                     <View style={styles.emptyState}>
@@ -126,7 +149,6 @@ const NotificationsScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         padding: SPACING.m,
         borderBottomWidth: 1,

@@ -4,14 +4,15 @@ import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
+import AntigravityButton from '../../components/AntigravityButton';
 import { COLORS, BORDER_RADIUS, SPACING } from '../../constants/theme';
-import { EVENTS } from '../../data/mockEvents';
-import EventSummaryCard from '../../components/EventSummaryCard';
-import NotionButton from '../../components/NotionButton';
+import { eventService } from '../../services/eventService';
 import { DARK_MAP_STYLE } from '../../constants/mapStyle';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CITY_COORDINATES } from '../../constants/location';
+import EventSummaryCard from '../../components/EventSummaryCard';
 
 const MapScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
@@ -19,42 +20,50 @@ const MapScreen = ({ navigation }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [userLocation, setUserLocation] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [displayedEvents, setDisplayedEvents] = useState(EVENTS);
+    const [allEvents, setAllEvents] = useState([]);
+    const [displayedEvents, setDisplayedEvents] = useState([]);
     const [timeFilter, setTimeFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
-
-    const getLocalEvents = (lat, long) => {
-        return Array.from({ length: 3 }).map((_, i) => ({
-            id: `local-${i}`,
-            coordinate: {
-                latitude: lat + (Math.random() - 0.5) * 0.01,
-                longitude: long + (Math.random() - 0.5) * 0.01,
-            },
-            title: `Nearby Event #${i + 1}`,
-            category: "Party",
-            color: i % 2 === 0 ? COLORS.accents.pink : COLORS.accents.blue,
-            timestamp: new Date().toISOString()
-        }));
-    };
-
-    const [localEvents, setLocalEvents] = useState([]);
+    const [suggestions, setSuggestions] = useState([]);
+    const [searchingCity, setSearchingCity] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+    const [isLocationSearch, setIsLocationSearch] = useState(false);
+    const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     useEffect(() => {
-        (async () => {
+        const initializeMap = async () => {
             try {
+                // Fetch real events first
+                const events = await eventService.getEvents();
+                setAllEvents(events);
+
                 const cachedLocation = await AsyncStorage.getItem('userLocation');
                 if (cachedLocation) {
                     const coords = JSON.parse(cachedLocation);
                     setUserLocation(coords);
-                    setLocalEvents(getLocalEvents(coords.latitude, coords.longitude));
+                }
+
+                const manualCity = await AsyncStorage.getItem('manualCity');
+                if (manualCity && CITY_COORDINATES[manualCity]) {
+                    const coords = CITY_COORDINATES[manualCity];
+                    setUserLocation(coords);
+
+                    if (mapRef.current) {
+                        mapRef.current.animateToRegion({
+                            ...coords,
+                            latitudeDelta: 0.05,
+                            longitudeDelta: 0.05,
+                        }, 1000);
+                    }
+                    setLoading(false);
+                    return;
                 }
 
                 let { status } = await Location.requestForegroundPermissionsAsync();
                 if (status !== 'granted') {
                     if (!cachedLocation) {
-                        const fallback = { latitude: 37.77825, longitude: -122.4424 };
+                        const fallback = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai Fallback
                         setUserLocation(fallback);
-                        setLocalEvents(getLocalEvents(fallback.latitude, fallback.longitude));
                     }
                     setLoading(false);
                     return;
@@ -63,47 +72,40 @@ const MapScreen = ({ navigation }) => {
                 const lastKnown = await Location.getLastKnownPositionAsync({});
                 if (lastKnown && !cachedLocation) {
                     setUserLocation(lastKnown.coords);
-                    setLocalEvents(getLocalEvents(lastKnown.coords.latitude, lastKnown.coords.longitude));
                 }
 
-                Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced })
-                    .then(async (location) => {
-                        setUserLocation(location.coords);
-                        setLocalEvents(getLocalEvents(location.coords.latitude, location.coords.longitude));
-                        await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
+                const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+                setUserLocation(location.coords);
+                await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
 
-                        if (mapRef.current) {
-                            mapRef.current.animateToRegion({
-                                latitude: location.coords.latitude,
-                                longitude: location.coords.longitude,
-                                latitudeDelta: 0.01,
-                                longitudeDelta: 0.01,
-                            }, 1000);
-                        }
-                    })
-                    .catch(err => console.log("Background location refine failed:", err));
+                if (mapRef.current) {
+                    mapRef.current.animateToRegion({
+                        latitude: location.coords.latitude,
+                        longitude: location.coords.longitude,
+                        latitudeDelta: 0.05,
+                        longitudeDelta: 0.05,
+                    }, 1000);
+                }
 
             } catch (error) {
-                console.log("Location initialization error:", error);
-                const fallback = { latitude: 37.77825, longitude: -122.4424 };
-                if (!userLocation) {
-                    setUserLocation(fallback);
-                    setLocalEvents(getLocalEvents(fallback.latitude, fallback.longitude));
-                }
+                console.log("Map initialization error:", error);
+                const fallback = { latitude: 19.0760, longitude: 72.8777 };
+                if (!userLocation) setUserLocation(fallback);
             } finally {
                 setLoading(false);
             }
-        })();
+        };
+
+        initializeMap();
     }, []);
 
     useEffect(() => {
         if (!userLocation) return;
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-        const allPotentialEvents = [...EVENTS, ...localEvents];
 
-        const filtered = allPotentialEvents.filter(event => {
-            if (searchQuery) {
+        const filtered = allEvents.filter(event => {
+            if (searchQuery && !isLocationSearch) {
                 const query = searchQuery.toLowerCase();
                 const titleMatch = event.title?.toLowerCase().includes(query);
                 const categoryMatch = event.category?.toLowerCase().includes(query);
@@ -122,7 +124,62 @@ const MapScreen = ({ navigation }) => {
         });
 
         setDisplayedEvents(filtered);
-    }, [timeFilter, userLocation, searchQuery, localEvents]);
+    }, [timeFilter, userLocation, searchQuery, allEvents]);
+
+    const fetchSuggestions = async (text) => {
+        if (!text || text.length < 3) {
+            setSuggestions([]);
+            return;
+        }
+
+        setSearchingCity(true);
+        try {
+            const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${API_KEY}&components=country:in`;
+            const response = await fetch(url);
+            const data = await response.json();
+            if (data.status === 'OK') {
+                setSuggestions(data.predictions);
+            }
+        } catch (error) {
+            console.error('Map Autocomplete Error:', error);
+        } finally {
+            setSearchingCity(false);
+        }
+    };
+
+    const handleSelectSuggestion = async (placeId, description) => {
+        setSearchQuery(description);
+        setIsLocationSearch(true); // Mark as location search so we don't filter events by string
+        setSuggestions([]);
+        setShowSuggestions(false);
+        setLoading(true);
+
+        try {
+            const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${API_KEY}`;
+            const response = await fetch(url);
+            const data = await response.json();
+
+            if (data.status === 'OK') {
+                const { lat, lng } = data.result.geometry.location;
+                // Update userLocation state to focus on this new center (optional, but helps with distance calculations)
+                setUserLocation({ latitude: lat, longitude: lng });
+
+                const newRegion = {
+                    latitude: lat,
+                    longitude: lng,
+                    latitudeDelta: 0.1, // Zoom out slightly to see the city
+                    longitudeDelta: 0.1,
+                };
+                if (mapRef.current) {
+                    mapRef.current.animateToRegion(newRegion, 1000);
+                }
+            }
+        } catch (error) {
+            console.error('Map Place Details Error:', error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleSearch = async () => {
         if (!searchQuery.trim()) return;
@@ -140,15 +197,9 @@ const MapScreen = ({ navigation }) => {
                     longitudeDelta: 0.05,
                 };
 
-                // Update markers for the new location
-                setLocalEvents(getLocalEvents(latitude, longitude));
-
                 if (mapRef.current) {
                     mapRef.current.animateToRegion(newRegion, 1000);
                 }
-
-                // Trigger a refresh of displayedEvents
-                setDisplayedEvents(prev => [...prev]);
             } else {
                 Alert.alert("Location Not Found", "We couldn't find that place on the map.");
             }
@@ -165,8 +216,8 @@ const MapScreen = ({ navigation }) => {
             mapRef.current.animateToRegion({
                 latitude: userLocation.latitude,
                 longitude: userLocation.longitude,
-                latitudeDelta: 0.01,
-                longitudeDelta: 0.01,
+                latitudeDelta: 0.05,
+                longitudeDelta: 0.05,
             }, 800);
         }
 
@@ -177,15 +228,12 @@ const MapScreen = ({ navigation }) => {
             setUserLocation(location.coords);
             await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
 
-            // Refresh local events for current location
-            setLocalEvents(getLocalEvents(location.coords.latitude, location.coords.longitude));
-
             if (mapRef.current) {
                 mapRef.current.animateToRegion({
                     latitude: location.coords.latitude,
                     longitude: location.coords.longitude,
-                    latitudeDelta: 0.01,
-                    longitudeDelta: 0.01,
+                    latitudeDelta: 0.05,
+                    longitudeDelta: 0.05,
                 }, 800);
             }
         } catch (error) {
@@ -195,7 +243,7 @@ const MapScreen = ({ navigation }) => {
 
     const handleMarkerPress = (event) => setSelectedEvent(event);
     const handleMapPress = () => setSelectedEvent(null);
-    const handleDetails = (event) => navigation.navigate('EventDetail', { event });
+    const handleDetails = (event) => navigation.navigate('EventDetail', { id: event.id, event });
 
     if (loading) {
         return (
@@ -245,21 +293,51 @@ const MapScreen = ({ navigation }) => {
                         placeholder="Search events, cities, or places..."
                         placeholderTextColor={COLORS.secondary}
                         value={searchQuery}
-                        onChangeText={setSearchQuery}
+                        onChangeText={(text) => {
+                            setSearchQuery(text);
+                            setIsLocationSearch(false); // Reset to interactive filter mode
+                            setShowSuggestions(true);
+                            fetchSuggestions(text);
+                        }}
                         autoCapitalize="none"
                         autoCorrect={false}
                         returnKeyType="search"
                         onSubmitEditing={handleSearch}
                     />
-                    {searchQuery.length > 0 && (
+                    {(searchQuery.length > 0 || searchingCity) && (
                         <TouchableOpacity onPress={() => {
                             setSearchQuery('');
-                            // Optional: restore current location pins when clearing search
+                            setIsLocationSearch(false);
+                            setSuggestions([]);
+                            setShowSuggestions(false);
                         }}>
-                            <Ionicons name="close-circle" size={20} color={COLORS.secondary} />
+                            {searchingCity ? (
+                                <View style={{ padding: 4 }}>
+                                    <View style={{ width: 16, height: 16, borderRadius: 8, borderWidth: 2, borderColor: COLORS.accent, borderTopColor: 'transparent' }} />
+                                </View>
+                            ) : (
+                                <Ionicons name="close-circle" size={20} color={COLORS.secondary} />
+                            )}
                         </TouchableOpacity>
                     )}
                 </View>
+
+                {showSuggestions && suggestions.length > 0 && (
+                    <View style={styles.suggestionsContainer}>
+                        {suggestions.map((item) => (
+                            <TouchableOpacity
+                                key={item.place_id}
+                                style={styles.suggestionItem}
+                                onPress={() => handleSelectSuggestion(item.place_id, item.description)}
+                            >
+                                <Ionicons name="location-outline" size={18} color={COLORS.secondary} style={{ marginRight: SPACING.s }} />
+                                <Typography variant="body" numberOfLines={1} style={{ flex: 1 }}>
+                                    {item.description}
+                                </Typography>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                )}
             </View>
 
             <View style={styles.filterContainer}>
@@ -302,7 +380,7 @@ const MapScreen = ({ navigation }) => {
                     <Ionicons name="locate" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
 
-                <NotionButton
+                <AntigravityButton
                     title="+"
                     style={styles.fab}
                     onPress={() => navigation.navigate('CreateEvent')}
@@ -337,6 +415,27 @@ const styles = StyleSheet.create({
         fontSize: 16,
         paddingVertical: 0,
     },
+    suggestionsContainer: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.m,
+        marginTop: SPACING.s,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        maxHeight: 250,
+        overflow: 'hidden',
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 4 },
+        shadowOpacity: 0.2,
+        shadowRadius: 8,
+        elevation: 5,
+    },
+    suggestionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: SPACING.m,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
     filterContainer: {
         position: 'absolute',
         bottom: 280,
@@ -365,7 +464,7 @@ const styles = StyleSheet.create({
     },
     actionsContainer: {
         position: 'absolute',
-        bottom: 110,
+        bottom: 60,
         right: 20,
         gap: 16,
         alignItems: 'center',
@@ -381,10 +480,10 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
     },
     fab: {
-        width: 60,
-        minWidth: 60,
-        height: 60,
-        borderRadius: 30,
+        width: 48,
+        minWidth: 48,
+        height: 48,
+        borderRadius: 24,
         paddingHorizontal: 0,
     }
 });

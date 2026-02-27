@@ -1,226 +1,312 @@
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { BUDDY_REQUESTS } from '../data/mockBuddyRequests';
+import {
+    collection,
+    addDoc,
+    getDocs,
+    doc,
+    updateDoc,
+    query,
+    where,
+    orderBy,
+    serverTimestamp,
+    arrayUnion,
+    arrayRemove,
+    increment,
+    getDoc
+} from 'firebase/firestore';
+import { db, auth } from './firebaseConfig';
+import { userService } from './userService';
+import { chatService } from './chatService';
+import { notificationService } from './notificationService';
 
-/**
- * Mock Buddy Service
- * Manages event buddy requests for finding companions
- */
+const BUDDY_COLLECTION = 'buddy_requests';
+const JOIN_REQUESTS_COLLECTION = 'buddy_join_requests';
 
-let buddyRequestsStore = [...BUDDY_REQUESTS];
-const currentUserId = 'current-user'; // Mock current user
-
-/**
- * Get all buddy requests for an event
- * @param {number} eventId - Event ID
- * @param {Object} filters - Optional filters
- * @returns {Promise<Array>}
- */
 export const getBuddyRequests = async (eventId, filters = {}) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            let requests = buddyRequestsStore.filter(req => req.eventId === eventId);
+    try {
+        let q = query(
+            collection(db, BUDDY_COLLECTION),
+            where('eventId', '==', eventId),
+            where('status', '==', 'active'),
+            orderBy('createdAt', 'desc')
+        );
 
-            // Apply filters
-            if (filters.genderPreference && filters.genderPreference !== 'any') {
-                requests = requests.filter(req =>
-                    req.genderPreference === 'any' || req.genderPreference === filters.genderPreference
-                );
-            }
+        const snapshot = await getDocs(q);
+        let requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
 
-            if (filters.hasSpots) {
-                requests = requests.filter(req => req.spotsRemaining > 0);
-            }
+        // Client-side filtering for complex logic not easily done in Firestore index yet
+        if (filters.hasSpots) {
+            requests = requests.filter(req => req.spotsRemaining > 0);
+        }
 
-            // Sort by newest first
-            requests.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-
-            resolve(requests);
-        }, 300);
-    });
+        return requests;
+    } catch (error) {
+        console.error("Error fetching buddy requests:", error);
+        return [];
+    }
 };
 
-/**
- * Create a new buddy request
- * @param {number} eventId - Event ID
- * @param {Object} data - Request data
- * @returns {Promise<Object>}
- */
 export const createBuddyRequest = async (eventId, data) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const newRequest = {
-                id: `buddy-${Date.now()}`,
-                eventId,
-                userId: currentUserId,
-                userName: 'You',
-                userAvatar: 'https://i.pravatar.cc/150?img=20',
-                spotsAvailable: data.spotsAvailable,
-                spotsRemaining: data.spotsAvailable,
-                genderPreference: data.genderPreference || 'any',
-                message: data.message || '',
-                status: 'active',
-                createdAt: new Date().toISOString(),
-                joinedUsers: []
-            };
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Must be logged in");
 
-            buddyRequestsStore.push(newRequest);
+        // Get user details for the snapshot
+        const userProfile = await userService.getUser();
 
-            resolve({
-                success: true,
-                request: newRequest
+        const userName = userProfile?.name || user.email || 'Anonymous';
+
+        // 1. Create a group chat for this buddy request
+        // Group name could be "Event Buddy: [Event Name]" but we might not have event name here easily
+        // Let's just call it "[User]'s Buddy Group" for now
+        const chatName = `${userName}'s Buddy Group`;
+        const chatId = await chatService.createGroupChat(chatName, [user.uid]);
+
+        const memberSnapshot = {
+            uid: user.uid,
+            name: userName,
+            avatar: userProfile?.avatar || null
+        };
+
+        const docData = {
+            eventId,
+            userId: user.uid,
+            userName: userName,
+            userAvatar: userProfile?.avatar || null,
+            spotsAvailable: Number(data.spotsAvailable),
+            spotsRemaining: Number(data.spotsAvailable),
+            genderPreference: data.genderPreference || 'any',
+            message: data.message || '',
+            status: 'active',
+            joinedUsers: [user.uid],
+            memberSnapshots: [memberSnapshot],
+            chatId: chatId, // Link to the chat
+            createdAt: serverTimestamp()
+        };
+
+        const docRef = await addDoc(collection(db, BUDDY_COLLECTION), docData);
+        return { success: true, request: { id: docRef.id, ...docData } };
+    } catch (error) {
+        console.error("Error creating buddy request:", error);
+        return { success: false, message: error.message };
+    }
+};
+
+export const joinBuddyRequest = async (requestId, targetUserId = null) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Must be logged in");
+
+        const joiningUserId = targetUserId || user.uid;
+
+        const ref = doc(db, BUDDY_COLLECTION, requestId);
+        const requestSnapshot = await getDoc(ref);
+
+        if (!requestSnapshot.exists()) throw new Error("Request not found");
+
+        const requestData = requestSnapshot.data();
+
+        if (requestData.spotsRemaining <= 0) {
+            return { success: false, message: "Group is full" };
+        }
+
+        if (requestData.joinedUsers && requestData.joinedUsers.includes(joiningUserId)) {
+            return { success: false, message: "User is already in this group" };
+        }
+
+        // Get joining user details
+        const userProfile = targetUserId ? await userService.getUserById(targetUserId) : await userService.getUser();
+        const memberSnapshot = {
+            uid: joiningUserId,
+            name: userProfile?.name || 'User',
+            avatar: userProfile?.avatar || null
+        };
+
+        // Add to Chat
+        if (requestData.chatId) {
+            await chatService.addParticipant(requestData.chatId, joiningUserId);
+        }
+
+        await updateDoc(ref, {
+            joinedUsers: arrayUnion(joiningUserId),
+            memberSnapshots: arrayUnion(memberSnapshot),
+            spotsRemaining: increment(-1)
+        });
+
+        return { success: true, message: "You've joined the group!" };
+    } catch (error) {
+        console.error("Error joining:", error);
+        return { success: false, message: "Failed to join (Group might be full or error)" };
+    }
+};
+
+export const leaveBuddyRequest = async (requestId) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Must be logged in");
+
+        const ref = doc(db, BUDDY_COLLECTION, requestId);
+        const requestSnapshot = await getDoc(ref);
+
+        if (requestSnapshot.exists()) {
+            const requestData = requestSnapshot.data();
+            // Remove from Chat
+            if (requestData.chatId) {
+                await chatService.removeParticipant(requestData.chatId, user.uid);
+            }
+
+            // Find the member snapshot to remove
+            const memberSnapshots = requestData.memberSnapshots || [];
+            const memberToRemove = memberSnapshots.find(m => m.uid === user.uid);
+
+            await updateDoc(ref, {
+                joinedUsers: arrayRemove(user.uid),
+                memberSnapshots: memberToRemove ? arrayRemove(memberToRemove) : memberSnapshots,
+                spotsRemaining: increment(1)
             });
-        }, 500);
-    });
+        }
+
+        return { success: true, message: "You left the group" };
+    } catch (error) {
+        return { success: false, message: error.message };
+    }
+};
+
+export const getUserBuddyRequests = async (userId) => {
+    if (!userId && auth.currentUser) userId = auth.currentUser.uid;
+    if (!userId) return [];
+
+    try {
+        const q = query(
+            collection(db, BUDDY_COLLECTION),
+            where('userId', '==', userId)
+        );
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        return [];
+    }
 };
 
 /**
- * Join a buddy request
- * @param {string} requestId - Request ID
- * @param {string} userId - User ID (optional, defaults to current user)
- * @returns {Promise<Object>}
+ * Request to join a buddy group
  */
-export const joinBuddyRequest = async (requestId, userId = currentUserId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const request = buddyRequestsStore.find(req => req.id === requestId);
+export const requestToJoinBuddy = async (requestId, ownerId) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) throw new Error("Must be logged in");
 
-            if (!request) {
-                resolve({ success: false, message: 'Request not found' });
-                return;
-            }
+        // Get requester details
+        const userProfile = await userService.getUser();
 
-            if (request.spotsRemaining === 0) {
-                resolve({ success: false, message: 'Group is full' });
-                return;
-            }
+        const joinRequestData = {
+            buddyRequestId: requestId,
+            requesterId: user.uid,
+            requesterName: userProfile?.name || user.email || 'Anonymous',
+            requesterAvatar: userProfile?.avatar || null,
+            ownerId: ownerId,
+            status: 'pending',
+            createdAt: serverTimestamp()
+        };
 
-            if (request.joinedUsers.includes(userId)) {
-                resolve({ success: false, message: 'Already joined' });
-                return;
-            }
+        await addDoc(collection(db, JOIN_REQUESTS_COLLECTION), joinRequestData);
 
-            // Add user to group
-            request.joinedUsers.push(userId);
-            request.spotsRemaining--;
+        // Notify owner
+        await notificationService.sendNotification(
+            ownerId,
+            "New Buddy Request",
+            `${joinRequestData.requesterName} wants to join your buddy group!`,
+            { type: 'buddy_request_join', requestId: requestId }
+        );
 
-            // Update status if full
-            if (request.spotsRemaining === 0) {
-                request.status = 'full';
-            }
-
-            resolve({
-                success: true,
-                message: `You've joined ${request.userName}'s group!`,
-                request
-            });
-        }, 500);
-    });
+        return { success: true, message: "Request sent!" };
+    } catch (error) {
+        console.error("Error requesting to join:", error);
+        return { success: false, message: error.message };
+    }
 };
 
 /**
- * Leave a buddy request
- * @param {string} requestId - Request ID
- * @param {string} userId - User ID (optional, defaults to current user)
- * @returns {Promise<Object>}
+ * Approve a join request
  */
-export const leaveBuddyRequest = async (requestId, userId = currentUserId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const request = buddyRequestsStore.find(req => req.id === requestId);
+export const approveJoinRequest = async (joinRequestId) => {
+    try {
+        const joinRequestRef = doc(db, JOIN_REQUESTS_COLLECTION, joinRequestId);
+        const joinRequestSnap = await getDoc(joinRequestRef);
 
-            if (!request) {
-                resolve({ success: false, message: 'Request not found' });
-                return;
-            }
+        if (!joinRequestSnap.exists()) throw new Error("Join request not found");
 
-            if (!request.joinedUsers.includes(userId)) {
-                resolve({ success: false, message: 'Not in this group' });
-                return;
-            }
+        const joinData = joinRequestSnap.data();
 
-            // Remove user from group
-            request.joinedUsers = request.joinedUsers.filter(id => id !== userId);
-            request.spotsRemaining++;
-            request.status = 'active';
+        // Use existing join logi
+        const result = await joinBuddyRequest(joinData.buddyRequestId, joinData.requesterId);
 
-            resolve({
-                success: true,
-                message: 'You left the group',
-                request
-            });
-        }, 500);
-    });
-};
+        if (result.success) {
+            // Update join request status
+            await updateDoc(joinRequestRef, { status: 'approved' });
 
-/**
- * Cancel a buddy request (creator only)
- * @param {string} requestId - Request ID
- * @returns {Promise<Object>}
- */
-export const cancelBuddyRequest = async (requestId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const request = buddyRequestsStore.find(req => req.id === requestId);
-
-            if (!request) {
-                resolve({ success: false, message: 'Request not found' });
-                return;
-            }
-
-            if (request.userId !== currentUserId) {
-                resolve({ success: false, message: 'Not authorized' });
-                return;
-            }
-
-            request.status = 'cancelled';
-
-            resolve({
-                success: true,
-                message: 'Buddy request cancelled'
-            });
-        }, 500);
-    });
-};
-
-/**
- * Get user's active buddy requests
- * @param {string} userId - User ID (optional, defaults to current user)
- * @returns {Promise<Array>}
- */
-export const getUserBuddyRequests = async (userId = currentUserId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const requests = buddyRequestsStore.filter(req =>
-                req.userId === userId && req.status === 'active'
+            // Notify seeker
+            await notificationService.sendNotification(
+                joinData.requesterId,
+                "Request Approved! 🎊",
+                "Your request to join the buddy group was approved!",
+                { type: 'buddy_request_approved', requestId: joinData.buddyRequestId }
             );
-            resolve(requests);
-        }, 300);
-    });
+        }
+
+        return result;
+    } catch (error) {
+        console.error("Error approving join request:", error);
+        return { success: false, message: error.message };
+    }
 };
 
 /**
- * Check if user has joined a request
- * @param {string} requestId - Request ID
- * @param {string} userId - User ID (optional, defaults to current user)
- * @returns {boolean}
+ * Ignore a join request
  */
-export const hasJoinedRequest = (requestId, userId = currentUserId) => {
-    const request = buddyRequestsStore.find(req => req.id === requestId);
-    return request ? request.joinedUsers.includes(userId) : false;
+export const ignoreJoinRequest = async (joinRequestId) => {
+    try {
+        const joinRequestRef = doc(db, JOIN_REQUESTS_COLLECTION, joinRequestId);
+        await updateDoc(joinRequestRef, { status: 'ignored' });
+        return { success: true };
+    } catch (error) {
+        console.error("Error ignoring join request:", error);
+        return { success: false, message: error.message };
+    }
 };
 
 /**
- * Get buddy request count for an event
- * @param {number} eventId - Event ID
- * @returns {Promise<number>}
+ * Get join requests for a specific buddy request (owner view)
+ * or for the current user (my applications)
  */
-export const getBuddyRequestCount = async (eventId) => {
-    return new Promise((resolve) => {
-        setTimeout(() => {
-            const count = buddyRequestsStore.filter(req =>
-                req.eventId === eventId && req.status === 'active'
-            ).length;
-            resolve(count);
-        }, 100);
-    });
+export const getJoinRequests = async (buddyRequestId = null, status = 'pending', ownerId = null) => {
+    try {
+        const user = auth.currentUser;
+        if (!user) return [];
+
+        let q;
+        if (buddyRequestId) {
+            // Get requests for a specific buddy group (owner view)
+            // MUST include ownerId to satisfy security rules
+            const effectiveOwnerId = ownerId || user.uid;
+            q = query(
+                collection(db, JOIN_REQUESTS_COLLECTION),
+                where('buddyRequestId', '==', buddyRequestId),
+                where('ownerId', '==', effectiveOwnerId),
+                where('status', '==', status)
+            );
+        } else {
+            // Get requests I sent
+            q = query(
+                collection(db, JOIN_REQUESTS_COLLECTION),
+                where('requesterId', '==', user.uid),
+                where('status', '==', status)
+            );
+        }
+
+        const snapshot = await getDocs(q);
+        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+    } catch (error) {
+        console.error("Error fetching join requests:", error);
+        return [];
+    }
 };

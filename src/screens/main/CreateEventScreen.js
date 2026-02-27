@@ -1,36 +1,55 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Switch, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, Switch, Alert, TouchableOpacity, Platform, TextInput } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
+import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionInput from '../../components/NotionInput';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
 import ImagePickerButton from '../../components/ImagePickerButton';
+import GooglePlacesInput from '../../components/GooglePlacesInput';
 import { SPACING, COLORS } from '../../constants/theme';
 import { getVerificationStatus } from '../../services/verificationService';
 import { userService } from '../../services/userService';
+import { eventService } from '../../services/eventService';
+import { storageService } from '../../services/storageService';
 import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+const VERSION_HASH = "FIX_VER_999";
 
-const CreateEventScreen = ({ navigation }) => {
-    const [title, setTitle] = useState('');
-    const [category, setCategory] = useState('');
-    const [description, setDescription] = useState('');
-    const [date, setDate] = useState('');
-    const [locationName, setLocationName] = useState('');
-    const [eventCoords, setEventCoords] = useState(null);
-    const [eventImage, setEventImage] = useState(null);
-    const [isPublic, setIsPublic] = useState(false);
+const CreateEventScreen = ({ navigation, route }) => {
+    const editEvent = route.params?.event;
+    const isEditMode = !!editEvent;
+
+    const [title, setTitle] = useState(editEvent?.title || '');
+    const [category, setCategory] = useState(editEvent?.category || '');
+    const [description, setDescription] = useState(editEvent?.description || '');
+    const [date, setDate] = useState(editEvent?.date ? new Date(editEvent.date) : new Date());
+    const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showTimePicker, setShowTimePicker] = useState(false);
+    const [locationName, setLocationName] = useState(editEvent?.locationName || '');
+    const [eventCoords, setEventCoords] = useState(editEvent?.coordinate || null);
+    const [eventImage, setEventImage] = useState(editEvent?.imageUri || null);
+    const [isPublic, setIsPublic] = useState(editEvent?.isPublic || false);
     const [verificationStatus, setVerificationStatus] = useState(null);
     const [currentUser, setCurrentUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [saving, setSaving] = useState(false);
+    const [isPaid, setIsPaid] = useState(editEvent?.isPaid || false);
+    const [price, setPrice] = useState(editEvent?.price?.toString() || '');
+    const [maxTickets, setMaxTickets] = useState(editEvent?.maxTickets?.toString() || '');
+    const [movieName, setMovieName] = useState(editEvent?.movieName || '');
+    const [screenName, setScreenName] = useState(editEvent?.screenName || '');
+
+    const eventCategories = ['Party', 'Dinner', 'Movie', 'Concert', 'Workshop', 'Sports', 'Networking', 'Art', 'Nightlife', 'Other'];
 
     useEffect(() => {
         const init = async () => {
             const user = await userService.getUser();
             setCurrentUser(user);
-            if (user?.userType === 'business') {
-                setIsPublic(true);
-            }
+
+            // Removed strict business account restriction for hosting basic events
             checkVerification();
 
             // Fetch current location for event coordinates
@@ -56,42 +75,33 @@ const CreateEventScreen = ({ navigation }) => {
     };
 
     const handleVerificationChoice = () => {
-        Alert.alert(
-            'Choose Verification Method',
-            'Public events require verification to prevent spam',
-            [
-                {
-                    text: 'Aadhaar OTP',
-                    onPress: () => navigation.navigate('AadhaarVerification', {
-                        onVerified: (type) => {
-                            checkVerification();
-                        }
-                    })
-                },
-                {
-                    text: 'Business Verification',
-                    onPress: () => navigation.navigate('BusinessVerification', {
-                        onVerified: (type) => {
-                            checkVerification();
-                        }
-                    })
-                },
-                {
-                    text: 'Cancel',
-                    style: 'cancel'
+        const userType = currentUser?.userType;
+
+        // Business accounts go directly to business document verification
+        if (userType === 'business' || currentUser?.isBusiness) {
+            navigation.navigate('BusinessVerification', {
+                onVerified: (type) => {
+                    checkVerification();
                 }
-            ]
-        );
+            });
+            return;
+        }
+
+        // Providers and Individuals use Aadhaar verification
+        navigation.navigate('AadhaarVerification', {
+            onVerified: (type) => {
+                checkVerification();
+            }
+        });
     };
 
     const handlePublicToggle = (value) => {
         if (value) {
-            // Switching to public
+            // Switching to public — require actual verification approval
             const isVerified = verificationStatus?.aadhaarVerified || verificationStatus?.businessVerified;
             const isPending = verificationStatus?.businessPending;
-            const isBusiness = currentUser?.userType === 'business';
 
-            if (isVerified || isBusiness) {
+            if (isVerified) {
                 setIsPublic(true);
             } else if (isPending) {
                 Alert.alert(
@@ -114,44 +124,123 @@ const CreateEventScreen = ({ navigation }) => {
         }
     };
 
-    const handleCreate = () => {
+    const onDateChange = (event, selectedDate) => {
+        const currentDate = selectedDate || date;
+        setShowDatePicker(Platform.OS === 'ios');
+        setDate(currentDate);
+    };
+
+    const onTimeChange = (event, selectedTime) => {
+        const currentTime = selectedTime || date;
+        setShowTimePicker(Platform.OS === 'ios');
+        setDate(currentTime);
+    };
+
+    const formatDateDisplay = (date) => {
+        return date.toLocaleDateString('en-IN', {
+            day: 'numeric',
+            month: 'short',
+            year: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+        });
+    };
+
+    const handleSave = async () => {
         // Validate
         if (!title || !date) {
             Alert.alert('Missing Information', 'Please fill in the event title and date');
             return;
         }
 
-        const isBusiness = currentUser?.userType === 'business';
-        const isVerified = verificationStatus?.aadhaarVerified || verificationStatus?.businessVerified;
+        // Verification/account types govern public/paid event settings
 
-        if (isPublic && !isBusiness) {
-            if (!isVerified) {
-                Alert.alert('Verification Required', 'Please complete verification to create public events');
-                return;
-            }
+        const isBusiness = currentUser?.userType === 'business';
+        const isBusinessVerified = verificationStatus?.businessVerified;
+        const isAadhaarVerified = verificationStatus?.aadhaarVerified;
+
+        if (isPublic && !isAadhaarVerified && !isBusinessVerified) {
+            Alert.alert(
+                'Verification Required',
+                isBusiness
+                    ? 'Your business verification is pending or not yet submitted. Please complete verification to post public events.'
+                    : 'Only verified users can host public events. Please verify or set to Private.',
+                [{ text: 'OK' }]
+            );
+            return;
         }
 
-        // Create Event Object
-        const newEvent = {
-            id: 'event-' + Date.now(),
-            title,
-            category: category || (isBusiness ? currentUser.category : 'Party'),
-            date,
-            locationName: locationName || 'Nearby',
-            coordinate: eventCoords || { latitude: 37.78825, longitude: -122.4324 },
-            description,
-            attendees: 1,
-            imageUri: eventImage,
-            isPublic,
-            isOfficial: isBusiness,
-            organizerId: currentUser?.id,
-            organizerName: currentUser?.name,
-            verificationStatus: (isPublic && (isVerified || isBusiness)) ? 'verified' : 'none',
-            verificationType: isPublic ? (isBusiness ? 'business' : (verificationStatus?.aadhaarVerified ? 'aadhaar' : 'business')) : null
-        };
+        if (isPaid && !isBusinessVerified) {
+            Alert.alert(
+                'Business Verification Required',
+                'Only verified business accounts can host paid events with ticketing. Please complete business verification first.',
+                [{ text: 'OK' }]
+            );
+            return;
+        }
 
-        // Navigate to Detail
-        navigation.replace('EventDetail', { event: newEvent });
+        setSaving(true);
+        try {
+            let uploadedUri = eventImage;
+
+            // Handle image upload if it's a new image (local URI or blob/data)
+            if (eventImage && (
+                eventImage.startsWith('file://') ||
+                eventImage.startsWith('content://') ||
+                eventImage.startsWith('blob:') ||
+                eventImage.startsWith('data:')
+            )) {
+                try {
+                    uploadedUri = await storageService.uploadImage(eventImage, 'event_images');
+                } catch (uploadError) {
+                    console.error("Image upload failed:", uploadError);
+                    Alert.alert("Upload Failed", "Could not upload event image. Creating event without image.");
+                    uploadedUri = null;
+                }
+            }
+
+            // Create Event Object
+            const eventData = {
+                title,
+                category: category || (isEditMode ? editEvent.category : 'Party'),
+                date: date.toISOString(),
+                locationName: locationName || 'Nearby',
+                coordinate: eventCoords || { latitude: 37.78825, longitude: -122.4324 },
+                description,
+                imageUri: uploadedUri,
+                isPublic,
+                isOfficial: isEditMode ? editEvent.isOfficial : isBusinessVerified,
+                organizerId: currentUser?.id,
+                organizerName: currentUser?.name,
+                isPaid,
+                price: isPaid ? parseFloat(price) : 0,
+                maxTickets: parseInt(maxTickets) || 0,
+                movieName: category === 'Movie' ? movieName : null,
+                screenName: category === 'Movie' ? screenName : null,
+                verificationStatus: (isPublic && (isAadhaarVerified || isBusinessVerified)) ? 'verified' : 'none',
+                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isAadhaarVerified ? 'aadhaar' : null)) : null
+            };
+
+            if (isEditMode) {
+                await eventService.updateEvent(editEvent.id, eventData);
+                Alert.alert('Success', 'Event updated successfully!', [
+                    { text: 'OK', onPress: () => navigation.goBack() }
+                ]);
+            } else {
+                const createdEvent = {
+                    ...eventData,
+                    attendees: 1,
+                };
+                const result = await eventService.createEvent(createdEvent);
+                navigation.replace('EventDetail', { event: result });
+            }
+
+        } catch (error) {
+            console.error('Error saving event:', error);
+            Alert.alert('Error', `Failed to ${isEditMode ? 'update' : 'create'} event.`);
+        } finally {
+            setSaving(false);
+        }
     };
 
     const getVerificationText = () => {
@@ -171,15 +260,16 @@ const CreateEventScreen = ({ navigation }) => {
         <ScreenWrapper edges={['top', 'bottom']}>
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.header}>
-                    <Typography variant="h1">Host an Event</Typography>
+                    <Typography variant="h1">{isEditMode ? 'Edit Event' : 'Host an Event'}</Typography>
                     <Typography variant="body" style={{ color: COLORS.secondary }}>
-                        Create a public or private event and invite your friends.
+                        {isEditMode ? 'Update your event details.' : 'Create a public or private event and invite your friends.'}
                     </Typography>
                 </View>
 
                 <ImagePickerButton
                     onImageSelected={setEventImage}
                     currentImage={eventImage}
+                    aspectRatio={[3, 4]}
                 />
 
                 <NotionInput
@@ -189,25 +279,85 @@ const CreateEventScreen = ({ navigation }) => {
                     onChangeText={setTitle}
                 />
 
-                <NotionInput
-                    label="Category"
-                    placeholder="Party, Dinner, Hike..."
-                    value={category}
-                    onChangeText={setCategory}
-                />
+                {/* Category Selection */}
+                <View style={styles.inputSection}>
+                    <Typography variant="body" style={styles.label}>Category</Typography>
+                    <View style={styles.chipContainer}>
+                        {eventCategories.map((cat) => (
+                            <TouchableOpacity
+                                key={cat}
+                                style={[
+                                    styles.chip,
+                                    category === cat && styles.chipActive
+                                ]}
+                                onPress={() => setCategory(cat)}
+                            >
+                                <Typography
+                                    variant="small"
+                                    style={[
+                                        styles.chipText,
+                                        category === cat && styles.chipTextActive
+                                    ]}
+                                >
+                                    {cat}
+                                </Typography>
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
 
-                <NotionInput
-                    label="When?"
-                    placeholder="Tomorrow at 8 PM"
-                    value={date}
-                    onChangeText={setDate}
-                />
+                {/* Date and Time Selection */}
+                <View style={styles.inputSection}>
+                    <Typography variant="body" style={styles.label}>When?</Typography>
+                    <View style={styles.dateTimeRow}>
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowDatePicker(true)}
+                        >
+                            <Ionicons name="calendar-outline" size={20} color={COLORS.accent} />
+                            <Typography variant="body" style={styles.pickerButtonText}>
+                                {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
+                            </Typography>
+                        </TouchableOpacity>
 
-                <NotionInput
-                    label="Location Name"
-                    placeholder="e.g. The Grand Hotel or Central Park"
-                    value={locationName}
-                    onChangeText={setLocationName}
+                        <TouchableOpacity
+                            style={styles.pickerButton}
+                            onPress={() => setShowTimePicker(true)}
+                        >
+                            <Ionicons name="time-outline" size={20} color={COLORS.accent} />
+                            <Typography variant="body" style={styles.pickerButtonText}>
+                                {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
+                            </Typography>
+                        </TouchableOpacity>
+                    </View>
+
+                    {showDatePicker && (
+                        <DateTimePicker
+                            value={date}
+                            mode="date"
+                            display="default"
+                            onChange={onDateChange}
+                        />
+                    )}
+
+                    {showTimePicker && (
+                        <DateTimePicker
+                            value={date}
+                            mode="time"
+                            display="default"
+                            onChange={onTimeChange}
+                        />
+                    )}
+                </View>
+
+                <GooglePlacesInput
+                    label="Location Search"
+                    placeholder="Search for a venue or place..."
+                    initialValue={locationName}
+                    onSelect={(location) => {
+                        setLocationName(location.name);
+                        setEventCoords(location.coordinate);
+                    }}
                 />
 
                 <NotionInput
@@ -217,6 +367,79 @@ const CreateEventScreen = ({ navigation }) => {
                     onChangeText={setDescription}
                     style={{ height: 100 }}
                 />
+
+                {category === 'Movie' && (
+                    <NotionCard style={styles.movieSection}>
+                        <Typography variant="h3" style={{ marginBottom: SPACING.m }}>Movie Details</Typography>
+                        <NotionInput
+                            label="Name of Movie"
+                            placeholder="e.g. Inception"
+                            value={movieName}
+                            onChangeText={setMovieName}
+                        />
+                        <NotionInput
+                            label="Screen Name / Number"
+                            placeholder="e.g. Screen 4 or IMAX"
+                            value={screenName}
+                            onChangeText={setScreenName}
+                        />
+                    </NotionCard>
+                )}
+
+                {/* Ticketing Section (For Verified Business Users) */}
+                {verificationStatus?.businessVerified && (
+                    <NotionCard style={styles.ticketingCard}>
+                        <View style={styles.toggleRow}>
+                            <View style={{ flex: 1 }}>
+                                <Typography variant="body" style={{ fontWeight: '600' }}>
+                                    Ticketing
+                                </Typography>
+                                <Typography variant="caption" color={COLORS.secondary}>
+                                    Set price and capacity for your event
+                                </Typography>
+                            </View>
+                            <Switch
+                                value={isPaid}
+                                onValueChange={setIsPaid}
+                                trackColor={{ false: COLORS.border, true: COLORS.accent }}
+                                thumbColor={COLORS.primary}
+                            />
+                        </View>
+
+                        <View style={styles.ticketingInputs}>
+                            <View style={{ flex: 1, marginRight: SPACING.s }}>
+                                <Typography variant="small" style={styles.inputLabel}>
+                                    {isPaid ? 'Price (₹)' : 'Type'}
+                                </Typography>
+                                {isPaid ? (
+                                    <TextInput
+                                        style={styles.miniInput}
+                                        placeholder="0.00"
+                                        keyboardType="numeric"
+                                        value={price}
+                                        onChangeText={setPrice}
+                                        placeholderTextColor={COLORS.secondary}
+                                    />
+                                ) : (
+                                    <View style={[styles.miniInput, { backgroundColor: COLORS.surfaceHighlight }]}>
+                                        <Typography variant="body">Free</Typography>
+                                    </View>
+                                )}
+                            </View>
+                            <View style={{ flex: 1, marginLeft: SPACING.s }}>
+                                <Typography variant="small" style={styles.inputLabel}>Capacity</Typography>
+                                <TextInput
+                                    style={styles.miniInput}
+                                    placeholder="Total Passes"
+                                    keyboardType="numeric"
+                                    value={maxTickets}
+                                    onChangeText={setMaxTickets}
+                                    placeholderTextColor={COLORS.secondary}
+                                />
+                            </View>
+                        </View>
+                    </NotionCard>
+                )}
 
                 {/* Public/Private Toggle */}
                 <NotionCard style={styles.toggleCard}>
@@ -247,7 +470,7 @@ const CreateEventScreen = ({ navigation }) => {
                             Verification Status: {getVerificationText()}
                         </Typography>
                         {!verificationStatus?.aadhaarVerified && !verificationStatus?.businessVerified && (
-                            <NotionButton
+                            <AntigravityButton
                                 title="Get Verified"
                                 variant="secondary"
                                 onPress={handleVerificationChoice}
@@ -257,13 +480,15 @@ const CreateEventScreen = ({ navigation }) => {
                     </NotionCard>
                 )}
 
-                <NotionButton
-                    title="Create & Invite"
-                    onPress={handleCreate}
+                <AntigravityButton
+                    title={saving ? (isEditMode ? "Updating..." : "Creating...") : (isEditMode ? "Save Changes" : "Create & Invite")}
+                    disabled={saving}
+                    onPress={handleSave}
+                    loading={saving}
                     style={styles.button}
                 />
 
-                <NotionButton
+                <AntigravityButton
                     title="Cancel"
                     variant="secondary"
                     onPress={() => navigation.goBack()}
@@ -303,7 +528,87 @@ const styles = StyleSheet.create({
     cancelButton: {
         marginTop: SPACING.m,
         borderWidth: 0,
-    }
+    },
+    inputSection: {
+        marginBottom: SPACING.l,
+    },
+    label: {
+        fontWeight: '600',
+        marginBottom: SPACING.s,
+    },
+    chipContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.s,
+    },
+    chip: {
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 8,
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    chipActive: {
+        backgroundColor: COLORS.accent + '20',
+        borderColor: COLORS.accent,
+    },
+    chipText: {
+        color: COLORS.secondary,
+    },
+    chipTextActive: {
+        color: COLORS.accent,
+        fontWeight: 'bold',
+    },
+    dateTimeRow: {
+        flexDirection: 'row',
+        gap: SPACING.m,
+    },
+    pickerButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceHighlight,
+        padding: SPACING.m,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    pickerButtonText: {
+        marginLeft: SPACING.s,
+        color: COLORS.primary,
+    },
+    ticketingCard: {
+        marginBottom: SPACING.m,
+        padding: SPACING.m,
+    },
+    ticketingInputs: {
+        flexDirection: 'row',
+        marginTop: SPACING.m,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        paddingTop: SPACING.m,
+    },
+    inputLabel: {
+        color: COLORS.secondary,
+        marginBottom: 4,
+    },
+    miniInput: {
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: 8,
+        padding: 10,
+        height: 45,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        color: COLORS.primary,
+    },
+    movieSection: {
+        marginTop: SPACING.m,
+        padding: SPACING.m,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderColor: COLORS.accent,
+        borderWidth: 1,
+    },
 });
 
 export default CreateEventScreen;

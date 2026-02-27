@@ -2,9 +2,9 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
-import ImagePickerButton from '../../components/ImagePickerButton';
+import MultiDocumentPicker from '../../components/MultiDocumentPicker';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { submitBusinessVerification } from '../../services/verificationService';
 
@@ -13,7 +13,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
 
     const [businessName, setBusinessName] = useState('');
     const [registrationNumber, setRegistrationNumber] = useState('');
-    const [documentImage, setDocumentImage] = useState(null);
+    const [documents, setDocuments] = useState([]);
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
@@ -22,8 +22,8 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
             return;
         }
 
-        if (!documentImage) {
-            Alert.alert('Document Required', 'Please upload your business registration document');
+        if (documents.length === 0) {
+            Alert.alert('Documents Required', 'Please upload at least one business registration document');
             return;
         }
 
@@ -32,11 +32,9 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
         const businessData = {
             businessName,
             registrationNumber,
-            documentUri: documentImage,
-            submittedAt: new Date().toISOString()
         };
 
-        const result = await submitBusinessVerification(businessData);
+        const result = await submitBusinessVerification(businessData, documents);
         setLoading(false);
 
         if (result.success) {
@@ -76,7 +74,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                         • Business Registration Certificate{'\n'}
                         • GST Certificate{'\n'}
                         • Trade License{'\n'}
-                        (Any one of the above)
+                        (Upload up to 3 documents, Images or PDFs)
                     </Typography>
                 </NotionCard>
 
@@ -102,9 +100,10 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                     />
                 </View>
 
-                <ImagePickerButton
-                    onImageSelected={setDocumentImage}
-                    currentImage={documentImage}
+                <MultiDocumentPicker
+                    onDocumentsChange={setDocuments}
+                    initialDocuments={documents}
+                    maxDocuments={3}
                 />
 
                 <NotionCard style={[styles.infoCard, { backgroundColor: COLORS.accent + '20' }]}>
@@ -113,14 +112,14 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                     </Typography>
                 </NotionCard>
 
-                <NotionButton
+                <AntigravityButton
                     title={loading ? "Submitting..." : "Submit for Review"}
                     onPress={handleSubmit}
                     disabled={loading}
                     style={styles.button}
                 />
 
-                <NotionButton
+                <AntigravityButton
                     title="Cancel"
                     variant="secondary"
                     onPress={() => navigation.goBack()}

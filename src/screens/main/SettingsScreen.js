@@ -1,20 +1,97 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, Switch } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Linking } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { showAlert } from '../../utils/showAlert';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { authService } from '../../services/authService';
+import { useAuth } from '../../context/AuthContext';
+
+const SETTINGS_KEY = '@croww_user_settings';
 
 const SettingsScreen = ({ navigation }) => {
+    const { user: currentUser } = useAuth();
     const [pushNotifications, setPushNotifications] = useState(true);
     const [emailNotifications, setEmailNotifications] = useState(false);
     const [locationServices, setLocationServices] = useState(true);
-    const [privateProfile, setPrivateProfile] = useState(false);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
+
+    // Load saved settings on mount
+    useEffect(() => {
+        loadSettings();
+    }, []);
+
+    // Persist settings whenever they change (after initial load)
+    useEffect(() => {
+        if (settingsLoaded) {
+            saveSettings();
+        }
+    }, [pushNotifications, emailNotifications, locationServices, settingsLoaded]);
+
+    const loadSettings = async () => {
+        try {
+            const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                setPushNotifications(parsed.pushNotifications ?? true);
+                setEmailNotifications(parsed.emailNotifications ?? false);
+                setLocationServices(parsed.locationServices ?? true);
+            }
+        } catch (err) {
+            console.error('Error loading settings:', err);
+        } finally {
+            setSettingsLoaded(true);
+        }
+    };
+
+    const saveSettings = async () => {
+        try {
+            await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({
+                pushNotifications,
+                emailNotifications,
+                locationServices,
+            }));
+        } catch (err) {
+            console.error('Error saving settings:', err);
+        }
+    };
+
+    const handleTogglePushNotifications = (value) => {
+        setPushNotifications(value);
+        if (value) {
+            showAlert('Push Notifications', 'Push notifications have been enabled.');
+        } else {
+            showAlert('Push Notifications', 'Push notifications have been disabled. You can re-enable them anytime.');
+        }
+    };
+
+    const handleToggleEmailNotifications = (value) => {
+        setEmailNotifications(value);
+        if (value) {
+            showAlert('Email Notifications', 'You will now receive email updates about events and your account.');
+        } else {
+            showAlert('Email Notifications', 'Email notifications have been turned off.');
+        }
+    };
+
+    const handleToggleLocationServices = (value) => {
+        setLocationServices(value);
+        if (value) {
+            showAlert('Location Services', 'Location access enabled. You can now discover events near you.');
+        } else {
+            showAlert(
+                'Location Disabled',
+                'Location services have been turned off. Event distances and nearby recommendations won\'t be available.\n\nTo manage system-level location permissions, go to your device Settings.',
+            );
+        }
+    };
 
     const handleLogout = () => {
-        Alert.alert(
+        showAlert(
             'Log Out',
             'Are you sure you want to log out?',
             [
@@ -22,24 +99,42 @@ const SettingsScreen = ({ navigation }) => {
                 {
                     text: 'Log Out',
                     style: 'destructive',
-                    onPress: () => navigation.replace('Auth')
+                    onPress: async () => {
+                        try {
+                            await authService.logout();
+                        } catch (e) {
+                            console.error('Logout error:', e);
+                        }
+                    }
                 }
             ]
         );
     };
 
     const handleDeleteAccount = () => {
-        Alert.alert(
+        showAlert(
             'Delete Account',
-            'This action cannot be undone. All your data will be permanently deleted.',
+            'This action cannot be undone. All your data will be permanently deleted. You will be logged out and your data will be removed from our servers.',
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
-                    text: 'Delete',
+                    text: 'Delete Permanently',
                     style: 'destructive',
-                    onPress: () => {
-                        Alert.alert('Account Deleted', 'Your account has been deleted');
-                        navigation.replace('Auth');
+                    onPress: async () => {
+                        try {
+                            await authService.deleteAccount();
+                            showAlert('Account Deleted', 'Your account and data have been permanently removed.');
+                        } catch (e) {
+                            console.error('Delete account error:', e);
+                            if (e.code === 'auth/requires-recent-login') {
+                                showAlert(
+                                    'Re-authentication Required',
+                                    'For security reasons, you need to have recently logged in to delete your account. Please log out and log back in, then try again.'
+                                );
+                            } else {
+                                showAlert('Error', 'Failed to delete account. Please try again or contact support.');
+                            }
+                        }
                     }
                 }
             ]
@@ -109,14 +204,15 @@ const SettingsScreen = ({ navigation }) => {
                             icon="shield-checkmark-outline"
                             title="Verification"
                             subtitle="Verify your account"
-                            onPress={() => navigation.navigate('AadhaarVerification')}
-                        />
-                        <View style={styles.divider} />
-                        <SettingItem
-                            icon="lock-closed-outline"
-                            title="Privacy"
-                            subtitle="Manage your privacy settings"
-                            onPress={() => navigation.navigate('Privacy')}
+                            onPress={() => {
+                                // Only business accounts use document-based verification
+                                // Individuals and Providers use Aadhaar verification
+                                if (currentUser?.userType === 'business' || currentUser?.isBusiness) {
+                                    navigation.navigate('BusinessVerification');
+                                } else {
+                                    navigation.navigate('AadhaarVerification');
+                                }
+                            }}
                         />
                     </NotionCard>
                 </View>
@@ -134,7 +230,7 @@ const SettingsScreen = ({ navigation }) => {
                             rightElement={
                                 <Switch
                                     value={pushNotifications}
-                                    onValueChange={setPushNotifications}
+                                    onValueChange={handleTogglePushNotifications}
                                     trackColor={{ false: COLORS.border, true: COLORS.accent }}
                                     thumbColor={COLORS.primary}
                                 />
@@ -148,7 +244,7 @@ const SettingsScreen = ({ navigation }) => {
                             rightElement={
                                 <Switch
                                     value={emailNotifications}
-                                    onValueChange={setEmailNotifications}
+                                    onValueChange={handleToggleEmailNotifications}
                                     trackColor={{ false: COLORS.border, true: COLORS.accent }}
                                     thumbColor={COLORS.primary}
                                 />
@@ -170,21 +266,7 @@ const SettingsScreen = ({ navigation }) => {
                             rightElement={
                                 <Switch
                                     value={locationServices}
-                                    onValueChange={setLocationServices}
-                                    trackColor={{ false: COLORS.border, true: COLORS.accent }}
-                                    thumbColor={COLORS.primary}
-                                />
-                            }
-                        />
-                        <View style={styles.divider} />
-                        <SettingItem
-                            icon="eye-off-outline"
-                            title="Private Profile"
-                            subtitle="Only friends can see your profile"
-                            rightElement={
-                                <Switch
-                                    value={privateProfile}
-                                    onValueChange={setPrivateProfile}
+                                    onValueChange={handleToggleLocationServices}
                                     trackColor={{ false: COLORS.border, true: COLORS.accent }}
                                     thumbColor={COLORS.primary}
                                 />
@@ -216,13 +298,29 @@ const SettingsScreen = ({ navigation }) => {
                         <SettingItem
                             icon="document-text-outline"
                             title="Terms of Service"
-                            onPress={() => { }}
+                            subtitle="Our terms and conditions"
+                            onPress={() => navigation.navigate('LegalPolicy', { type: 'terms' })}
                         />
                         <View style={styles.divider} />
                         <SettingItem
                             icon="shield-outline"
                             title="Privacy Policy"
-                            onPress={() => { }}
+                            subtitle="How we handle your data"
+                            onPress={() => navigation.navigate('LegalPolicy', { type: 'privacy' })}
+                        />
+                        <View style={styles.divider} />
+                        <SettingItem
+                            icon="lock-closed-outline"
+                            title="Security Policy"
+                            subtitle="How we protect your information"
+                            onPress={() => navigation.navigate('LegalPolicy', { type: 'security' })}
+                        />
+                        <View style={styles.divider} />
+                        <SettingItem
+                            icon="card-outline"
+                            title="Refund Policy"
+                            subtitle="Our refund terms"
+                            onPress={() => navigation.navigate('LegalPolicy', { type: 'refund' })}
                         />
                     </NotionCard>
                 </View>
@@ -247,14 +345,14 @@ const SettingsScreen = ({ navigation }) => {
 
                 {/* Danger Zone */}
                 <View style={styles.section}>
-                    <NotionButton
+                    <AntigravityButton
                         title="Log Out"
                         variant="secondary"
                         icon="log-out-outline"
                         onPress={handleLogout}
                         style={{ marginBottom: SPACING.m }}
                     />
-                    <NotionButton
+                    <AntigravityButton
                         title="Delete Account"
                         variant="secondary"
                         icon="trash-outline"

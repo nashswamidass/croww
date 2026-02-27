@@ -1,0 +1,252 @@
+
+> croww-app@1.0.0 lint
+> expo lint
+
+env: load .env
+env: export EXPO_PUBLIC_FIREBASE_API_KEY EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN EXPO_PUBLIC_FIREBASE_PROJECT_ID EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID EXPO_PUBLIC_FIREBASE_APP_ID EXPO_PUBLIC_GOOGLE_MAPS_API_KEY EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID EXPO_PUBLIC_CASHFREE_ENV EXPO_PUBLIC_CASHFREE_APP_URL
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/BuddyRequestCard.js
+  75:29  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+  75:47  error  `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/EventSummaryCard.js
+  2:28  warning  'Animated' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/GooglePlacesInput.js
+   50:8  warning  React Hook useEffect has a missing dependency: 'mapsReady'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+  107:8  warning  React Hook useEffect has a missing dependency: 'showSuggestions'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/ScreenWrapper.js
+  4:18  warning  'SPACING' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/SuccessOverlay.js
+  45:8  warning  React Hook useEffect has missing dependencies: 'onAnimationComplete', 'opacity', and 'scale'. Either include them or remove the dependency array. If 'onAnimationComplete' changes too often, find the parent component that defines it and wrap that definition in useCallback  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/components/TabBarIcon.js
+  2:10  warning  'View' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/navigation/AppNavigator.js
+    2:22  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times         import/no-duplicates
+    6:18  warning  'SHADOWS' is defined but never used                                                                              no-unused-vars
+   11:45  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times         import/no-duplicates
+  221:8   warning  React Hook useEffect has a missing dependency: 'initializing'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/auth/LoginScreen.js
+    1:27  warning  'useRef' is defined but never used                               no-unused-vars
+    2:60  warning  'ActivityIndicator' is defined but never used                    no-unused-vars
+    3:10  warning  'PhoneAuthProvider' is defined but never used                    no-unused-vars
+    3:29  warning  'signInWithCredential' is defined but never used                 no-unused-vars
+    4:10  warning  'doc' is defined but never used                                  no-unused-vars
+    4:15  warning  'setDoc' is defined but never used                               no-unused-vars
+    4:23  warning  'getDoc' is defined but never used                               no-unused-vars
+    4:31  warning  'serverTimestamp' is defined but never used                      no-unused-vars
+    9:27  warning  'BORDER_RADIUS' is defined but never used                        no-unused-vars
+   10:10  warning  'auth' is defined but never used                                 no-unused-vars
+   10:16  warning  'db' is defined but never used                                   no-unused-vars
+   11:10  warning  'userService' is defined but never used                          no-unused-vars
+   13:10  warning  'getRandomAvatar' is defined but never used                      no-unused-vars
+  145:58  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/BlockedUsersScreen.js
+  64:38  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/BuddyRequestDetailScreen.js
+   41:8   warning  React Hook useEffect has a missing dependency: 'navigation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   60:8   warning  React Hook useEffect has a missing dependency: 'requestId'. Either include it or remove the dependency array   react-hooks/exhaustive-deps
+  169:29  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                react/no-unescaped-entities
+  169:73  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                                react/no-unescaped-entities
+  431:24  error    'Platform' is not defined                                                                                      no-undef
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ChatListScreen.js
+  6:27  warning  'BORDER_RADIUS' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ChatScreen.js
+    2:28  warning  'ScrollView' is defined but never used                                                                                                                                                                                                                                                                                             no-unused-vars
+    9:27  warning  'BORDER_RADIUS' is defined but never used                                                                                                                                                                                                                                                                                          no-unused-vars
+    9:42  warning  'SHADOWS' is defined but never used                                                                                                                                                                                                                                                                                                no-unused-vars
+  101:8   warning  React Hook useEffect has missing dependencies: 'navigation', 'recipientName', and 'route.params.chatId'. Either include them or remove the dependency array. If 'setChatId' needs the current value of 'route.params.chatId', you can also switch to useReducer instead of useState and read 'route.params.chatId' in the reducer  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/CreateBookingScreen.js
+  66:8  warning  React Hook useEffect has a missing dependency: 'finalizeBooking'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/CreateBuddyRequestScreen.js
+    8:42  warning  'SHADOWS' is defined but never used                                               no-unused-vars
+   45:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  132:65  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                   react/no-unescaped-entities
+  169:33  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                   react/no-unescaped-entities
+  169:43  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                   react/no-unescaped-entities
+  179:84  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                   react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/CreateEventScreen.js
+   19:7   warning  'VERSION_HASH' is assigned a value but never used       no-unused-vars
+   37:12  warning  'loading' is assigned a value but never used            no-unused-vars
+   37:21  warning  'setLoading' is assigned a value but never used         no-unused-vars
+  148:11  warning  'formatDateDisplay' is assigned a value but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EditProfileScreen.js
+   6:8   warning  'NotionCard' is defined but never used              no-unused-vars
+  30:12  warning  'photoURL' is assigned a value but never used       no-unused-vars
+  59:11  warning  'INDIAN_CITIES' is assigned a value but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EventBuddyScreen.js
+  27:8  warning  React Hook useEffect has a missing dependency: 'loadBuddyRequests'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EventDetailScreen.js
+    8:8   warning  'VerificationBadge' is defined but never used                                                                                    no-unused-vars
+   17:16  warning  'db' is defined but never used                                                                                                   no-unused-vars
+   26:11  warning  'insets' is assigned a value but never used                                                                                      no-unused-vars
+   55:40  error    'eventService' is not defined                                                                                                    no-undef
+   71:8   warning  React Hook useEffect has missing dependencies: 'eventData' and 'navigation'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+  138:8   warning  React Hook useEffect has a missing dependency: 'finalizeTicketPurchase'. Either include it or remove the dependency array        react-hooks/exhaustive-deps
+  160:18  error    'ActivityIndicator' is not defined                                                                                               react/jsx-no-undef
+  228:11  warning  'toggleRSVP' is assigned a value but never used                                                                                  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EventListScreen.js
+  6:8  warning  'NotionCard' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EventSearchScreen.js
+   2:71  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+  10:10  warning  'ActivityIndicator' is defined but never used                                                             no-unused-vars
+  10:35  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+  17:12  warning  'loading' is assigned a value but never used                                                              no-unused-vars
+  65:54  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                           react/no-unescaped-entities
+  65:68  error    `"` can be escaped with `&quot;`, `&ldquo;`, `&#34;`, `&rdquo;`                                           react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/EventStatsScreen.js
+   2:77  warning  'FlatList' is defined but never used                                                                          no-unused-vars
+   7:27  warning  'BORDER_RADIUS' is defined but never used                                                                     no-unused-vars
+  17:8   warning  React Hook useEffect has a missing dependency: 'loadStats'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/FriendRequestsScreen.js
+   7:27  warning  'BORDER_RADIUS' is defined but never used                                         no-unused-vars
+  48:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  61:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/FriendsListScreen.js
+  24:8  warning  React Hook useEffect has a missing dependency: 'loadFriends'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/HomeScreen.js
+    2:88  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+   10:8   warning  'VerificationBadge' is defined but never used                                                             no-unused-vars
+   17:39  warning  '/Users/nashnewton/Documents/Croww/croww-app/node_modules/react-native/index.js' imported multiple times  import/no-duplicates
+  613:5   error    Duplicate key 'compactCta'                                                                                no-dupe-keys
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/InquiryListScreen.js
+  7:27  warning  'BORDER_RADIUS' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/LandingScreen.js
+  2:84  warning  'Platform' is defined but never used  no-unused-vars
+  7:42  warning  'SHADOWS' is defined but never used   no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ManageEventsScreen.js
+  97:34  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ManagePackagesScreen.js
+   9:27  warning  'BORDER_RADIUS' is defined but never used                                         no-unused-vars
+  14:12  warning  'loading' is assigned a value but never used                                      no-unused-vars
+  63:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  83:34  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ManageStaffScreen.js
+   8:27  warning  'BORDER_RADIUS' is defined but never used                                         no-unused-vars
+  59:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+  81:34  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/MapScreen.js
+  100:8  warning  React Hook useEffect has a missing dependency: 'userLocation'. Either include it or remove the dependency array      react-hooks/exhaustive-deps
+  127:8  warning  React Hook useEffect has a missing dependency: 'isLocationSearch'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/MapScreen.web.js
+   1:51  warning  'useRef' is defined but never used                    no-unused-vars
+   2:57  warning  'Platform' is defined but never used                  no-unused-vars
+   3:45  warning  'InfoWindow' is defined but never used                no-unused-vars
+   7:8   warning  'ScreenWrapper' is defined but never used             no-unused-vars
+  33:12  warning  'currentPosition' is assigned a value but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/MyTicketsScreen.js
+    2:10  warning  'useFocusEffect' is defined but never used                                                                           no-unused-vars
+   65:8   warning  React Hook React.useEffect has a missing dependency: 'navigation'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  153:38  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`                                                      react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/NotificationsScreen.js
+  138:32  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ProfileScreen.js
+    2:74  warning  'Platform' is defined but never used                             no-unused-vars
+   19:11  warning  'insets' is assigned a value but never used                      no-unused-vars
+   22:12  warning  'loading' is assigned a value but never used                     no-unused-vars
+   60:13  error    Duplicate key 'eventsAttended'                                   no-dupe-keys
+  150:65  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+  150:76  error    `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/SearchScreen.js
+   38:12  warning  'loading' is assigned a value but never used                                                                          no-unused-vars
+  121:8   warning  React Hook useEffect has a missing dependency: 'enabledCategories'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/ServiceDetailScreen.js
+    9:42  warning  'SHADOWS' is defined but never used  no-unused-vars
+  151:28  error    'Platform' is not defined            no-undef
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/SettingsScreen.js
+   2:66  warning  'Platform' is defined but never used                                                                             no-unused-vars
+   2:76  warning  'Linking' is defined but never used                                                                              no-unused-vars
+   9:27  warning  'BORDER_RADIUS' is defined but never used                                                                        no-unused-vars
+  31:8   warning  React Hook useEffect has a missing dependency: 'saveSettings'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/TicketDetailScreen.js
+  7:27  warning  'BORDER_RADIUS' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/TicketScannerScreen.js
+   7:8   warning  'NotionCard' is defined but never used                                                                                no-unused-vars
+   8:27  warning  'BORDER_RADIUS' is defined but never used                                                                             no-unused-vars
+  15:12  warning  'scanResult' is assigned a value but never used                                                                       no-unused-vars
+  21:8   warning  React Hook useEffect has a missing dependency: 'requestPermission'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  54:18  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u                                      no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/main/WebPaymentScreen.js
+   2:57  warning  'ScrollView' is defined but never used                                                                                                             no-unused-vars
+   7:10  warning  'showAlert' is defined but never used                                                                                                              no-unused-vars
+  57:26  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u                                                                       no-unused-vars
+  64:8   warning  React Hook useEffect has missing dependencies: 'handlePaymentSuccess' and 'initializePayment'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/verification/AadhaarVerificationScreen.js
+  11:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  12:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  13:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  14:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  15:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  16:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  17:1  warning  Import in body of module; reorder to top                                                                                                    import/first
+  81:8  warning  React Hook React.useEffect has missing dependencies: 'handleFinalize' and 'navigation'. Either include them or remove the dependency array  react-hooks/exhaustive-deps
+
+/Users/nashnewton/Documents/Croww/croww-app/src/screens/verification/BusinessVerificationScreen.js
+  112:79  error  `'` can be escaped with `&apos;`, `&lsquo;`, `&#39;`, `&rsquo;`  react/no-unescaped-entities
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/bookingService.js
+  5:5  warning  'getDoc' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/buddyService.js
+  185:14  warning  'error' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/eventService.js
+  124:19  error  'updateDoc' is not defined  no-undef
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/friendService.js
+    6:5   warning  'updateDoc' is defined but never used           no-unused-vars
+  117:19  warning  'myUserRef' is assigned a value but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/pushNotificationService.js
+  24:18  warning  'e' is defined but never used. Allowed unused caught errors must match /^_/u  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/reviewService.js
+  10:5  warning  'getDoc' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/userService.js
+  10:5  warning  'or' is defined but never used  no-unused-vars
+
+/Users/nashnewton/Documents/Croww/croww-app/src/services/verificationService.js
+  2:10  warning  'Platform' is defined but never used  no-unused-vars
+
+✖ 142 problems (25 errors, 117 warnings)
+  0 errors and 10 warnings potentially fixable with the `--fix` option.
+

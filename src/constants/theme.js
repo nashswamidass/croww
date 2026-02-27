@@ -10,8 +10,8 @@ export const COLORS = {
   secondary: '#A0A0A0',        // Muted text
 
   // Accents (Neon/Vibrant)
-  accent: '#00D9FF',           // Cyan (Primary CTA)
-  accentDark: '#00A3CC',       // Darker cyan for pressed states
+  accent: '#C1FF72',           // Logo Green (Primary CTA)
+  accentDark: '#A3E635',       // Darker lime/green for pressed states
   success: '#00FF88',          // Green for success/verified
 
   // Event Category Colors

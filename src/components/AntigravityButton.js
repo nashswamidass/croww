@@ -4,7 +4,7 @@ import Typography from './Typography';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
-const NotionButton = ({
+const AntigravityButton = ({
     title,
     onPress,
     variant = 'primary',
@@ -84,4 +84,4 @@ const styles = StyleSheet.create({
     },
 });
 
-export default NotionButton;
+export default AntigravityButton;

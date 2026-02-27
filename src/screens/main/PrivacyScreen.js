@@ -7,12 +7,9 @@ import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 
 const PrivacyScreen = ({ navigation }) => {
-    const [showOnlineStatus, setShowOnlineStatus] = useState(true);
-    const [showLastSeen, setShowLastSeen] = useState(false);
     const [allowTagging, setAllowTagging] = useState(true);
     const [showEventsAttended, setShowEventsAttended] = useState(true);
     const [allowBuddyRequests, setAllowBuddyRequests] = useState(true);
-    const [showFriendsList, setShowFriendsList] = useState(true);
 
     const PrivacyItem = ({ icon, title, subtitle, value, onValueChange }) => (
         <View style={styles.privacyItem}>
@@ -58,38 +55,6 @@ const PrivacyScreen = ({ navigation }) => {
                 contentContainerStyle={styles.content}
                 showsVerticalScrollIndicator={false}
             >
-                {/* Profile Visibility */}
-                <View style={styles.section}>
-                    <Typography variant="h3" style={styles.sectionTitle}>
-                        Profile Visibility
-                    </Typography>
-                    <NotionCard style={styles.card}>
-                        <PrivacyItem
-                            icon="eye-outline"
-                            title="Show Online Status"
-                            subtitle="Let others see when you're online"
-                            value={showOnlineStatus}
-                            onValueChange={setShowOnlineStatus}
-                        />
-                        <View style={styles.divider} />
-                        <PrivacyItem
-                            icon="time-outline"
-                            title="Show Last Seen"
-                            subtitle="Display when you were last active"
-                            value={showLastSeen}
-                            onValueChange={setShowLastSeen}
-                        />
-                        <View style={styles.divider} />
-                        <PrivacyItem
-                            icon="people-outline"
-                            title="Show Friends List"
-                            subtitle="Allow others to see your friends"
-                            value={showFriendsList}
-                            onValueChange={setShowFriendsList}
-                        />
-                    </NotionCard>
-                </View>
-
                 {/* Activity Privacy */}
                 <View style={styles.section}>
                     <Typography variant="h3" style={styles.sectionTitle}>

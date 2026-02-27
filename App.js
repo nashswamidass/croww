@@ -9,11 +9,18 @@ Sentry.init({
     tracesSampleRate: 1.0,
 });
 
+import { AuthProvider } from './src/context/AuthContext';
+import { HelmetProvider } from 'react-helmet-async';
+
 function App() {
     return (
-        <SafeAreaProvider>
-            <AppNavigator />
-        </SafeAreaProvider>
+        <HelmetProvider>
+            <SafeAreaProvider>
+                <AuthProvider>
+                    <AppNavigator />
+                </AuthProvider>
+            </SafeAreaProvider>
+        </HelmetProvider>
     );
 }
 

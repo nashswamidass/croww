@@ -4,8 +4,16 @@ import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from './Typography';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { getAvatarSource } from '../utils/avatarHelper';
 
-const ImagePickerButton = ({ onImageSelected, currentImage, label = "Event Image", aspectRatio = [16, 9] }) => {
+const ImagePickerButton = ({
+    onImageSelected,
+    currentImage,
+    label = "Event Image",
+    aspectRatio = [16, 9],
+    placeholderIcon = "image-outline",
+    style
+}) => {
     const [image, setImage] = useState(currentImage);
 
     const pickImage = async () => {
@@ -37,13 +45,23 @@ const ImagePickerButton = ({ onImageSelected, currentImage, label = "Event Image
             {label && <Typography variant="body" style={styles.label}>{label}</Typography>}
 
             <TouchableOpacity
-                style={styles.imageContainer}
+                style={[
+                    styles.imageContainer,
+                    aspectRatio[0] === aspectRatio[1] && styles.imageContainerSquare,
+                    style
+                ]}
                 onPress={pickImage}
                 activeOpacity={0.8}
             >
                 {image ? (
                     <>
-                        <Image source={{ uri: image }} style={styles.image} />
+                        <Image
+                            source={typeof image === 'string' && !image.includes('://') && !image.startsWith('data:')
+                                ? getAvatarSource(image)
+                                : { uri: image }
+                            }
+                            style={styles.image}
+                        />
                         <View style={styles.overlay}>
                             <Ionicons name="camera" size={24} color={COLORS.primary} />
                             <Typography variant="small" style={{ color: COLORS.primary, marginTop: 4 }}>
@@ -53,7 +71,7 @@ const ImagePickerButton = ({ onImageSelected, currentImage, label = "Event Image
                     </>
                 ) : (
                     <View style={styles.placeholder}>
-                        <Ionicons name="image-outline" size={48} color={COLORS.secondary} />
+                        <Ionicons name={placeholderIcon} size={48} color={COLORS.secondary} />
                         <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.s }}>
                             Tap to add {label.toLowerCase()}
                         </Typography>
@@ -75,13 +93,20 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: 200,
+        height: 250,
         borderRadius: BORDER_RADIUS.m,
         overflow: 'hidden',
         backgroundColor: COLORS.surfaceHighlight,
         borderWidth: 1,
         borderColor: COLORS.border,
         borderStyle: 'dashed',
+    },
+    imageContainerSquare: {
+        height: undefined,
+        aspectRatio: 1,
+        width: '60%',
+        alignSelf: 'center',
+        borderRadius: 1000,
     },
     image: {
         width: '100%',

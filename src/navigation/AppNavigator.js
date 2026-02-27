@@ -1,14 +1,20 @@
 import React, { useState, useEffect } from 'react';
-import { View } from 'react-native';
+import { View, ActivityIndicator, Image, StyleSheet } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
+
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { COLORS, SHADOWS } from '../constants/theme';
 import { userService } from '../services/userService';
+import { useAuth } from '../context/AuthContext';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
+import BlockedScreen from '../screens/auth/BlockedScreen';
+import LegalPolicyScreen from '../screens/auth/LegalPolicyScreen';
+import linking from './linking';
 
 // Main Screens
 import HomeScreen from '../screens/main/HomeScreen';
@@ -30,6 +36,20 @@ import BlockedUsersScreen from '../screens/main/BlockedUsersScreen';
 import HelpCenterScreen from '../screens/main/HelpCenterScreen';
 import NotificationsScreen from '../screens/main/NotificationsScreen';
 import MyTicketsScreen from '../screens/main/MyTicketsScreen';
+import InquiryListScreen from '../screens/main/InquiryListScreen';
+import ManageEventsScreen from '../screens/main/ManageEventsScreen';
+import ManagePackagesScreen from '../screens/main/ManagePackagesScreen';
+import ManageStaffScreen from '../screens/main/ManageStaffScreen';
+import TicketScannerScreen from '../screens/main/TicketScannerScreen';
+import EventStatsScreen from '../screens/main/EventStatsScreen';
+import EventTicketsScreen from '../screens/main/EventTicketsScreen';
+import FriendRequestsScreen from '../screens/main/FriendRequestsScreen';
+import FriendsListScreen from '../screens/main/FriendsListScreen';
+import TicketDetailScreen from '../screens/main/TicketDetailScreen';
+import WebPaymentScreen from '../screens/main/WebPaymentScreen';
+import CreateBookingScreen from '../screens/main/CreateBookingScreen';
+import ChatListScreen from '../screens/main/ChatListScreen';
+import EventListScreen from '../screens/main/EventListScreen';
 
 // Verification Screens
 import AadhaarVerificationScreen from '../screens/verification/AadhaarVerificationScreen';
@@ -79,6 +99,7 @@ const MainTabNavigator = () => {
                     }
                     else if (route.name === 'Map') iconName = focused ? 'map' : 'map-outline';
                     else if (route.name === 'Search') iconName = focused ? 'storefront' : 'storefront-outline';
+                    else if (route.name === 'Tickets') iconName = focused ? 'ticket' : 'ticket-outline';
                     else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
 
                     return <TabBarIcon focused={focused} name={iconName} />;
@@ -89,6 +110,9 @@ const MainTabNavigator = () => {
                 name="Home"
                 component={isBusiness ? BusinessDashboardScreen : HomeScreen}
             />
+            {!isBusiness && (
+                <Tab.Screen name="Tickets" component={MyTicketsScreen} />
+            )}
             <Tab.Screen name="Map" component={MapScreen} />
             <Tab.Screen name="Search" component={SearchScreen} />
             <Tab.Screen name="Profile" component={ProfileScreen} />
@@ -101,6 +125,7 @@ const AuthNavigator = () => {
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
         </Stack.Navigator>
     );
 };
@@ -126,19 +151,76 @@ const MainNavigator = () => {
             <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
             <Stack.Screen name="Notifications" component={NotificationsScreen} />
             <Stack.Screen name="MyTickets" component={MyTicketsScreen} />
+            <Stack.Screen name="InquiryList" component={InquiryListScreen} />
+            <Stack.Screen name="ManageEvents" component={ManageEventsScreen} />
+            <Stack.Screen name="ManagePackages" component={ManagePackagesScreen} />
+            <Stack.Screen name="ManageStaff" component={ManageStaffScreen} />
+            <Stack.Screen name="TicketScanner" component={TicketScannerScreen} />
+            <Stack.Screen name="EventStats" component={EventStatsScreen} />
+            <Stack.Screen name="EventTickets" component={EventTicketsScreen} />
+            <Stack.Screen name="FriendRequests" component={FriendRequestsScreen} />
+            <Stack.Screen name="FriendsList" component={FriendsListScreen} />
+            <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
+            <Stack.Screen name="WebPayment" component={WebPaymentScreen} />
+            <Stack.Screen name="CreateBooking" component={CreateBookingScreen} />
+            <Stack.Screen name="ChatList" component={ChatListScreen} />
+            <Stack.Screen name="EventList" component={EventListScreen} />
+            <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
         </Stack.Navigator>
     );
 };
 
 const AppNavigator = () => {
+    const { user, loading, isBlocked, isAuthenticated } = useAuth();
+
+    if (loading) {
+        return (
+            <LinearGradient
+                colors={['#000000', '#1A1A1A']}
+                style={styles.loadingContainer}
+            >
+                <View style={styles.logoWrapper}>
+                    <Image
+                        source={require('../../assets/croww-logo.png')}
+                        style={styles.loadingLogo}
+                        resizeMode="contain"
+                    />
+                    <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: 20 }} />
+                </View>
+            </LinearGradient>
+        );
+    }
+
     return (
-        <NavigationContainer>
-            <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="Auth">
-                <Stack.Screen name="Auth" component={AuthNavigator} />
-                <Stack.Screen name="Main" component={MainNavigator} />
+        <NavigationContainer linking={linking}>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+                {isBlocked ? (
+                    <Stack.Screen name="Blocked" component={BlockedScreen} />
+                ) : !isAuthenticated ? (
+                    <Stack.Screen name="Auth" component={AuthNavigator} />
+                ) : (
+                    <Stack.Screen name="Main" component={MainNavigator} />
+                )}
             </Stack.Navigator>
         </NavigationContainer>
     );
 };
 
+const styles = StyleSheet.create({
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    logoWrapper: {
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    loadingLogo: {
+        width: 200,
+        height: 100,
+    },
+});
+
 export default AppNavigator;
+

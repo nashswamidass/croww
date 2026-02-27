@@ -1,49 +1,144 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { chatService } from '../../services/chatService';
+import { userService } from '../../services/userService';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 
 const ChatScreen = ({ route, navigation }) => {
-    const { recipientName, recipientRole } = route.params;
+    const { recipientId, recipientName, recipientRole } = route.params;
     const [message, setMessage] = useState('');
-    const [messages, setMessages] = useState([
-        { id: '1', text: `Hi! I'm interested in your ${recipientRole} services.`, sender: 'me', timestamp: '10:00 AM' },
-        { id: '2', text: `Hi there! I'd be happy to help. What kind of event are you planning?`, sender: 'them', timestamp: '10:05 AM' },
-    ]);
+    const [messages, setMessages] = useState([]);
+    const [currentUser, setCurrentUser] = useState(null);
+    const [chatId, setChatId] = useState(null);
+    const [loading, setLoading] = useState(true);
     const scrollRef = useRef();
+    const insets = useSafeAreaInsets(); // Use insets for safe area
 
-    const sendMessage = () => {
-        if (!message.trim()) return;
+    useEffect(() => {
+        const initChat = async () => {
+            try {
+                // Get current user
+                let user = await userService.getUser();
 
-        const newMessage = {
-            id: Date.now().toString(),
-            text: message,
-            sender: 'me',
-            timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+                // Fallback for demo/testing if no user logged in
+                if (!user) {
+                    user = { id: 'test-user-' + Date.now(), name: 'Test User' };
+                }
+
+                setCurrentUser(user);
+
+                if (route.params.chatId) {
+                    // Use existing chat ID (e.g. from Buddy Request or List)
+                    setChatId(route.params.chatId);
+                    const unsubscribe = chatService.subscribeToChat(route.params.chatId, (newMessages) => {
+                        setMessages(newMessages);
+                        setLoading(false);
+                        // Mark as read when messages load/update
+                        if (user?.id) {
+                            chatService.markChatAsRead(route.params.chatId, user.id);
+                        }
+                    });
+
+                    // Fetch chat details if name is missing
+                    if (!recipientName) {
+                        try {
+                            const chatDoc = await chatService.getChat(route.params.chatId);
+                            if (chatDoc) {
+                                const otherId = chatDoc.participantIds?.find(id => id !== user.id);
+                                if (otherId) {
+                                    const otherUser = await userService.getUserById(otherId);
+                                    if (otherUser) {
+                                        navigation.setParams({
+                                            recipientName: otherUser.name,
+                                            recipientRole: otherUser.role || otherUser.category || 'User'
+                                        });
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            console.log('Error fetching chat details:', e);
+                        }
+                    }
+
+                    return () => unsubscribe();
+                } else if (recipientId) {
+                    // One-on-one: Find or create chat with recipient
+                    // Build participant names map for display
+                    const participantNames = {};
+                    participantNames[user.id] = user.name || 'User';
+                    if (recipientId && recipientName) {
+                        participantNames[recipientId] = recipientName;
+                    }
+
+                    const id = await chatService.createChat([user.id, recipientId], participantNames);
+                    setChatId(id);
+
+                    // Subscribe to messages
+                    const unsubscribe = chatService.subscribeToChat(id, (newMessages) => {
+                        setMessages(newMessages);
+                        setLoading(false);
+                        // Mark as read
+                        if (user?.id) {
+                            chatService.markChatAsRead(id, user.id);
+                        }
+                    });
+
+                    return () => unsubscribe();
+                } else {
+                    setLoading(false);
+                }
+            } catch (error) {
+                console.error("Error initializing chat:", error);
+                setLoading(false);
+            }
         };
 
-        setMessages([...messages, newMessage]);
-        setMessage('');
+        initChat();
+    }, [recipientId]);
 
-        // Mock reply
-        setTimeout(() => {
-            const reply = {
-                id: (Date.now() + 1).toString(),
-                text: "Thanks for the message! I'll check my availability and get back to you with a quote soon.",
-                sender: 'them',
-                timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-            };
-            setMessages(prev => [...prev, reply]);
-        }, 1500);
+    const sendMessage = async () => {
+        if (!message.trim() || !chatId || !currentUser) return;
+
+        try {
+            await chatService.sendMessage(chatId, message, currentUser.id, currentUser.name || 'User');
+            setMessage('');
+        } catch (error) {
+            console.error("Error sending message:", error);
+        }
     };
 
     const renderMessage = ({ item }) => {
-        const isMe = item.sender === 'me';
+        const isMe = currentUser && item.senderId === currentUser.id;
+        // Format timestamp
+        // Format timestamp safely
+        let timeString = '';
+        if (item.createdAt) {
+            if (item.createdAt.toDate) {
+                timeString = item.createdAt.toDate().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            } else if (item.createdAt instanceof Date) {
+                timeString = item.createdAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            }
+        } else {
+            timeString = 'Sending...';
+        }
+
         return (
             <View style={[styles.messageWrapper, isMe ? styles.myMessageWrapper : styles.theirMessageWrapper]}>
                 <View style={[styles.bubble, isMe ? styles.myBubble : styles.theirBubble]}>
+                    {!isMe && item.senderName ? (
+                        <TouchableOpacity onPress={() => navigation.navigate('ServiceDetail', { serviceId: item.senderId })}>
+                            <Typography
+                                variant="small"
+                                style={{ fontWeight: '700', color: COLORS.accent, marginBottom: 2 }}
+                            >
+                                {item.senderName}
+                            </Typography>
+                        </TouchableOpacity>
+                    ) : null}
                     <Typography
                         variant="body"
                         style={{ color: isMe ? COLORS.background : COLORS.primary }}
@@ -54,23 +149,50 @@ const ChatScreen = ({ route, navigation }) => {
                         variant="caption"
                         style={[styles.timestamp, { color: isMe ? COLORS.background + 'AA' : COLORS.secondary }]}
                     >
-                        {item.timestamp}
+                        {timeString}
                     </Typography>
                 </View>
             </View>
         );
     };
 
+    if (loading) {
+        return (
+            <ScreenWrapper>
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
     return (
-        <ScreenWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
                 <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                     <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
-                <View style={styles.headerInfo}>
-                    <Typography variant="h3">{recipientName}</Typography>
-                    <Typography variant="caption" color={COLORS.secondary}>{recipientRole}</Typography>
-                </View>
+                <TouchableOpacity
+                    style={styles.headerInfo}
+                    onPress={() => {
+                        if (recipientId && recipientId !== 'GROUP') {
+                            navigation.navigate('ServiceDetail', { serviceId: recipientId });
+                        }
+                    }}
+                    disabled={recipientId === 'GROUP'}
+                >
+                    {route.params.recipientId === 'GROUP' || (recipientId === 'GROUP' && route.params.chatId) ? (
+                        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                            <Ionicons name="people" size={20} color={COLORS.primary} style={{ marginRight: 8 }} />
+                            <Typography variant="h3">{recipientName}</Typography>
+                        </View>
+                    ) : (
+                        <>
+                            <Typography variant="h3">{recipientName}</Typography>
+                            <Typography variant="caption" color={COLORS.secondary}>{recipientRole}</Typography>
+                        </>
+                    )}
+                </TouchableOpacity>
                 <View style={{ width: 40 }} />
             </View>
 
@@ -88,7 +210,7 @@ const ChatScreen = ({ route, navigation }) => {
                     onContentSizeChange={() => scrollRef.current?.scrollToEnd()}
                 />
 
-                <View style={styles.inputContainer}>
+                <View style={[styles.inputContainer, { paddingBottom: Math.max(SPACING.m, insets.bottom + SPACING.s) }]}>
                     <TextInput
                         style={styles.input}
                         value={message}

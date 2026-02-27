@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, Alert } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import NotionButton from '../../components/NotionButton';
+import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
 import GenderPreferenceSelector from '../../components/GenderPreferenceSelector';
-import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
+import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { createBuddyRequest } from '../../services/buddyService';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -61,8 +61,10 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
                 >
                     <Ionicons name="close" size={28} color={COLORS.primary} />
                 </TouchableOpacity>
-                <Typography variant="h2">Create Buddy Request</Typography>
-                <View style={{ width: 28 }} />
+                <View style={styles.headerTitleContainer}>
+                    <Typography variant="h2">Buddy Request</Typography>
+                </View>
+                <View style={{ width: 44 }} />
             </View>
 
             <ScrollView
@@ -183,7 +185,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
 
             {/* Create Button */}
             <View style={styles.createButtonContainer}>
-                <NotionButton
+                <AntigravityButton
                     title="Create Buddy Request"
                     onPress={handleCreate}
                     loading={loading}
@@ -196,58 +198,74 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
 const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
-        padding: SPACING.m,
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.m,
+        paddingVertical: SPACING.m,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
+        backgroundColor: COLORS.background,
+    },
+    headerTitleContainer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: -1,
     },
     backButton: {
-        padding: 4,
+        padding: 8,
+        zIndex: 1,
     },
     content: {
         padding: SPACING.m,
+        paddingBottom: 120,
     },
     eventCard: {
         padding: SPACING.m,
         marginBottom: SPACING.l,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: BORDER_RADIUS.m,
     },
     section: {
         marginBottom: SPACING.l,
     },
     label: {
-        fontWeight: '600',
-        marginBottom: SPACING.xs,
+        fontWeight: '700',
+        fontSize: 16,
+        marginBottom: 4,
+        color: COLORS.primary,
     },
     subtitle: {
         color: COLORS.secondary,
         marginBottom: SPACING.m,
+        fontSize: 13,
     },
     spotsContainer: {
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: SPACING.s,
+        justifyContent: 'space-between',
     },
     spotOption: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: '18%', // Approx 5 per row with gap
+        aspectRatio: 1,
+        borderRadius: BORDER_RADIUS.s,
         backgroundColor: COLORS.surface,
-        borderWidth: 2,
+        borderWidth: 1,
         borderColor: COLORS.border,
         justifyContent: 'center',
         alignItems: 'center',
+        marginBottom: SPACING.s,
     },
     spotOptionSelected: {
         borderColor: COLORS.accent,
-        backgroundColor: COLORS.accent + '20',
-    },
-    spotText: {
-        color: COLORS.secondary,
-        fontWeight: '600',
+        backgroundColor: COLORS.accent,
     },
     spotTextSelected: {
-        color: COLORS.accent,
+        color: '#FFFFFF',
+        fontWeight: 'bold',
     },
     textInput: {
         backgroundColor: COLORS.surface,
@@ -256,51 +274,29 @@ const styles = StyleSheet.create({
         borderRadius: BORDER_RADIUS.m,
         padding: SPACING.m,
         color: COLORS.primary,
-        fontSize: 16,
+        fontSize: 15,
         minHeight: 100,
         textAlignVertical: 'top',
     },
-    charCount: {
-        textAlign: 'right',
-        color: COLORS.secondary,
-        marginTop: SPACING.xs,
-    },
     previewCard: {
         padding: SPACING.m,
-    },
-    previewHeader: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginBottom: SPACING.s,
+        backgroundColor: COLORS.surface,
+        borderColor: COLORS.border,
+        borderWidth: 1,
+        borderRadius: BORDER_RADIUS.m,
     },
     previewAvatar: {
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: COLORS.accent,
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.border,
         marginRight: SPACING.s,
     },
-    previewSpots: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    safetyNotice: {
-        flexDirection: 'row',
-        backgroundColor: COLORS.accent + '10',
-        padding: SPACING.m,
-        borderRadius: BORDER_RADIUS.m,
-        gap: SPACING.s,
-    },
-    safetyText: {
-        flex: 1,
-        color: COLORS.accent,
-        lineHeight: 18,
-    },
     createButtonContainer: {
-        position: 'absolute',
-        bottom: 20,
-        left: SPACING.m,
-        right: SPACING.m,
+        padding: SPACING.m,
+        backgroundColor: COLORS.background,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
 });
 

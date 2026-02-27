@@ -9,10 +9,10 @@ const VerificationBadge = ({ status = 'none', type = null }) => {
         switch (status) {
             case 'verified':
                 return {
-                    icon: 'checkmark-circle',
-                    color: COLORS.success,
-                    text: type === 'business' ? 'Business Verified' : 'Verified',
-                    bgColor: `${COLORS.success}20`
+                    icon: 'checkmark-seal-sharp', // More "official" seal icon
+                    color: '#2196F3', // Trust Blue
+                    text: type === 'business' ? 'Registered Business' : 'Verified User',
+                    bgColor: '#2196F320'
                 };
             case 'pending':
                 return {

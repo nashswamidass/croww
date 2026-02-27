@@ -2,7 +2,7 @@ import React from 'react';
 import { View, StyleSheet, Animated } from 'react-native';
 import NotionCard from './NotionCard';
 import Typography from './Typography';
-import NotionButton from './NotionButton';
+import AntigravityButton from './AntigravityButton';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 
 import { getDistanceFromLatLonInKm, formatDistance } from '../utils/distance';
@@ -14,8 +14,8 @@ const EventSummaryCard = ({ event, visible, onClose, onDetails, userLocation }) 
         ? formatDistance(getDistanceFromLatLonInKm(
             userLocation.latitude,
             userLocation.longitude,
-            event.coordinate.latitude,
-            event.coordinate.longitude
+            event.coordinate?.latitude || 0,
+            event.coordinate?.longitude || 0
         ))
         : null;
 
@@ -34,12 +34,12 @@ const EventSummaryCard = ({ event, visible, onClose, onDetails, userLocation }) 
                     </View>
 
                     <View style={styles.actions}>
-                        <NotionButton
+                        <AntigravityButton
                             title="Details"
                             style={styles.button}
                             onPress={() => onDetails(event)}
                         />
-                        <NotionButton
+                        <AntigravityButton
                             title="✕"
                             variant="secondary"
                             style={styles.closeButton}

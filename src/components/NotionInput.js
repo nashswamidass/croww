@@ -10,7 +10,8 @@ const NotionInput = ({
     placeholder,
     secureTextEntry,
     style,
-    keyboardType = 'default'
+    keyboardType = 'default',
+    ...props
 }) => {
     return (
         <View style={[styles.container, style]}>
@@ -20,13 +21,14 @@ const NotionInput = ({
                 </Typography>
             )}
             <TextInput
-                style={styles.input}
+                style={[styles.input, props.multiline && { height: 'auto', minHeight: 48 }]}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
                 placeholderTextColor={COLORS.secondary}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
+                {...props}
             />
         </View>
     );
