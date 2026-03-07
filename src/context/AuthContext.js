@@ -17,8 +17,8 @@ export const AuthProvider = ({ children }) => {
         const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
             if (profileUnsubscribe) profileUnsubscribe();
 
-            setLoading(true);
             if (firebaseUser) {
+                setLoading(true); // Only show loading when fetching a new profile
                 // Set up real-time listener for user profile (to catch isBlocked changes)
                 profileUnsubscribe = onSnapshot(doc(db, 'users', firebaseUser.uid), async (snapshot) => {
                     if (snapshot.exists()) {
@@ -38,6 +38,7 @@ export const AuthProvider = ({ children }) => {
                     setLoading(false);
                 });
             } else {
+                // Non-blocking logout transition
                 setUser(null);
                 setIsBlocked(false);
                 setLoading(false);

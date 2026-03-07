@@ -1,52 +1,77 @@
 import { Platform } from 'react-native';
-import { CFPaymentGatewayService } from 'react-native-cashfree-pg-sdk';
-import { CFSession, CFThemeBuilder, CFDropCheckoutPayment, CFPaymentComponentBuilder } from 'cashfree-pg-api-contract';
+
+const loadCashfreeSdk = () => {
+    if (Platform.OS !== 'web') return Promise.resolve(false);
+
+    return new Promise((resolve, reject) => {
+        if (typeof window !== 'undefined' && window.Cashfree) {
+            resolve(true);
+            return;
+        }
+        const script = document.createElement('script');
+        script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+        script.onload = () => {
+            console.log('Cashfree SDK loaded');
+            resolve(true);
+        };
+        script.onerror = () => {
+            console.error('Failed to load Cashfree SDK');
+            reject(new Error('Failed to load Cashfree SDK'));
+        };
+        document.body.appendChild(script);
+    });
+};
 
 class PaymentService {
     constructor() {
-        this.cfPaymentGatewayService = CFPaymentGatewayService;
-
         // Check if environment variables are loaded (env vars are baked at build time)
         let envVal = (process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX').toUpperCase();
 
-        console.log("[AUTH_FIX_DEPLOY_V2_NATIVE] Initial Environment:", envVal);
+        // --- SECURE WEB OVERRIDE (FIX V2) ---
+        if (typeof window !== 'undefined') {
+            const hostname = window.location.hostname;
+            console.log("[AUTH_FIX_DEPLOY_V2_WEB] Web Hostname detected:", hostname);
+
+            // If we're not on localhost/127.0.0.1, assume PRODUCTION
+            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+            if (!isLocal || hostname === 'croww.ai' || hostname === 'croww-app.web.app' || hostname === 'croww-live-2026.web.app') {
+                console.log("[AUTH_FIX_DEPLOY_V2_WEB] Production domain detected. FORCING PRODUCTION MODE.");
+                envVal = 'PRODUCTION';
+            }
+        }
+
+        console.log("[AUTH_FIX_DEPLOY_V2_WEB] Environment set to:", envVal);
 
         // Standardize normalization
         this.environment = envVal === 'PRODUCTION' ? 'PRODUCTION' : 'SANDBOX';
+
+        // Final sanity check for web
+        if (typeof window !== 'undefined') {
+            const hostname = window.location.hostname;
+            if (this.environment === 'SANDBOX' && (hostname === 'croww.ai' || hostname === 'croww-app.web.app' || hostname === 'croww-live-2026.web.app')) {
+                console.warn("[AUTH_FIX_DEPLOY_V2_WEB] CRITICAL WARNING - Domain is Production but Environment is SANDBOX.");
+            }
+        }
+
+        console.log("[AUTH_FIX_DEPLOY_V2_WEB] Final environment state:", this.environment);
     }
 
     /**
      * Check if Native Cashfree SDK is available
      */
     isNativeAvailable() {
-        return !!this.cfPaymentGatewayService && !!CFSession;
+        return false;
     }
 
     /**
-     * Set the payment callback listener
+     * No-op on web
      */
-    setCallback(onVerify, onError) {
-        if (!this.cfPaymentGatewayService) return;
-
-        this.cfPaymentGatewayService.setCallback({
-            onVerify: (orderId) => {
-                console.log('Payment Verified for Order:', orderId);
-                if (onVerify) onVerify(orderId);
-            },
-            onError: (error, orderId) => {
-                console.log('Payment Failed/Error:', error, 'Order:', orderId);
-                if (onError) onError(error, orderId);
-            }
-        });
-    }
+    setCallback(onVerify, onError) { }
 
     /**
-     * Remove the payment callback listener
+     * No-op on web
      */
-    removeCallback() {
-        if (!this.cfPaymentGatewayService) return;
-        this.cfPaymentGatewayService.removeCallback();
-    }
+    removeCallback() { }
 
     /**
      * Initiate payment
@@ -55,46 +80,31 @@ class PaymentService {
      */
     async doPayment(paymentSessionId, orderId) {
         try {
-            console.log('--- STARTING NATIVE PAYMENT FLOW ---');
+            console.log('--- STARTING WEB PAYMENT FLOW ---');
             console.log('SessionID:', paymentSessionId);
             console.log('OrderID:', orderId);
+            console.log('Environment:', this.environment);
 
             if (!paymentSessionId) {
                 throw new Error('Missing Payment Session ID');
             }
 
-            if (!this.isNativeAvailable()) {
-                throw new Error('Native Payment SDK not available.');
-            }
+            await loadCashfreeSdk();
 
-            const session = new CFSession(
-                paymentSessionId,
-                orderId,
-                this.environment
-            );
+            const cashfree = new window.Cashfree({
+                mode: this.environment === 'PRODUCTION' ? "production" : "sandbox"
+            });
 
-            const theme = new CFThemeBuilder()
-                .setNavigationBarBackgroundColor('#E6E6FA')
-                .setNavigationBarTextColor('#000000')
-                .setButtonBackgroundColor('#800080')
-                .setButtonTextColor('#FFFFFF')
-                .setPrimaryTextColor('#000000')
-                .setSecondaryTextColor('#808080')
-                .build();
+            const appUrl = process.env.EXPO_PUBLIC_CASHFREE_APP_URL || window.location.origin;
 
-            console.log('Initiating Native Payment (Drop Checkout)');
-            const paymentComponent = new CFPaymentComponentBuilder()
-                .build();
-
-            const dropPayment = new CFDropCheckoutPayment(
-                session,
-                paymentComponent,
-                theme
-            );
-
-            this.cfPaymentGatewayService.doPayment(dropPayment);
+            // Redirect via SDK
+            cashfree.checkout({
+                paymentSessionId: paymentSessionId,
+                returnUrl: `${appUrl}/payment-return?order_id=${orderId}`,
+                redirectTarget: "_modal"
+            });
         } catch (error) {
-            console.error('Error initiating native payment:', error);
+            console.error('Error initiating web payment:', error);
             throw error;
         }
     }
@@ -133,14 +143,14 @@ class PaymentService {
             }
 
             const data = JSON.parse(responseText);
-            console.log("PaymentServiceNative: Backend Order JSON:", data);
+            console.log("PaymentServiceWeb: Backend Order JSON:", data);
 
             const sessionId = data.payment_session_id || data.paymentSessionId || data.payment_session || data.session_id;
             const orderId = data.order_id || data.orderId;
 
             return { sessionId, orderId };
         } catch (error) {
-            console.error('Error creating native order:', error);
+            console.error('Error creating web order:', error);
             throw error;
         }
     }
@@ -165,13 +175,13 @@ class PaymentService {
 
             const responseText = await response.text();
             if (!response.ok) {
-                console.error('Verify native error status:', response.status);
+                console.error('Verify web error status:', response.status);
                 throw new Error(`Server returned ${response.status}: ${responseText}`);
             }
             const data = JSON.parse(responseText);
             return data;
         } catch (error) {
-            console.error('Error verifying native payment:', error);
+            console.error('Error verifying web payment:', error);
             throw error;
         }
     }

@@ -14,8 +14,7 @@ import { getVerificationStatus } from '../../services/verificationService';
 import { userService } from '../../services/userService';
 import { eventService } from '../../services/eventService';
 import { storageService } from '../../services/storageService';
-import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { locationService } from '../../services/locationService';
 const VERSION_HASH = "FIX_VER_999";
 
 const CreateEventScreen = ({ navigation, route }) => {
@@ -52,15 +51,14 @@ const CreateEventScreen = ({ navigation, route }) => {
             // Removed strict business account restriction for hosting basic events
             checkVerification();
 
-            // Fetch current location for event coordinates
+            // Fetch current location for event coordinates only if not in edit mode or if coordinates are missing
             try {
-                const cached = await AsyncStorage.getItem('userLocation');
-                if (cached) setEventCoords(JSON.parse(cached));
+                if (!eventCoords) {
+                    const cached = await locationService.getCachedLocation();
+                    if (cached.coords) setEventCoords(cached.coords);
 
-                const { status } = await Location.requestForegroundPermissionsAsync();
-                if (status === 'granted') {
-                    const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                    setEventCoords(loc.coords);
+                    const { coords } = await locationService.getLocation();
+                    if (coords) setEventCoords(coords);
                 }
             } catch (err) {
                 console.log("CreateEvent location error:", err);
@@ -153,11 +151,10 @@ const CreateEventScreen = ({ navigation, route }) => {
             return;
         }
 
-        // Verification/account types govern public/paid event settings
-
-        const isBusiness = currentUser?.userType === 'business';
-        const isBusinessVerified = verificationStatus?.businessVerified;
+        // Verification Enforcement
         const isAadhaarVerified = verificationStatus?.aadhaarVerified;
+        const isBusinessVerified = verificationStatus?.businessVerified;
+        const isBusiness = currentUser?.userType === 'business';
 
         if (isPublic && !isAadhaarVerified && !isBusinessVerified) {
             Alert.alert(
@@ -171,9 +168,13 @@ const CreateEventScreen = ({ navigation, route }) => {
         }
 
         if (isPaid && !isBusinessVerified) {
+            const message = isBusiness
+                ? 'Only verified business accounts can host paid events with ticketing. Please complete business verification first.'
+                : 'Only registered businesses can host paid events with ticketing. Please contact support to upgrade your account type.';
+
             Alert.alert(
                 'Business Verification Required',
-                'Only verified business accounts can host paid events with ticketing. Please complete business verification first.',
+                message,
                 [{ text: 'OK' }]
             );
             return;
@@ -199,26 +200,26 @@ const CreateEventScreen = ({ navigation, route }) => {
                 }
             }
 
-            // Create Event Object
+            // Create Event Object with robust fallbacks
             const eventData = {
                 title,
                 category: category || (isEditMode ? editEvent.category : 'Party'),
                 date: date.toISOString(),
                 locationName: locationName || 'Nearby',
                 coordinate: eventCoords || { latitude: 37.78825, longitude: -122.4324 },
-                description,
-                imageUri: uploadedUri,
-                isPublic,
-                isOfficial: isEditMode ? editEvent.isOfficial : isBusinessVerified,
-                organizerId: currentUser?.id,
-                organizerName: currentUser?.name,
-                isPaid,
-                price: isPaid ? parseFloat(price) : 0,
+                description: description || "",
+                imageUri: uploadedUri || null,
+                isPublic: isPublic || false,
+                isOfficial: isEditMode ? (editEvent.isOfficial || false) : (isBusinessVerified || false),
+                organizerId: currentUser?.id || auth.currentUser?.uid,
+                organizerName: currentUser?.name || auth.currentUser?.displayName || "Organizer",
+                isPaid: isPaid || false,
+                price: isPaid ? (parseFloat(price) || 0) : 0,
                 maxTickets: parseInt(maxTickets) || 0,
-                movieName: category === 'Movie' ? movieName : null,
-                screenName: category === 'Movie' ? screenName : null,
+                movieName: category === 'Movie' ? (movieName || "") : null,
+                screenName: category === 'Movie' ? (screenName || "") : null,
                 verificationStatus: (isPublic && (isAadhaarVerified || isBusinessVerified)) ? 'verified' : 'none',
-                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isAadhaarVerified ? 'aadhaar' : null)) : null
+                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isAadhaarVerified ? 'aadhaar' : "none")) : "none"
             };
 
             if (isEditMode) {

@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import * as Location from 'expo-location';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -10,6 +9,7 @@ import AntigravityButton from '../../components/AntigravityButton';
 import VerificationBadge from '../../components/VerificationBadge';
 import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '../../context/AuthContext';
 import { getDistanceFromLatLonInKm, formatDistance } from '../../utils/distance';
 import { eventService } from '../../services/eventService';
 import { userService } from '../../services/userService';
@@ -18,6 +18,7 @@ import { RefreshControl, Alert } from 'react-native';
 import LocationSelectorModal from '../../components/LocationSelectorModal';
 import { formatIndianDate } from '../../utils/localization';
 import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
+import PolicyAcceptanceModal from '../../components/PolicyAcceptanceModal';
 import {
     collection,
     getDocs,
@@ -26,8 +27,10 @@ import {
     orderBy,
     where
 } from 'firebase/firestore';
+import { locationService } from '../../services/locationService';
 
 const HomeScreen = ({ navigation }) => {
+    const { user: authUser } = useAuth(); // Use centralized auth state
     const [userLocation, setUserLocation] = useState(null);
     const [cityName, setCityName] = useState('Detecting...');
     const [events, setEvents] = useState([]);
@@ -36,34 +39,46 @@ const HomeScreen = ({ navigation }) => {
     const [isLocationModalVisible, setIsLocationModalVisible] = useState(false);
     const [manualCity, setManualCity] = useState(null);
     const [unreadCount, setUnreadCount] = useState(0);
+    const [isPolicyModalVisible, setIsPolicyModalVisible] = useState(false);
 
     useEffect(() => {
         let unsubscribeChats;
 
         const init = async () => {
             try {
-                // Check for manual city choice first
+                // 1. Check for manual city choice first
                 const savedCity = await AsyncStorage.getItem('manualCity');
                 if (savedCity) {
                     setCityName(savedCity);
                     setManualCity(savedCity);
                 }
 
-                // Check cache for coordinates
-                const cached = await AsyncStorage.getItem('userLocation');
-                if (cached) setUserLocation(JSON.parse(cached));
-
-                if (!savedCity) {
-                    await detectLocation();
+                // 2. Check cache for coordinates
+                const cached = await locationService.getCachedLocation();
+                if (cached.coords) {
+                    setUserLocation(cached.coords);
                 }
 
-                // Chat listener
-                const user = await userService.getUser();
-                if (user) {
-                    unsubscribeChats = chatService.subscribeToUserChats(user.id, (chats) => {
+                // 3. Trigger refreshing location if not manual
+                if (!savedCity) {
+                    const detect = async () => {
+                        const { coords, cityName: detectedCity } = await locationService.getLocation();
+                        if (coords) setUserLocation(coords);
+                        if (detectedCity) setCityName(detectedCity);
+                    };
+                    detect();
+                }
+
+                // 4. Chat listener
+                if (authUser) {
+                    // Check if policy needs acceptance
+                    const needsPolicy = (authUser.userType === 'business' || authUser.isBusiness || authUser.userType === 'provider' || authUser.isProvider) && !authUser.policyAccepted;
+                    setIsPolicyModalVisible(needsPolicy);
+
+                    unsubscribeChats = chatService.subscribeToUserChats(authUser.id, (chats) => {
                         let total = 0;
                         chats.forEach(chat => {
-                            const count = chat.unreadCounts?.[user.id];
+                            const count = chat.unreadCounts?.[authUser.id];
                             if (typeof count === 'number') {
                                 total += count;
                             }
@@ -82,50 +97,7 @@ const HomeScreen = ({ navigation }) => {
         return () => {
             if (unsubscribeChats) unsubscribeChats();
         };
-    }, []);
-
-    const detectLocation = async () => {
-        try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-                // Add a timeout for position fetching (especially for web)
-                const locationPromise = Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced
-                });
-
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Location timeout')), 10000)
-                );
-
-                const location = await Promise.race([locationPromise, timeoutPromise]);
-
-                setUserLocation(location.coords);
-                await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
-
-                // Get city name
-                const reverseGeocode = await Location.reverseGeocodeAsync({
-                    latitude: location.coords.latitude,
-                    longitude: location.coords.longitude
-                });
-
-                if (reverseGeocode && reverseGeocode.length > 0) {
-                    const city = reverseGeocode[0].city || reverseGeocode[0].region || reverseGeocode[0].name;
-                    if (city) {
-                        setCityName(city);
-                        return;
-                    }
-                }
-                setCityName('Nearby'); // Success in coords but reverse geocode failed
-            } else {
-                // Permission denied
-                setCityName('Mumbai');
-            }
-        } catch (error) {
-            console.log("Location detection failed:", error);
-            // Fallback to a default city if detection fails (e.g. timeout or browser error)
-            setCityName('Mumbai');
-        }
-    };
+    }, [authUser?.id, authUser?.policyAccepted]); // Re-run when user or policy status changes
 
     const handleCitySelect = async (city) => {
         if (!city) {
@@ -133,14 +105,13 @@ const HomeScreen = ({ navigation }) => {
             setManualCity(null);
             await AsyncStorage.removeItem('manualCity');
             setCityName('Detecting...');
-            await detectLocation();
+            const { coords, cityName: detectedCity } = await locationService.getLocation();
+            if (coords) setUserLocation(coords);
+            if (detectedCity) setCityName(detectedCity);
         } else {
             setCityName(city);
             setManualCity(city);
             await AsyncStorage.setItem('manualCity', city);
-
-            // For a better UX, we could also fetch coordinates for the selected city
-            // But for now, we'll just update the display name
             Alert.alert("Location Updated", `Viewing events in ${city}`);
         }
     };
@@ -163,12 +134,15 @@ const HomeScreen = ({ navigation }) => {
     }, []);
 
     const getDistanceText = (eventCoord) => {
-        if (!userLocation || !eventCoord) return 'Distance unknown';
+        // Handle both 'coordinate' and 'coordinates' naming conventions
+        const coords = eventCoord || null;
+        if (!userLocation || !coords || !coords.latitude || !coords.longitude) return 'Location not set';
+
         const dist = getDistanceFromLatLonInKm(
             userLocation.latitude,
             userLocation.longitude,
-            eventCoord.latitude,
-            eventCoord.longitude
+            coords.latitude,
+            coords.longitude
         );
         return `${formatDistance(dist)} away`;
     };
@@ -178,7 +152,29 @@ const HomeScreen = ({ navigation }) => {
 
     // Fallback: If no featured events, show random events with images to avoid empty space
     const displayFeatured = featuredEvents.length > 0 ? featuredEvents : events.filter(e => e.imageUri).slice(0, 5);
-    const upcomingEvents = events.slice(0, 10); // Show more events
+
+    // Sort upcoming events by proximity if location is available
+    const upcomingEvents = [...events]
+        .sort((a, b) => {
+            if (!userLocation) return 0;
+            const coordA = a.coordinate || a.coordinates;
+            const coordB = b.coordinate || b.coordinates;
+
+            if (!coordA && !coordB) return 0;
+            if (!coordA) return 1;
+            if (!coordB) return -1;
+
+            const distA = getDistanceFromLatLonInKm(
+                userLocation.latitude, userLocation.longitude,
+                coordA.latitude, coordA.longitude
+            );
+            const distB = getDistanceFromLatLonInKm(
+                userLocation.latitude, userLocation.longitude,
+                coordB.latitude, coordB.longitude
+            );
+            return distA - distB;
+        })
+        .slice(0, 10);
 
     const handleEventPress = (event) => {
         navigation.navigate('EventDetail', { id: event.id, event });
@@ -260,6 +256,12 @@ const HomeScreen = ({ navigation }) => {
                     currentCity={manualCity}
                 />
 
+                <PolicyAcceptanceModal
+                    visible={isPolicyModalVisible}
+                    user={authUser}
+                    onAccept={() => setIsPolicyModalVisible(false)}
+                />
+
                 {/* Featured Events - Large Image Cards */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
@@ -321,7 +323,7 @@ const HomeScreen = ({ navigation }) => {
                                                     <View style={styles.metaItem}>
                                                         <Ionicons name="location-outline" size={14} color={COLORS.secondary} />
                                                         <Typography variant="caption" style={styles.metaText}>
-                                                            {getDistanceText(event.coordinate)}
+                                                            {getDistanceText(event.coordinate || event.coordinates)}
                                                         </Typography>
                                                     </View>
                                                 </View>
@@ -381,7 +383,7 @@ const HomeScreen = ({ navigation }) => {
                                         <View style={styles.compactMeta}>
                                             <Ionicons name="location-outline" size={12} color={COLORS.secondary} />
                                             <Typography variant="caption" style={{ color: COLORS.secondary, marginLeft: 4 }}>
-                                                {getDistanceText(event.coordinate)}
+                                                {getDistanceText(event.coordinate || event.coordinates)}
                                             </Typography>
                                         </View>
 

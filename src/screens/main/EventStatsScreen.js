@@ -71,9 +71,7 @@ const EventStatsScreen = ({ route, navigation }) => {
                     <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <Typography variant="h2">Event Stats</Typography>
-                <TouchableOpacity onPress={loadStats}>
-                    <Ionicons name="refresh" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
+                <View style={{ width: 24 }} />
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>

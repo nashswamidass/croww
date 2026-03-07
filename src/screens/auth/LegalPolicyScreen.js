@@ -121,6 +121,97 @@ Pixwik Technologies Private Limited
 Email: info@pixwik.com
 `
                 };
+            case 'business_commission':
+                return {
+                    title: 'Commission Policy (Organizers)',
+                    content: `
+COMMISSION POLICY
+For Event Organizers
+
+Croww – Operated by Pixwik Technologies Private Limited
+
+1. Role of Croww
+Croww operates as a technology marketplace and facilitator platform. Event organizers are the sellers of tickets listed on the platform. Croww facilitates event discovery, booking, and payment collection. Croww does not act as seller of record for event tickets.
+
+2. Platform Commission
+Croww charges a platform commission on ticket sales.
+Standard Commission: 7% of ticket subtotal (excluding taxes)
+This commission is deducted from gross ticket sales before settlement to the organizer.
+
+3. GST on Platform Commission
+As per Indian GST law:
+An additional 18% GST is applicable on the platform commission amount.
+GST is calculated only on Croww’s commission.
+Organizers are responsible for GST on ticket value as applicable under law.
+
+Example:
+• Ticket subtotal: ₹10,000
+• Platform commission (7%): ₹700
+• GST on commission (18%): ₹126
+• Total deduction: ₹826
+• Net payout to organizer = ₹9,174
+
+4. Convenience Fee
+Croww charges a 2% convenience fee to attendees at checkout. This fee belongs to Croww. 18% GST is applied on the convenience fee. Convenience fee is not part of organizer payout.
+
+5. Settlement & Escrow Model
+Croww follows an escrow-based settlement model:
+• Payments are collected via integrated payment gateway.
+• Funds are held until event completion.
+• Settlement is processed within T+2 or T+3 working days after event date.
+• Refunds are adjusted before payout.
+
+6. Refund Handling
+If event is cancelled:
+• Ticket amount is refunded as per organizer’s refund policy.
+• Payment gateway refund charges may apply.
+• Platform commission refund terms will be governed by event cancellation circumstances.
+
+7. Custom & Enterprise Rates
+Croww may offer customized commission structures for high-volume organizers, long-term partnerships, or enterprise accounts. Such arrangements will be documented separately.
+`
+                };
+            case 'provider_commission':
+                return {
+                    title: 'Commission Policy (Providers)',
+                    content: `
+COMMISSION POLICY
+For Service Providers (DJs, Vendors, Photographers, etc.)
+
+Croww – Operated by Pixwik Technologies Private Limited
+
+1. Role of Croww
+Croww operates as a marketplace platform connecting customers with independent service providers. Service providers are responsible for service delivery, pricing, and compliance.
+
+2. Platform Commission
+Croww charges commission on successfully confirmed service bookings.
+Standard Commission: 15% of the confirmed service value.
+Commission is deducted before settlement to the service provider.
+
+3. GST on Commission
+18% GST is applicable on the commission amount. Service providers are responsible for GST on their service invoice (if registered).
+
+Example:
+• Service booking value: ₹20,000
+• Platform commission (15%): ₹3,000
+• GST on commission (18%): ₹540
+• Total deduction: ₹3,540
+• Net payout to service provider = ₹16,460
+
+4. Settlement Model
+• Payment is collected via Croww payment gateway.
+• Funds may be held until service completion.
+• Settlement processed within T+2 or T+3 working days after service confirmation.
+
+5. Dispute & Cancellation
+• If service is cancelled as per policy, commission adjustment may apply.
+• If provider cancels without valid reason, penalties may apply.
+• Gateway charges for refunds may be deducted from provider payout.
+
+6. Featured & Promotional Plans
+Croww may offer featured listing plans, boosted visibility packages, or promotional placements. These are separate from standard commission.
+`
+                };
             case 'security':
                 return {
                     title: 'Security Policy',

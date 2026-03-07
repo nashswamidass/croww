@@ -9,19 +9,89 @@ import AntigravityButton from '../../components/AntigravityButton';
 import VerificationBadge from '../../components/VerificationBadge';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { userService } from '../../services/userService';
-
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useAuth } from '../../context/AuthContext';
+import { userService } from '../../services/userService';
+import { eventService } from '../../services/eventService';
+import { bookingService } from '../../services/bookingService';
+import { ticketService } from '../../services/ticketService';
+import { reviewService } from '../../services/reviewService';
+import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
+import { Share } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ProfileScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { user: authUser, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('events');
+    const [reviews, setReviews] = useState([]);
+    const [fetchingReviews, setFetchingReviews] = useState(false);
+    const [profileEvents, setProfileEvents] = useState([]);
+    const [loadingData, setLoadingData] = useState(false);
 
-    // Use authUser as the source of truth, but still support the fallback for UI development
+    useFocusEffect(
+        useCallback(() => {
+            let unsubscribeTickets;
+
+            const loadProfileData = async () => {
+                if (!authUser?.id) return;
+
+                setLoadingData(true);
+                try {
+                    // 1. Load Reviews if applicable
+                    if (authUser.userType === 'provider' || authUser.userType === 'business') {
+                        setFetchingReviews(true);
+                        const reviewsData = await reviewService.getBusinessReviews(authUser.id);
+                        setReviews(reviewsData);
+                        setFetchingReviews(false);
+                    }
+
+                    // 2. Load Tab Specific Data
+                    if (authUser.userType === 'business') {
+                        // Fetch Posted Events
+                        const events = await eventService.getEventsByOrganizer(authUser.id);
+                        setProfileEvents(events);
+                    } else if (authUser.userType === 'provider') {
+                        // Fetch Bookings
+                        const bookings = await bookingService.getBookingsForProvider(authUser.id);
+                        setProfileEvents(bookings); // Reusing state for the tab list
+                    } else {
+                        // Fetch Tickets for Individuals
+                        unsubscribeTickets = ticketService.subscribeTicketsByUser(authUser.id, (tickets) => {
+                            setProfileEvents(tickets);
+                        });
+                    }
+                } catch (error) {
+                    console.error('Error loading profile data:', error);
+                } finally {
+                    setLoadingData(false);
+                }
+            };
+
+            loadProfileData();
+
+            return () => {
+                if (unsubscribeTickets) unsubscribeTickets();
+            };
+        }, [authUser?.id])
+    );
+
+    const handleShare = async () => {
+        try {
+            if (!authUser?.id) return;
+            const url = `https://croww.ai/provider/${authUser.id}`;
+            await Share.share({
+                message: `Check out ${authUser.name} on Croww! ${url}`,
+                url: url, // iOS only
+                title: authUser.name
+            });
+        } catch (error) {
+            console.error('Error sharing profile:', error);
+        }
+    };
+
+    // Use authUser as the source of truth
     const user = authUser || defaultUser;
-    const loading = authLoading;
+    const loading = authLoading || loadingData;
 
     // Fallback/Mock for display if storage is empty
     const defaultUser = {
@@ -67,7 +137,7 @@ const ProfileScreen = ({ navigation }) => {
         <View>
             <View style={styles.sectionHeader}>
                 <Typography variant="h3">
-                    {isBusiness ? "Posted Events" : (isProvider ? "Upcoming Bookings" : "Recent Events")}
+                    {isBusiness ? "Posted Events" : (isProvider ? "Incoming Bookings" : "My Tickets")}
                 </Typography>
                 {isBusiness && (
                     <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
@@ -75,25 +145,43 @@ const ProfileScreen = ({ navigation }) => {
                     </TouchableOpacity>
                 )}
             </View>
-            {(user.recentEvents || []).map((event) => (
-                <NotionCard key={event.id} style={styles.eventCard}>
-                    <Image source={{ uri: event.image }} style={styles.eventImage} />
-                    <View style={styles.eventInfo}>
-                        <Typography variant="body" style={{ fontWeight: '600' }}>
-                            {event.title}
-                        </Typography>
-                        <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                            {event.date}
-                        </Typography>
-                    </View>
-                    <Ionicons name="chevron-forward" size={20} color={COLORS.secondary} />
-                </NotionCard>
-            ))}
-            {(isBusiness || isProvider) && (user.recentEvents || []).length === 0 && (
+
+            {(profileEvents || []).map((item) => {
+                // Normalize data structure for the card
+                const title = item.title || item.serviceName || item.eventTitle || 'Untitled';
+                const dateText = item.date || 'No date set';
+                const imageUri = getValidImageUri(item.imageUri || item.image || item.providerImage) || DEFAULT_EVENT_IMAGE;
+
+                return (
+                    <TouchableOpacity
+                        key={item.id}
+                        onPress={() => {
+                            if (isBusiness) navigation.navigate('EventStats', { event: item });
+                            else if (isProvider) navigation.navigate('BookingDetail', { booking: item });
+                            else navigation.navigate('TicketDetail', { ticket: item });
+                        }}
+                    >
+                        <NotionCard style={styles.eventCard}>
+                            <Image source={{ uri: imageUri }} style={styles.eventImage} />
+                            <View style={styles.eventInfo}>
+                                <Typography variant="body" style={{ fontWeight: '600' }} numberOfLines={1}>
+                                    {title}
+                                </Typography>
+                                <Typography variant="caption" style={{ color: COLORS.secondary }}>
+                                    {dateText}
+                                </Typography>
+                            </View>
+                            <Ionicons name="chevron-forward" size={20} color={COLORS.secondary} />
+                        </NotionCard>
+                    </TouchableOpacity>
+                );
+            })}
+
+            {profileEvents.length === 0 && !loading && (
                 <View style={styles.emptyState}>
-                    <Ionicons name={isBusiness ? "calendar-outline" : "briefcase-outline"} size={48} color={COLORS.border} />
+                    <Ionicons name={isBusiness ? "calendar-outline" : (isProvider ? "briefcase-outline" : "ticket-outline")} size={48} color={COLORS.border} />
                     <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.m }}>
-                        {isBusiness ? "You haven't posted any events yet." : "No bookings found yet."}
+                        {isBusiness ? "You haven't posted any events yet." : (isProvider ? "No bookings found yet." : "You don't have any tickets yet.")}
                     </Typography>
                 </View>
             )}
@@ -104,19 +192,28 @@ const ProfileScreen = ({ navigation }) => {
         <View>
             <View style={styles.sectionHeader}>
                 <Typography variant="h3">Portfolio</Typography>
-                <TouchableOpacity>
+                <TouchableOpacity onPress={() => navigation.navigate('EditProfile')}>
                     <Typography variant="small" style={{ color: COLORS.accent }}>+ Add Work</Typography>
                 </TouchableOpacity>
             </View>
             <View style={styles.portfolioGrid}>
-                {[1, 2, 3, 4].map((i) => (
-                    <View key={i} style={styles.portfolioItem}>
-                        <Image
-                            source={{ uri: `https://images.unsplash.com/photo-${1500000000000 + i}?w=200` }}
-                            style={styles.portfolioImage}
-                        />
+                {user.profilePhotos && user.profilePhotos.length > 0 ? (
+                    user.profilePhotos.map((photo, index) => (
+                        <View key={index} style={styles.portfolioItem}>
+                            <Image
+                                source={{ uri: photo }}
+                                style={styles.portfolioImage}
+                            />
+                        </View>
+                    ))
+                ) : (
+                    <View style={styles.emptyPortfolio}>
+                        <Ionicons name="images-outline" size={48} color={COLORS.border} />
+                        <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.m }}>
+                            No work showcased yet.
+                        </Typography>
                     </View>
-                ))}
+                )}
             </View>
         </View>
     );
@@ -125,16 +222,44 @@ const ProfileScreen = ({ navigation }) => {
         <View>
             <View style={styles.sectionHeader}>
                 <Typography variant="h3">{isProvider ? "Reviews" : "Friends"}</Typography>
-                <TouchableOpacity>
+                <TouchableOpacity
+                    onPress={() => isProvider
+                        ? navigation.navigate('ReviewList', { businessId: user.id, businessName: user.name })
+                        : null // TODO: Friends list navigation if needed
+                    }
+                >
                     <Typography variant="small" style={{ color: COLORS.accent }}>
                         {isProvider ? "Read All" : `See All (${user.stats?.friends || 0})`}
                     </Typography>
                 </TouchableOpacity>
             </View>
             {isProvider ? (
-                <Typography variant="body" style={{ color: COLORS.secondary, fontStyle: 'italic' }}>
-                    "Top notch mixer! DJ Pulse kept the crowd moving all night." - Alex J.
-                </Typography>
+                reviews.length > 0 ? (
+                    reviews.slice(0, 3).map((review) => (
+                        <NotionCard key={review.id} style={styles.reviewWidget}>
+                            <View style={styles.reviewHeader}>
+                                <Typography variant="body" style={{ fontWeight: '600' }}>{review.userName}</Typography>
+                                <View style={{ flexDirection: 'row', gap: 2 }}>
+                                    {[1, 2, 3, 4, 5].map(s => (
+                                        <Ionicons
+                                            key={s}
+                                            name={s <= review.rating ? "star" : "star-outline"}
+                                            size={12}
+                                            color="#FFD700"
+                                        />
+                                    ))}
+                                </View>
+                            </View>
+                            <Typography variant="caption" color={COLORS.secondary} numberOfLines={2}>
+                                {review.comment || "No comment provided."}
+                            </Typography>
+                        </NotionCard>
+                    ))
+                ) : (
+                    <Typography variant="body" style={{ color: COLORS.secondary, fontStyle: 'italic' }}>
+                        No reviews yet.
+                    </Typography>
+                )
             ) : (
                 (user.friends || []).map((friend) => (
                     <NotionCard key={friend.id} style={styles.friendCard}>
@@ -308,6 +433,7 @@ const ProfileScreen = ({ navigation }) => {
                                 icon={isBusiness ? "analytics-outline" : "share-outline"}
                                 variant="secondary"
                                 style={{ flex: 1, marginLeft: SPACING.s }}
+                                onPress={isBusiness ? () => navigation.navigate('Analytics') : handleShare}
                             />
                         </View>
                     </View>
@@ -394,6 +520,17 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         flexWrap: 'wrap',
         gap: SPACING.s,
+    },
+    emptyPortfolio: {
+        width: '100%',
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: SPACING.xl,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.m,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
     },
     portfolioItem: {
         width: '48%',
@@ -581,6 +718,16 @@ const styles = StyleSheet.create({
         marginLeft: SPACING.s,
         borderWidth: 1,
         borderColor: COLORS.accent + '40',
+    },
+    reviewWidget: {
+        padding: SPACING.m,
+        marginBottom: SPACING.s,
+    },
+    reviewHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 4,
     },
     emptyState: {
         alignItems: 'center',

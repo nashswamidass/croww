@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking, Modal, TextInput, Dimensions, Platform } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking, Modal, TextInput, Dimensions, Platform, Share } from 'react-native';
 import { showAlert } from '../../utils/showAlert';
 import { normalizeUrl } from '../../utils/normalizeUrl';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -14,6 +14,7 @@ import { reviewService } from '../../services/reviewService';
 import { eventService } from '../../services/eventService';
 import { getAvatarSource } from '../../utils/avatarHelper';
 import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
+import { useAuth } from '../../context/AuthContext';
 import SEO from '../../components/SEO';
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -45,7 +46,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const finalServiceId = serviceId || routeId;
     const [service, setService] = React.useState(null);
     const [loading, setLoading] = React.useState(true);
-    const [currentUser, setCurrentUser] = React.useState(null);
+    const { user: currentUser } = useAuth();
     const [reviews, setReviews] = React.useState([]);
     const [events, setEvents] = React.useState([]);
     const [showReviewModal, setShowReviewModal] = React.useState(false);
@@ -54,40 +55,38 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const [submittingReview, setSubmittingReview] = React.useState(false);
     const [userReview, setUserReview] = React.useState(null);
     const [activePhotoIndex, setActivePhotoIndex] = React.useState(0);
+    const [isFollowing, setIsFollowing] = React.useState(false);
+    const [followLoading, setFollowLoading] = React.useState(false);
     const insets = useSafeAreaInsets();
 
     React.useEffect(() => {
         const fetchData = async () => {
             try {
-                const [serviceData, user, organizerEvents] = await Promise.all([
+                const [serviceData, organizerEvents] = await Promise.all([
                     userService.getUserById(finalServiceId),
-                    userService.getUser(),
                     eventService.getEventsByOrganizer(finalServiceId)
                 ]);
                 setService(serviceData);
-                setCurrentUser(user);
 
                 // Simple date parsing to sort by date if possible, otherwise just show all
-                // Format is "14 Feb 2026, 02:00 pm" or similar
                 const validEvents = (organizerEvents || []).filter(e => e.date);
-
-                // Optional: Try to sort by date descending (newest first) or ascending (upcoming)
-                // For now, let's just reverse to show latest created (which is default from service)
-                // actually service returns orderBy('createdAt', 'desc')
-
                 setEvents(validEvents);
 
                 if (serviceData) {
                     const reviewsData = await reviewService.getBusinessReviews(finalServiceId);
                     setReviews(reviewsData);
 
-                    if (user?.id) {
-                        const existing = await reviewService.getUserReview(finalServiceId, user.id);
+                    if (currentUser?.id) {
+                        const [existing, followStatus] = await Promise.all([
+                            reviewService.getUserReview(finalServiceId, currentUser.id),
+                            userService.getFollowStatus(currentUser.id, finalServiceId)
+                        ]);
                         if (existing) {
                             setUserReview(existing);
                             setReviewRating(existing.rating);
                             setReviewComment(existing.comment || '');
                         }
+                        setIsFollowing(followStatus);
                     }
                 }
             } catch (error) {
@@ -97,7 +96,52 @@ const ServiceDetailScreen = ({ route, navigation }) => {
             }
         };
         fetchData();
-    }, [finalServiceId]);
+    }, [finalServiceId, currentUser?.id]);
+
+    const handleShare = async () => {
+        try {
+            const url = `https://croww.ai/provider/${finalServiceId}`;
+            await Share.share({
+                message: `Check out ${service?.name} on Croww! ${url}`,
+                url: url, // iOS only
+                title: service?.name
+            });
+        } catch (error) {
+            console.error('Error sharing profile:', error);
+        }
+    };
+
+    const handleFollow = async () => {
+        if (!currentUser) {
+            showAlert('Login Required', 'Please login to follow businesses.');
+            return;
+        }
+
+        setFollowLoading(true);
+        try {
+            if (isFollowing) {
+                await userService.unfollowUser(currentUser.id, finalServiceId);
+                setIsFollowing(false);
+                setService(prev => ({
+                    ...prev,
+                    followersCount: Math.max(0, (prev.followersCount || 1) - 1)
+                }));
+            } else {
+                await userService.followUser(currentUser.id, finalServiceId);
+                setIsFollowing(true);
+                setService(prev => ({
+                    ...prev,
+                    followersCount: (prev.followersCount || 0) + 1
+                }));
+            }
+        } catch (error) {
+            console.error('Error toggling follow:', error);
+            const message = error.message || 'Failed to update follow status.';
+            showAlert('Follow Action Failed', message);
+        } finally {
+            setFollowLoading(false);
+        }
+    };
 
     const handleSubmitReview = async () => {
         if (reviewRating === 0) {
@@ -137,7 +181,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     };
 
     const isVerifiedUser = currentUser?.isVerified || currentUser?.isApproved;
-    const isOwnProfile = currentUser?.id === serviceId;
+    const isOwnProfile = currentUser && currentUser.id === finalServiceId;
     const isProfessional = service?.userType === 'provider' || service?.userType === 'business' || service?.isProvider || service?.isBusiness;
 
     if (loading) {
@@ -206,7 +250,9 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <Typography variant="body" style={{ fontWeight: '600' }}>Profile</Typography>
-                <View style={{ width: 32 }} />
+                <TouchableOpacity onPress={handleShare} style={styles.backButton}>
+                    <Ionicons name="share-outline" size={24} color={COLORS.primary} />
+                </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -286,9 +332,9 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                     <View style={styles.statDivider} />
                     <View style={styles.statItem}>
                         <Typography variant="h3" style={styles.statValue}>
-                            {service.reviews || 0}
+                            {service.followersCount || 0}
                         </Typography>
-                        <Typography variant="small" color={COLORS.secondary}>Reviews</Typography>
+                        <Typography variant="small" color={COLORS.secondary}>Followers</Typography>
                     </View>
 
                     {isProfessional && (
@@ -327,7 +373,16 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 {!isOwnProfile && (
                     <View style={styles.actionRow}>
                         <AntigravityButton
+                            title={isFollowing ? "Following" : "Follow"}
+                            variant={isFollowing ? "secondary" : "primary"}
+                            icon={isFollowing ? "checkmark-circle" : "add-circle-outline"}
+                            onPress={handleFollow}
+                            loading={followLoading}
+                            style={{ flex: 1.2 }}
+                        />
+                        <AntigravityButton
                             title="Message"
+                            variant="secondary"
                             icon="chatbubble-outline"
                             onPress={() => navigation.navigate('Chat', {
                                 recipientId: service.id,
@@ -336,6 +391,19 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             })}
                             style={{ flex: 1 }}
                         />
+                        {isProfessional && (
+                            <AntigravityButton
+                                title="Book"
+                                variant="secondary"
+                                icon="calendar-outline"
+                                onPress={() => navigation.navigate('CreateBooking', {
+                                    providerId: service.id,
+                                    providerName: service.name,
+                                    serviceName: service.category || service.role || 'Service'
+                                })}
+                                style={{ flex: 0.8 }}
+                            />
+                        )}
                     </View>
                 )}
 
@@ -494,16 +562,32 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.horizontalScroll}>
                             {service.packages.map((pkg) => (
                                 <NotionCard key={pkg.id} style={styles.packageCard}>
-                                    <Typography variant="h3" numberOfLines={2}>{pkg.title}</Typography>
-                                    <Typography variant="h2" style={{ color: COLORS.accent, marginVertical: SPACING.s }}>
-                                        ₹{pkg.price?.toLocaleString()}
-                                    </Typography>
-                                    {pkg.features && pkg.features.slice(0, 4).map((feature, index) => (
-                                        <View key={index} style={styles.featureItem}>
-                                            <Ionicons name="checkmark" size={14} color={COLORS.success} />
-                                            <Typography variant="caption" style={{ marginLeft: 6, flex: 1 }}>{feature}</Typography>
-                                        </View>
-                                    ))}
+                                    <View style={{ flex: 1 }}>
+                                        <Typography variant="h3" numberOfLines={2}>{pkg.title}</Typography>
+                                        <Typography variant="h2" style={{ color: COLORS.accent, marginVertical: SPACING.s }}>
+                                            ₹{pkg.price?.toLocaleString()}
+                                        </Typography>
+                                        {pkg.features && pkg.features.slice(0, 3).map((feature, index) => (
+                                            <View key={index} style={styles.featureItem}>
+                                                <Ionicons name="checkmark" size={14} color={COLORS.success} />
+                                                <Typography variant="caption" style={{ marginLeft: 6, flex: 1 }}>{feature}</Typography>
+                                            </View>
+                                        ))}
+                                    </View>
+                                    {!isOwnProfile && (
+                                        <TouchableOpacity
+                                            style={styles.packageBookBtn}
+                                            onPress={() => navigation.navigate('CreateBooking', {
+                                                providerId: service.id,
+                                                providerName: service.name,
+                                                serviceName: service.category || service.role || 'Service',
+                                                packageData: pkg
+                                            })}
+                                        >
+                                            <Typography variant="small" style={{ color: COLORS.accent, fontWeight: '700' }}>BOOK NOW</Typography>
+                                            <Ionicons name="chevron-forward" size={14} color={COLORS.accent} />
+                                        </TouchableOpacity>
+                                    )}
                                 </NotionCard>
                             ))}
                         </ScrollView>
@@ -574,6 +658,20 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     ) : null}
                                 </NotionCard>
                             ))}
+                            {reviews.length > 5 && (
+                                <TouchableOpacity
+                                    style={styles.seeAllReviews}
+                                    onPress={() => navigation.navigate('ReviewList', {
+                                        businessId: finalServiceId,
+                                        businessName: service.name
+                                    })}
+                                >
+                                    <Typography variant="body" style={{ color: COLORS.accent, fontWeight: '600' }}>
+                                        See all {reviews.length} reviews
+                                    </Typography>
+                                    <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+                                </TouchableOpacity>
+                            )}
                         </View>
                     )}
                 </View>
@@ -856,6 +954,16 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginBottom: 4,
     },
+    packageBookBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: SPACING.m,
+        paddingTop: SPACING.s,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        gap: 4
+    },
 
     // Events
     eventCard: {
@@ -906,6 +1014,13 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'flex-start',
         justifyContent: 'space-between',
+    },
+    seeAllReviews: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: SPACING.m,
+        gap: 4,
     },
 
     // Review Modal

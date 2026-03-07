@@ -11,6 +11,7 @@ import { SERVICE_CATEGORIES } from '../../constants/services';
 import { userService } from '../../services/userService';
 import { getDistanceFromLatLonInKm, formatDistance } from '../../utils/distance';
 import LocationSelectorModal from '../../components/LocationSelectorModal';
+import { locationService } from '../../services/locationService';
 
 // Mock User Location (Mumbai Center) - Still needed for distance calculation if GPS is off
 const MOCK_USER_LOCATION = { latitude: 19.0760, longitude: 72.8777 };
@@ -32,7 +33,7 @@ const CITY_COORDINATES = {
 const SearchScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
     const [selectedCategory, setSelectedCategory] = useState(null);
-    const [sortByDistance, setSortByDistance] = useState(false);
+    const [sortByDistance, setSortByDistance] = useState(true);
     const [activeTab, setActiveTab] = useState('services'); // 'services' or 'venues'
     const [providers, setProviders] = useState([]);
     const [filteredProviders, setFilteredProviders] = useState([]);
@@ -61,7 +62,20 @@ const SearchScreen = ({ navigation }) => {
                     if (userData.coordinates) {
                         setUserLocation(userData.coordinates);
                         setLocationName(userData.location || 'Your Location');
+                    } else {
+                        // Background detection if user has no saved coordinates
+                        const detect = async () => {
+                            const { coords, cityName: detectedCity } = await locationService.getLocation();
+                            if (coords) setUserLocation(coords);
+                            if (detectedCity) setLocationName(detectedCity);
+                        };
+                        detect();
                     }
+                } else {
+                    // Not logged in or no profile - detect once
+                    const { coords, cityName: detectedCity } = await locationService.getLocation();
+                    if (coords) setUserLocation(coords);
+                    if (detectedCity) setLocationName(detectedCity);
                 }
 
                 const data = await userService.getServiceProviders();
@@ -364,19 +378,18 @@ const SearchScreen = ({ navigation }) => {
                     } else if (city) {
                         setLocationName(city);
                     } else {
-                        // "Use Current Location" — attempt GPS
+                        // "Use Current Location" — attempt detection via service
+                        setLoading(true);
                         try {
-                            const { status } = await Location.requestForegroundPermissionsAsync();
-                            if (status === 'granted') {
-                                const loc = await Location.getCurrentPositionAsync({});
-                                setUserLocation({
-                                    latitude: loc.coords.latitude,
-                                    longitude: loc.coords.longitude,
-                                });
-                                setLocationName('Current Location');
+                            const { coords, cityName: detectedCity } = await locationService.getLocation();
+                            if (coords) {
+                                setUserLocation(coords);
+                                setLocationName(detectedCity || 'Current Location');
                             }
                         } catch (e) {
-                            console.warn('GPS unavailable:', e);
+                            console.warn('Location detection failed:', e);
+                        } finally {
+                            setLoading(false);
                         }
                     }
                 }}

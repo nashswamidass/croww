@@ -289,8 +289,8 @@ export const getVerificationStatus = async () => {
             return {
                 aadhaarVerified: isVerified,
                 aadhaarName: fullName,
-                businessVerified: isApproved,
-                businessPending: status === 'pending'
+                businessVerified: isApproved && userData.userType === 'business',
+                businessPending: status === 'pending' && userData.userType === 'business'
             };
         }
 

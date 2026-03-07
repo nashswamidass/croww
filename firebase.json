@@ -1,18 +1,34 @@
 {
-    "hosting": {
-        "site": "croww-app",
-        "public": "dist",
-        "ignore": [
-            "firebase.json",
-            "**/.*"
-        ],
-        "rewrites": [
-            {
-                "source": "**",
-                "destination": "/index.html"
-            }
-        ]
-    },
+    "hosting": [
+        {
+            "site": "croww-app",
+            "public": "dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*"
+            ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        },
+        {
+            "site": "croww-live-2026",
+            "public": "dist",
+            "ignore": [
+                "firebase.json",
+                "**/.*"
+            ],
+            "rewrites": [
+                {
+                    "source": "**",
+                    "destination": "/index.html"
+                }
+            ]
+        }
+    ],
     "functions": [
         {
             "source": "functions",

@@ -50,6 +50,9 @@ import WebPaymentScreen from '../screens/main/WebPaymentScreen';
 import CreateBookingScreen from '../screens/main/CreateBookingScreen';
 import ChatListScreen from '../screens/main/ChatListScreen';
 import EventListScreen from '../screens/main/EventListScreen';
+import ProviderBookingsScreen from '../screens/main/ProviderBookingsScreen';
+import BookingDetailScreen from '../screens/main/BookingDetailScreen';
+import ReviewListScreen from '../screens/main/ReviewListScreen';
 
 // Verification Screens
 import AadhaarVerificationScreen from '../screens/verification/AadhaarVerificationScreen';
@@ -163,31 +166,54 @@ const MainNavigator = () => {
             <Stack.Screen name="TicketDetail" component={TicketDetailScreen} />
             <Stack.Screen name="WebPayment" component={WebPaymentScreen} />
             <Stack.Screen name="CreateBooking" component={CreateBookingScreen} />
+            <Stack.Screen name="ProviderBookings" component={ProviderBookingsScreen} />
             <Stack.Screen name="ChatList" component={ChatListScreen} />
+            <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
             <Stack.Screen name="EventList" component={EventListScreen} />
+            <Stack.Screen name="ReviewList" component={ReviewListScreen} />
             <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
         </Stack.Navigator>
     );
 };
 
+import { pushNotificationService } from '../services/pushNotificationService';
+
 const AppNavigator = () => {
     const { user, loading, isBlocked, isAuthenticated } = useAuth();
 
+    useEffect(() => {
+        if (isAuthenticated && user) {
+            // Register for push notifications
+            pushNotificationService.registerForPushNotificationsAsync();
+
+            // Add listener for when user interacts with notification
+            const cleanup = pushNotificationService.addNotificationListeners(
+                (notification) => {
+                    console.log('Notification Received in Foreground:', notification);
+                },
+                (response) => {
+                    console.log('User Interacted with Notification:', response);
+                    // Navigation logic could go here based on response.notification.request.content.data
+                }
+            );
+
+            return () => {
+                if (cleanup) cleanup();
+            };
+        }
+    }, [isAuthenticated, user?.id]);
+
     if (loading) {
         return (
-            <LinearGradient
-                colors={['#000000', '#1A1A1A']}
-                style={styles.loadingContainer}
-            >
+            <View style={[styles.loadingContainer, { backgroundColor: '#000000' }]}>
                 <View style={styles.logoWrapper}>
                     <Image
                         source={require('../../assets/croww-logo.png')}
                         style={styles.loadingLogo}
                         resizeMode="contain"
                     />
-                    <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: 20 }} />
                 </View>
-            </LinearGradient>
+            </View>
         );
     }
 

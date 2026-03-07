@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Alert } from 'react-native';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import * as Location from 'expo-location';
+import { locationService } from '../../services/locationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,15 +37,12 @@ const MapScreen = ({ navigation }) => {
                 const events = await eventService.getEvents();
                 setAllEvents(events);
 
-                const cachedLocation = await AsyncStorage.getItem('userLocation');
-                if (cachedLocation) {
-                    const coords = JSON.parse(cachedLocation);
-                    setUserLocation(coords);
-                }
+                // 1. Check for manual city choice first
+                const manualCity = await locationService.getCachedLocation(); // Reusing the pattern of checking cache
+                const savedManualCity = await AsyncStorage.getItem('manualCity');
 
-                const manualCity = await AsyncStorage.getItem('manualCity');
-                if (manualCity && CITY_COORDINATES[manualCity]) {
-                    const coords = CITY_COORDINATES[manualCity];
+                if (savedManualCity && CITY_COORDINATES[savedManualCity]) {
+                    const coords = CITY_COORDINATES[savedManualCity];
                     setUserLocation(coords);
 
                     if (mapRef.current) {
@@ -59,32 +56,20 @@ const MapScreen = ({ navigation }) => {
                     return;
                 }
 
-                let { status } = await Location.requestForegroundPermissionsAsync();
-                if (status !== 'granted') {
-                    if (!cachedLocation) {
-                        const fallback = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai Fallback
-                        setUserLocation(fallback);
+                // 2. Use location service
+                const { coords } = await locationService.getLocation();
+                if (coords) {
+                    setUserLocation(coords);
+                    if (mapRef.current) {
+                        mapRef.current.animateToRegion({
+                            ...coords,
+                            latitudeDelta: 0.05,
+                            longitudeDelta: 0.05,
+                        }, 1000);
                     }
-                    setLoading(false);
-                    return;
-                }
-
-                const lastKnown = await Location.getLastKnownPositionAsync({});
-                if (lastKnown && !cachedLocation) {
-                    setUserLocation(lastKnown.coords);
-                }
-
-                const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                setUserLocation(location.coords);
-                await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
-
-                if (mapRef.current) {
-                    mapRef.current.animateToRegion({
-                        latitude: location.coords.latitude,
-                        longitude: location.coords.longitude,
-                        latitudeDelta: 0.05,
-                        longitudeDelta: 0.05,
-                    }, 1000);
+                } else {
+                    const fallback = { latitude: 19.0760, longitude: 72.8777 }; // Mumbai Fallback
+                    setUserLocation(fallback);
                 }
 
             } catch (error) {
@@ -273,14 +258,38 @@ const MapScreen = ({ navigation }) => {
                 customMapStyle={DARK_MAP_STYLE}
                 userInterfaceStyle="dark"
             >
-                {displayedEvents.map(event => (
-                    <Marker
-                        key={`dot-${event.id}`}
-                        coordinate={event.coordinate}
-                        onPress={() => handleMarkerPress(event)}
-                        pinColor={event.color}
-                    />
-                ))}
+                {displayedEvents.map(event => {
+                    // Determine if it's a business/official event
+                    const isBusinessEvent = event.isOfficial || event.verificationStatus === 'business' || event.verificationType === 'business';
+                    const isSelected = selectedEvent?.id === event.id;
+
+                    return (
+                        <Marker
+                            key={`dot-${event.id}`}
+                            coordinate={event.coordinate}
+                            onPress={() => handleMarkerPress(event)}
+                            style={{ zIndex: isSelected ? 100 : (isBusinessEvent ? 50 : 10) }}
+                            tracksViewChanges={false} // Performance optimization for custom markers
+                        >
+                            <View style={[
+                                styles.customMarkerContainer,
+                                isBusinessEvent ? styles.businessMarkerContainer : styles.privateMarkerContainer,
+                                isSelected && styles.selectedMarkerContainer
+                            ]}>
+                                <Ionicons
+                                    name={isBusinessEvent ? "star" : "location"}
+                                    size={isBusinessEvent ? 14 : 16}
+                                    color={COLORS.background}
+                                />
+                            </View>
+                            <View style={[
+                                styles.markerTriangle,
+                                isBusinessEvent ? styles.businessMarkerTriangle : styles.privateMarkerTriangle,
+                                isSelected && styles.selectedMarkerTriangle
+                            ]} />
+                        </Marker>
+                    );
+                })}
             </MapView>
 
             <View style={[styles.overlay, { top: insets.top + SPACING.s }]}>
@@ -485,6 +494,53 @@ const styles = StyleSheet.create({
         height: 48,
         borderRadius: 24,
         paddingHorizontal: 0,
+    },
+    customMarkerContainer: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 2,
+        borderColor: COLORS.background,
+        shadowColor: "#000",
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.3,
+        shadowRadius: 3,
+        elevation: 5,
+    },
+    privateMarkerContainer: {
+        backgroundColor: COLORS.primary,
+    },
+    businessMarkerContainer: {
+        backgroundColor: COLORS.accent,
+    },
+    selectedMarkerContainer: {
+        transform: [{ scale: 1.2 }],
+        borderColor: COLORS.surfaceHighlight,
+    },
+    markerTriangle: {
+        width: 0,
+        height: 0,
+        backgroundColor: 'transparent',
+        borderStyle: 'solid',
+        borderLeftWidth: 6,
+        borderRightWidth: 6,
+        borderTopWidth: 8,
+        borderLeftColor: 'transparent',
+        borderRightColor: 'transparent',
+        alignSelf: 'center',
+        marginTop: -2, // Overlap slightly to look connected
+    },
+    privateMarkerTriangle: {
+        borderTopColor: COLORS.primary,
+    },
+    businessMarkerTriangle: {
+        borderTopColor: COLORS.accent,
+    },
+    selectedMarkerTriangle: {
+        transform: [{ scale: 1.2 }],
+        marginTop: -1,
     }
 });
 

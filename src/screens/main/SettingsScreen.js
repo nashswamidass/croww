@@ -126,14 +126,7 @@ const SettingsScreen = ({ navigation }) => {
                             showAlert('Account Deleted', 'Your account and data have been permanently removed.');
                         } catch (e) {
                             console.error('Delete account error:', e);
-                            if (e.code === 'auth/requires-recent-login') {
-                                showAlert(
-                                    'Re-authentication Required',
-                                    'For security reasons, you need to have recently logged in to delete your account. Please log out and log back in, then try again.'
-                                );
-                            } else {
-                                showAlert('Error', 'Failed to delete account. Please try again or contact support.');
-                            }
+                            showAlert('Error', 'Failed to delete account. Please try again or contact support.');
                         }
                     }
                 }
@@ -207,7 +200,7 @@ const SettingsScreen = ({ navigation }) => {
                             onPress={() => {
                                 // Only business accounts use document-based verification
                                 // Individuals and Providers use Aadhaar verification
-                                if (currentUser?.userType === 'business' || currentUser?.isBusiness) {
+                                if (currentUser?.userType === 'business') {
                                     navigation.navigate('BusinessVerification');
                                 } else {
                                     navigation.navigate('AadhaarVerification');
@@ -322,6 +315,22 @@ const SettingsScreen = ({ navigation }) => {
                             subtitle="Our refund terms"
                             onPress={() => navigation.navigate('LegalPolicy', { type: 'refund' })}
                         />
+                        {(currentUser?.userType === 'business' || currentUser?.isBusiness || currentUser?.userType === 'provider' || currentUser?.isProvider) && (
+                            <>
+                                <View style={styles.divider} />
+                                <SettingItem
+                                    icon="calculator-outline"
+                                    title="Commission Policy"
+                                    subtitle="Our commission and payout terms"
+                                    onPress={() => {
+                                        const type = (currentUser?.userType === 'business' || currentUser?.isBusiness)
+                                            ? 'business_commission'
+                                            : 'provider_commission';
+                                        navigation.navigate('LegalPolicy', { type });
+                                    }}
+                                />
+                            </>
+                        )}
                     </NotionCard>
                 </View>
 

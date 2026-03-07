@@ -8,7 +8,7 @@ import {
     serverTimestamp,
     doc,
     updateDoc,
-    getDocs,
+    getDocs, getDoc,
     limit,
     arrayUnion,
     arrayRemove
@@ -65,20 +65,29 @@ export const chatService = {
             }
 
             await ensureAuth();
-            const sortedIds = [...validIds].sort();
 
+            // Safer search: query for chats containing one of the participants, then filter manually
+            // This is more resilient than array equality queries which can be tricky with indexes/permissions
             const q = query(
                 collection(db, CHATS_COLLECTION),
-                where('participantIds', '==', sortedIds),
-                limit(1)
+                where('participantIds', 'array-contains', validIds[0]),
+                limit(50)
             );
 
             const querySnapshot = await getDocs(q);
+            const sortedIds = [...validIds].sort();
 
-            if (!querySnapshot.empty) {
-                return querySnapshot.docs[0].id;
+            for (const docSnapshot of querySnapshot.docs) {
+                const data = docSnapshot.data();
+                if (data.type === 'private' || !data.type) {
+                    const docParticipantIds = [...(data.participantIds || [])].sort();
+                    if (JSON.stringify(docParticipantIds) === JSON.stringify(sortedIds)) {
+                        return docSnapshot.id;
+                    }
+                }
             }
 
+            // Create new if not found
             const chatRef = await addDoc(collection(db, CHATS_COLLECTION), {
                 participantIds: sortedIds,
                 participantNames: participantNames,
@@ -97,13 +106,6 @@ export const chatService = {
     },
 
     /**
-     * Create a group chat
-     * @param {string} name - Group name
-     * @param {string[]} participantIds - Initial participants
-     * @param {string} image - Optional group image URL
-     * @returns {Promise<string>} - The chat ID
-     */
-    /**
      * Get a chat document by ID
      * @param {string} chatId
      * @returns {Promise<Object>} Chat data or null
@@ -111,9 +113,9 @@ export const chatService = {
     getChat: async (chatId) => {
         try {
             if (!chatId) return null;
-            const chatSnap = await getDocs(query(collection(db, CHATS_COLLECTION), where('__name__', '==', chatId)));
-            if (!chatSnap.empty) {
-                return { id: chatSnap.docs[0].id, ...chatSnap.docs[0].data() };
+            const chatSnap = await getDoc(doc(db, CHATS_COLLECTION, chatId));
+            if (chatSnap.exists()) {
+                return { id: chatSnap.id, ...chatSnap.data() };
             }
             return null;
         } catch (error) {
@@ -176,19 +178,17 @@ export const chatService = {
             });
 
             // Update chat metadata and increment unread counts for others
-            // Get current chat data to update unread counts safely (or use increment if consistent)
-            // For now, simpler approach: read, update locally, write back (transaction better but this is MVP)
-            const chatSnap = await getDocs(query(collection(db, CHATS_COLLECTION), where('__name__', '==', chatId)));
+            const chatSnap = await getDoc(chatRef);
             let unreadUpdate = {};
 
-            if (!chatSnap.empty) {
-                const chatData = chatSnap.docs[0].data();
+            if (chatSnap.exists()) {
+                const chatData = chatSnap.data();
                 const currentUnreads = chatData.unreadCounts || {};
                 const participants = chatData.participantIds || [];
 
                 participants.forEach(pid => {
                     if (pid !== senderId) {
-                        // Increment for others
+                        // Increment for others using dot notation for nested field update
                         unreadUpdate[`unreadCounts.${pid}`] = (currentUnreads[pid] || 0) + 1;
                     }
                 });
@@ -244,11 +244,11 @@ export const chatService = {
         const q = query(messagesRef, orderBy('createdAt', 'asc'));
 
         return onSnapshot(q, (snapshot) => {
-            const messages = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data(),
+            const messages = snapshot.docs.map(docSnapshot => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data(),
                 // Convert Firestore Timestamp to Date/String if needed, or handle in component
-                createdAt: doc.data().createdAt ? doc.data().createdAt.toDate() : new Date()
+                createdAt: docSnapshot.data().createdAt ? docSnapshot.data().createdAt.toDate() : new Date()
             }));
             callback(messages);
         }, (error) => {
@@ -275,9 +275,9 @@ export const chatService = {
         );
 
         return onSnapshot(q, (snapshot) => {
-            const chats = snapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
+            const chats = snapshot.docs.map(docSnapshot => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data()
             }));
             callback(chats);
         }, (error) => {
@@ -291,9 +291,9 @@ export const chatService = {
                     where('participantIds', 'array-contains', userId)
                 );
                 onSnapshot(fallbackQ, (snapshot) => {
-                    const chats = snapshot.docs.map(doc => ({
-                        id: doc.id,
-                        ...doc.data()
+                    const chats = snapshot.docs.map(docSnapshot => ({
+                        id: docSnapshot.id,
+                        ...docSnapshot.data()
                     })).sort((a, b) => (b.lastMessageTimestamp?.seconds || 0) - (a.lastMessageTimestamp?.seconds || 0));
                     callback(chats);
                 });

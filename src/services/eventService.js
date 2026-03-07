@@ -11,6 +11,8 @@ import {
     updateDoc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import { userService } from './userService';
+import { notificationService } from './notificationService';
 
 const EVENTS_COLLECTION = 'events';
 
@@ -33,6 +35,22 @@ export const eventService = {
 
             const docRef = await addDoc(collection(db, EVENTS_COLLECTION), docData);
             console.log("Event created with ID: ", docRef.id);
+
+            // Notify Followers (Asynchronous/Background)
+            if (eventData.organizerId) {
+                userService.getFollowerIds(eventData.organizerId).then(followerIds => {
+                    const organizerName = eventData.organizerName || 'A business you follow';
+                    followerIds.forEach(followerId => {
+                        notificationService.sendNotification(
+                            followerId,
+                            'New Event Posted! 🎊',
+                            `${organizerName} just posted a new event: ${eventData.title}. Check it out!`,
+                            { eventId: docRef.id, type: 'new_event' }
+                        );
+                    });
+                }).catch(err => console.error("Error notifying followers:", err));
+            }
+
             return { id: docRef.id, ...docData };
         } catch (error) {
             console.error("Error creating event: ", error);

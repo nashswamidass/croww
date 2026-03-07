@@ -7,15 +7,20 @@ import {
     doc,
     getDoc,
     setDoc,
-    or
+    or,
+    deleteDoc,
+    increment,
+    writeBatch
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
 const USERS_COLLECTION = 'users';
+const FOLLOWS_COLLECTION = 'follows';
 
 export const userService = {
     /**
-     * Get all service providers and businesses for the marketplace
+     * Get all service providers and businesses for the marketplace.
+     * Excludes blocked users (deleted by admin).
      */
     getServiceProviders: async () => {
         try {
@@ -26,7 +31,10 @@ export const userService = {
             const querySnapshot = await getDocs(q);
             const providers = [];
             querySnapshot.forEach((doc) => {
-                providers.push({ id: doc.id, ...doc.data() });
+                const data = doc.data();
+                // Exclude blocked/admin-deleted users
+                if (data.isBlocked === true) return;
+                providers.push({ id: doc.id, ...data });
             });
             return providers;
         } catch (error) {
@@ -258,8 +266,119 @@ export const userService = {
     },
 
     /**
+     * Update specific fields on a user's Firestore profile (partial merge).
+     * @param {string} userId
+     * @param {Object} data - Fields to update (e.g. { availability: {...} })
+     * @returns {Promise<boolean>}
+     */
+    updateProfile: async (userId, data) => {
+        try {
+            if (!userId) throw new Error("User ID is required to update profile");
+            const userRef = doc(db, USERS_COLLECTION, userId);
+            await setDoc(userRef, data, { merge: true });
+
+            // Sync local storage if this is the current user
+            const currentUser = await userService.getUser();
+            if (currentUser && currentUser.id === userId) {
+                const updatedUser = { ...currentUser, ...data };
+                await userService.saveUserToStorage(updatedUser);
+            }
+            return true;
+        } catch (error) {
+            console.error("Error updating profile:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Follow a business or provider via Cloud Function
+     */
+    followUser: async (followerId, targetUserId) => {
+        try {
+            const API_URL = 'https://togglefollow-6vktyfoeaa-uc.a.run.app';
+            console.log(`[UserService] Following user via: ${API_URL}`);
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ followerId, targetUserId, action: 'follow' }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to follow user");
+            }
+
+            console.log(`[UserService] Successfully followed user ${targetUserId}`);
+            return true;
+        } catch (error) {
+            console.error("Error following user:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Unfollow a business or provider via Cloud Function
+     */
+    unfollowUser: async (followerId, targetUserId) => {
+        try {
+            const API_URL = 'https://togglefollow-6vktyfoeaa-uc.a.run.app';
+            console.log(`[UserService] Unfollowing user via: ${API_URL}`);
+
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ followerId, targetUserId, action: 'unfollow' }),
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                throw new Error(errorData.message || "Failed to unfollow user");
+            }
+
+            console.log(`[UserService] Successfully unfollowed user ${targetUserId}`);
+            return true;
+        } catch (error) {
+            console.error("Error unfollowing user:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Check if a user is following another user
+     */
+    getFollowStatus: async (followerId, targetUserId) => {
+        try {
+            if (!followerId || !targetUserId) return false;
+            const followId = `${followerId}_${targetUserId}`;
+            const followRef = doc(db, FOLLOWS_COLLECTION, followId);
+            const docSnap = await getDoc(followRef);
+            return docSnap.exists();
+        } catch (error) {
+            console.error("Error checking follow status:", error);
+            return false;
+        }
+    },
+
+    /**
+     * Get IDs of all followers for a user
+     */
+    getFollowerIds: async (targetUserId) => {
+        try {
+            const q = query(
+                collection(db, FOLLOWS_COLLECTION),
+                where('targetUserId', '==', targetUserId)
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => doc.data().followerId);
+        } catch (error) {
+            console.error("Error getting follower IDs:", error);
+            return [];
+        }
+    },
+
+    /**
      * Save user data to local storage
-     * @param {Object} userData 
      */
     saveUserToStorage: async (userData) => {
         try {
@@ -284,11 +403,22 @@ export const userService = {
     },
 
     /**
-     * Clear local user data
+     * Clear all user-specific data from local storage
      */
     logout: async () => {
         try {
-            await AsyncStorage.removeItem('user');
+            const keys = [
+                'user',
+                'userLocation',
+                'cityName',
+                'manualCity',
+                'aadhaar_verified',
+                'aadhaar_name',
+                'business_verification_status',
+                'business_verification_id'
+            ];
+            await AsyncStorage.multiRemove(keys);
+            console.log('[UserService] Local storage cleared successfully');
         } catch (error) {
             console.error("Error clearing local user data: ", error);
         }

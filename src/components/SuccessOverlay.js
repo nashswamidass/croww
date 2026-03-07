@@ -70,7 +70,7 @@ const SuccessOverlay = ({ visible, onAnimationComplete }) => {
                         />
                     </View>
                     <Typography variant="h2" style={styles.title}>Payment Successful!</Typography>
-                    <Typography variant="body" style={styles.subtitle}>Issuing your tickets...</Typography>
+                    <Typography variant="body" style={styles.subtitle}>Processing your order...</Typography>
                 </Animated.View>
             </View>
         </View>

@@ -10,8 +10,8 @@ import { useAuth } from '../../context/AuthContext';
 import VerificationBadge from '../../components/VerificationBadge';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { locationService } from '../../services/locationService';
+import { calculateFees, formatINR } from '../../utils/feeCalculator';
 import { getDistanceFromLatLonInKm, formatDistance } from '../../utils/distance';
 import { formatIndianDate } from '../../utils/localization';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -37,14 +37,11 @@ const EventDetailScreen = ({ route, navigation }) => {
 
     React.useEffect(() => {
         (async () => {
-            const cached = await AsyncStorage.getItem('userLocation');
-            if (cached) setUserLocation(JSON.parse(cached));
+            const cached = await locationService.getCachedLocation();
+            if (cached.coords) setUserLocation(cached.coords);
 
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-                const location = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
-                setUserLocation(location.coords);
-            }
+            const { coords } = await locationService.getLocation();
+            if (coords) setUserLocation(coords);
         })();
     }, []);
 
@@ -246,14 +243,15 @@ const EventDetailScreen = ({ route, navigation }) => {
         const userId = userData?.id || currentUser?.uid;
 
         if (eventData.isPaid) {
-            const totalPrice = eventData.price * ticketCount;
+            // Calculate full fee breakdown
+            const fees = calculateFees(eventData.price, ticketCount);
             setLoading(true);
             try {
-                // PART 1: Create Order on Backend
+                // PART 1: Create Order on Backend (charge user the TOTAL payable incl. convenience fee)
                 const sanitizedPhone = (userData?.phone || '9999999999').replace(/\D/g, '');
 
                 const orderData = await paymentService.createOrder(
-                    totalPrice,
+                    fees.totalPayable,
                     userId,
                     sanitizedPhone,
                     userData?.name || 'User',
@@ -262,14 +260,16 @@ const EventDetailScreen = ({ route, navigation }) => {
 
                 // PART 2: Start SDK Checkout / Web Redirect
                 if (Platform.OS === 'web' || !paymentService.isNativeAvailable()) {
-                    // PRE-EMPTIVE: Create the tickets in PENDING_PAYMENT status first
+                    // PRE-EMPTIVE: Create the tickets in PENDING_PAYMENT status first (with full fee breakdown)
                     for (let i = 0; i < ticketCount; i++) {
-                        await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId);
+                        const singleTicketFees = calculateFees(eventData.price, 1);
+                        await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId, singleTicketFees);
                     }
 
                     navigation.navigate('WebPayment', {
                         paymentSessionId: orderData.sessionId,
-                        orderId: orderData.orderId
+                        orderId: orderData.orderId,
+                        feeBreakdown: fees
                     });
                 } else {
                     await paymentService.doPayment(orderData.sessionId, orderData.orderId);
@@ -445,11 +445,37 @@ const EventDetailScreen = ({ route, navigation }) => {
                         </View>
                         {eventData.isPaid && (
                             <Typography variant="body" style={{ color: COLORS.secondary, fontWeight: '700' }}>
-                                ₹{eventData.price * ticketCount}
+                                {formatINR(eventData.price * ticketCount)}
                             </Typography>
                         )}
                     </View>
                 )}
+
+                {/* Price Breakdown Card (shown only for paid events, before purchase) */}
+                {eventData.isPaid && !isGoing && (() => {
+                    const fees = calculateFees(eventData.price, ticketCount);
+                    return (
+                        <NotionCard style={styles.breakdownCard}>
+                            <Typography variant="body" style={styles.breakdownTitle}>Price Breakdown</Typography>
+                            <View style={styles.breakdownRow}>
+                                <Typography variant="body" style={styles.breakdownLabel}>Ticket Subtotal ({ticketCount}x)</Typography>
+                                <Typography variant="body" style={styles.breakdownValue}>{formatINR(fees.subtotal)}</Typography>
+                            </View>
+                            <View style={styles.breakdownRow}>
+                                <Typography variant="caption" style={styles.breakdownLabel}>Convenience Fee (2%)</Typography>
+                                <Typography variant="caption" style={styles.breakdownValue}>{formatINR(fees.convenienceFee)}</Typography>
+                            </View>
+                            <View style={styles.breakdownRow}>
+                                <Typography variant="caption" style={styles.breakdownLabel}>GST on Convenience Fee (18%)</Typography>
+                                <Typography variant="caption" style={styles.breakdownValue}>{formatINR(fees.convenienceFeeGST)}</Typography>
+                            </View>
+                            <View style={[styles.breakdownRow, styles.breakdownTotal]}>
+                                <Typography variant="body" style={{ fontWeight: '700', color: COLORS.primary }}>Total Payable</Typography>
+                                <Typography variant="body" style={{ fontWeight: '700', color: COLORS.accent }}>{formatINR(fees.totalPayable)}</Typography>
+                            </View>
+                        </NotionCard>
+                    );
+                })()}
 
                 {/* Action Buttons */}
                 <View style={styles.actionRow}>
@@ -457,7 +483,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                         title={loading ? "Processing..." : (isGoing
                             ? "Going ✓"
                             : (eventData.isPaid
-                                ? `Buy ${ticketCount} Ticket${ticketCount > 1 ? 's' : ''}`
+                                ? `Pay ${formatINR(calculateFees(eventData.price, ticketCount).totalPayable)}`
                                 : "Join Event"))
                         }
                         variant={isGoing ? "secondary" : "primary"}
@@ -607,6 +633,34 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: SPACING.m,
+    },
+    breakdownCard: {
+        marginHorizontal: SPACING.l,
+        marginBottom: SPACING.m,
+        padding: SPACING.m,
+    },
+    breakdownTitle: {
+        fontWeight: '700',
+        marginBottom: SPACING.s,
+        color: COLORS.primary,
+    },
+    breakdownRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 4,
+    },
+    breakdownLabel: {
+        color: COLORS.secondary,
+    },
+    breakdownValue: {
+        color: COLORS.secondary,
+    },
+    breakdownTotal: {
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        marginTop: SPACING.s,
+        paddingTop: SPACING.s,
     },
     quantitySection: {
         flexDirection: 'row',

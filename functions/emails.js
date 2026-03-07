@@ -70,7 +70,7 @@ const getBaseHtml = (content) => `
 <body>
     <div class="container">
         <div class="header">
-            <img src="https://croww-app.web.app/croww-logo.png" alt="${APP_NAME}" style="height: 60px; width: auto; display: block; margin: 0 auto;">
+            <img src="https://croww.ai/croww-logo.png" alt="${APP_NAME}" style="height: 60px; width: auto; display: block; margin: 0 auto;">
         </div>
         <div class="content">
             ${content}
@@ -91,7 +91,7 @@ const getWelcomeTemplate = (name) => getBaseHtml(`
     <h1>Welcome to ${APP_NAME}, ${name}!</h1>
     <p>We're thrilled to have you join our exclusive community of event enthusiasts and service providers.</p>
     <p>Start exploring the most premium events and services curated just for you.</p>
-    <a href="https://croww-app.web.app" class="button">Start Exploring</a>
+    <a href="https://croww.ai" class="button">Start Exploring</a>
     <p style="margin-top: 30px; font-size: 14px;">If you have any questions, feel free to reply to this email.</p>
 `);
 
@@ -110,20 +110,19 @@ const getPasswordResetTemplate = (name, resetLink) => getBaseHtml(`
 /**
  * Generic Email Sending Utility
  */
-const sendEmail = async ({ to, subject, html }) => {
+const sendEmail = async ({ to, subject, html, text }) => {
     const fromEmail = process.env.SMTP_USER || 'support@croww.ai';
     const pass = process.env.SMTP_PASS || '44342a1d35fc27b39434a4020157f912-58d4d6a2-213f82c8';
 
-    logger.info(`[EmailService] Preparing to send email to: ${to} | Subject: ${subject}`);
-    logger.info(`[EmailService] SMTP Config - User: ${fromEmail}, PassLength: ${pass ? pass.length : 0}`);
+    logger.info(`[EmailService] Preparing email to: ${to} | Subject: ${subject}`);
+    logger.info(`[EmailService] Payload size - HTML: ${html?.length || 0}, Text: ${text?.length || 0}`);
 
     try {
         if (!fromEmail || !pass) {
-            logger.warn("[EmailService] No SMTP credentials available. Check .env or process.env.");
+            logger.warn("[EmailService] No SMTP credentials available.");
             return { success: false, error: "Missing SMTP credentials" };
         }
 
-        // Initialize transporter locally to ensure env vars are fresh
         const transporter = nodemailer.createTransport({
             host: process.env.SMTP_HOST || 'smtp.mailgun.org',
             port: parseInt(process.env.SMTP_PORT || '587'),
@@ -134,16 +133,14 @@ const sendEmail = async ({ to, subject, html }) => {
             },
         });
 
-        // 1. Verify connection configuration
+        // 1. Verify connection
         try {
             await transporter.verify();
-            logger.info("[EmailService] SMTP connection verified successfully.");
         } catch (verifyError) {
-            logger.error("[EmailService] SMTP verification failed (535 usually means bad user/pass):", verifyError);
+            logger.error("[EmailService] SMTP verification failed:", verifyError.message);
             throw verifyError;
         }
 
-        // Display a more professional "From" name even if using postmaster
         const senderAddress = process.env.SMTP_FROM || `support@mg.croww.ai`;
 
         const info = await transporter.sendMail({
@@ -151,13 +148,14 @@ const sendEmail = async ({ to, subject, html }) => {
             to,
             subject,
             html,
+            text: text || "This email requires HTML support to view properly.",
         });
 
-        logger.info(`[EmailService] Email sent successfully! MessageId: ${info.messageId}`);
+        logger.info(`[EmailService] Sent! MessageId: ${info.messageId}`);
         return { success: true };
     } catch (error) {
-        logger.error("[EmailService] Critical error in sendEmail:", error);
-        return { success: false, error: error.message || error.code || "Unknown SMTP Error" };
+        logger.error("[EmailService] Error:", error);
+        return { success: false, error: error.message || "Unknown SMTP Error" };
     }
 };
 

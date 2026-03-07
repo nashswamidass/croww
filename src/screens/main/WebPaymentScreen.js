@@ -75,33 +75,43 @@ const WebPaymentScreen = ({ navigation, route }) => {
         });
     };
 
+    const initializationCalled = React.useRef(false);
+
     const initializePayment = async () => {
+        if (initializationCalled.current) return;
+        initializationCalled.current = true;
+
         try {
+            // Trim and validate the ID to prevent corrupt strings causing the "invalid" error
+            const cleanSessionId = (paymentSessionId || "").trim();
+            const cleanOrderId = (orderId || "").trim();
+
+            console.log("WebPaymentScreen: Initializing with:", { cleanSessionId, cleanOrderId });
+
+            if (!cleanSessionId || cleanSessionId === "undefined") {
+                throw new Error("Payment Session ID is missing or corrupt.");
+            }
+
             await loadCashfreeSdk();
 
             const isProduction = paymentService.environment === 'PRODUCTION';
+            console.log("WebPaymentScreen: Resolved environment isProduction:", isProduction);
+
             cashfreeRef.current = new window.Cashfree({
                 mode: isProduction ? "production" : "sandbox"
             });
 
             setLoading(false);
 
-            if (paymentContainerRef.current) {
-                // Using _modal ensures a natively responsive experience handled by the SDK
+            // Give the browser a tiny moment to ensure everything is mounted
+            setTimeout(() => {
+                console.log("WebPaymentScreen: Triggering checkout component (_self redirect)...");
                 cashfreeRef.current.checkout({
-                    paymentSessionId: paymentSessionId,
-                    redirectTarget: "_modal",
-                    returnUrl: `${window.location.origin}/payment-return?order_id=${orderId}`,
-                    // Backup callbacks if supported in this mode
-                    onSuccess: (data) => {
-                        console.log("SDK Success Callback:", data);
-                        handlePaymentSuccess();
-                    },
-                    onFailure: (data) => {
-                        console.log("SDK Failure Callback:", data);
-                    }
+                    paymentSessionId: cleanSessionId,
+                    redirectTarget: "_modal", // Modal is better for mobile responsiveness
+                    returnUrl: `${window.location.origin}/payment-return?order_id=${cleanOrderId}`,
                 });
-            }
+            }, 100);
 
         } catch (error) {
             console.error('Payment Init Error:', error);
@@ -188,10 +198,29 @@ const WebPaymentScreen = ({ navigation, route }) => {
                         <Typography variant="body" style={{ textAlign: 'center', marginTop: SPACING.m }}>
                             {sdkError}
                         </Typography>
+
+                        <View style={styles.debugInfo}>
+                            <Typography variant="caption" color={COLORS.secondary}>
+                                System Status:
+                            </Typography>
+                            <Typography variant="caption" color={COLORS.secondary}>
+                                Env: {paymentService.environment}
+                            </Typography>
+                            <Typography variant="caption" color={COLORS.secondary}>
+                                Session ID: {paymentSessionId ? `${paymentSessionId.substring(0, 10)}...` : 'NONE'}
+                            </Typography>
+                        </View>
+
+                        <AntigravityButton
+                            title="Try Again"
+                            onPress={() => window.location.reload()}
+                            style={{ marginTop: SPACING.l, width: '100%' }}
+                        />
                         <AntigravityButton
                             title="Go Back"
+                            variant="outline"
                             onPress={() => navigation.goBack()}
-                            style={{ marginTop: SPACING.l }}
+                            style={{ marginTop: SPACING.s, width: '100%' }}
                         />
                     </View>
                 ) : !loading && (
@@ -259,6 +288,14 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: SPACING.xl,
+    },
+    debugInfo: {
+        marginTop: SPACING.xl,
+        padding: SPACING.m,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: 8,
+        width: '100%',
+        alignItems: 'center',
     }
 });
 

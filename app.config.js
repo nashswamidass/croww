@@ -3,7 +3,7 @@ export default {
     "name": "Croww",
     "slug": "croww-app",
     "owner": "nashnewton",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/app-icon.jpg",
     "scheme": "crowwapp",
@@ -12,6 +12,7 @@ export default {
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
+      "buildNumber": "2",
       "googleServicesFile": "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -40,6 +41,7 @@ export default {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.croww.app",
+      "versionCode": 2,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -106,6 +108,13 @@ export default {
           "dark": {
             "backgroundColor": "#000000"
           }
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/app-icon.jpg",
+          "color": "#ffffff"
         }
       ],
       "./plugins/withCashfree.js"

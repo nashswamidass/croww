@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Platform, ActivityIndicator } from 'react-native';
 import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
 import { Ionicons } from '@expo/vector-icons';
-import * as Location from 'expo-location';
+import { locationService } from '../../services/locationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -40,39 +40,24 @@ const MapScreenWeb = ({ navigation }) => {
 
     const goToUserLocation = async () => {
         try {
-            const { status } = await Location.requestForegroundPermissionsAsync();
-            if (status === 'granted') {
-                const locationPromise = Location.getCurrentPositionAsync({
-                    accuracy: Location.Accuracy.Balanced
-                });
-
-                const timeoutPromise = new Promise((_, reject) =>
-                    setTimeout(() => reject(new Error('Location timeout')), 10000)
-                );
-
-                const location = await Promise.race([locationPromise, timeoutPromise]);
+            const { coords } = await locationService.getLocation();
+            if (coords) {
                 const newPos = {
-                    lat: location.coords.latitude,
-                    lng: location.coords.longitude
+                    lat: coords.latitude,
+                    lng: coords.longitude
                 };
 
                 setCurrentPosition(newPos);
-                await AsyncStorage.setItem('userLocation', JSON.stringify(location.coords));
-
                 if (map) {
                     map.panTo(newPos);
                     map.setZoom(14);
                 }
-            } else {
-                // Permission denied, just re-center on Mumbai or stay where we are
-                if (map) {
-                    map.panTo(center);
-                    map.setZoom(12);
-                }
+            } else if (map) {
+                map.panTo(center);
+                map.setZoom(12);
             }
         } catch (error) {
             console.log("Map location detection failed:", error);
-            // On error/timeout, center on default Mumbai
             if (map) {
                 map.panTo(center);
                 map.setZoom(12);

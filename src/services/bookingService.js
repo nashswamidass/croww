@@ -11,6 +11,8 @@ import {
     orderBy
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import { chatService } from './chatService';
+import { notificationService } from './notificationService';
 
 const BOOKINGS_COLLECTION = 'bookings';
 
@@ -91,6 +93,70 @@ export const bookingService = {
     },
 
     /**
+     * Update booking status with additional details and notifications
+     */
+    updateBookingStatusDetailed: async (booking, newStatus, message = null) => {
+        try {
+            const bookingId = booking.id;
+            const bookingRef = doc(db, BOOKINGS_COLLECTION, bookingId);
+
+            const senderId = booking.senderId;
+            const providerId = booking.providerId;
+
+            await updateDoc(bookingRef, {
+                status: newStatus,
+                providerMessage: message,
+                updatedAt: serverTimestamp()
+            });
+
+            // Send notification to the relevant user
+            try {
+                let recipientId = senderId;
+                let notificationTitle = newStatus === 'accepted' ? "Booking Accepted!" : "Booking Declined";
+                let notificationMessage = newStatus === 'accepted'
+                    ? `Your booking for ${booking.serviceName} has been accepted.`
+                    : `Your booking for ${booking.serviceName} was declined. Refund initiated.`;
+
+                if (message) {
+                    notificationMessage += `\n\nNote: "${message}"`;
+                }
+
+                await notificationService.sendNotification(recipientId, notificationTitle, notificationMessage, {
+                    bookingId,
+                    status: newStatus
+                });
+            } catch (notifyErr) {
+                console.warn("[bookingService] Notification failed but proceeding:", notifyErr);
+            }
+
+            // Handle Chat
+            try {
+                const participantIds = [senderId, providerId];
+                const participantNames = {
+                    [senderId]: booking.customerName || 'Customer',
+                    [providerId]: booking.providerName || 'Provider'
+                };
+
+                const chatId = await chatService.createChat(participantIds, participantNames);
+                if (chatId) {
+                    const prefix = newStatus === 'accepted' ? "✅ Booking Accepted: " : "❌ Booking Declined: ";
+                    const refundInfo = newStatus === 'rejected' ? "\n\n(A refund will be automatically processed within 48 hours.)" : "";
+                    const chatMsg = `${prefix}${message || (newStatus === 'accepted' ? 'Looking forward to it!' : 'I am unable to accept this request.')}${refundInfo}`;
+
+                    await chatService.sendMessage(chatId, chatMsg, providerId, booking.providerName);
+                }
+            } catch (chatErr) {
+                console.warn("[bookingService] Chat integration failed but proceeding:", chatErr);
+            }
+
+            return true;
+        } catch (error) {
+            console.error("Error updating detailed booking status:", error);
+            throw error;
+        }
+    },
+
+    /**
      * Finalize pending booking after payment success
      */
     finalizePendingBooking: async (cashfreeOrderId) => {
@@ -102,13 +168,20 @@ export const bookingService = {
             );
             const querySnapshot = await getDocs(q);
 
-            if (querySnapshot.empty) return false;
+            if (querySnapshot.empty) {
+                console.log(`[bookingService] No booking found for cashfreeOrderId: ${cashfreeOrderId}`);
+                return false;
+            }
 
             for (const bookingDoc of querySnapshot.docs) {
                 const bookingData = bookingDoc.data();
+                console.log(`[bookingService] Found booking ${bookingDoc.id}, status: ${bookingData.status}, paymentStatus: ${bookingData.paymentStatus}`);
 
                 // Only process if it's actually pending
-                if (bookingData.paymentStatus !== 'PENDING_PAYMENT') continue;
+                if (bookingData.paymentStatus !== 'PENDING_PAYMENT') {
+                    console.log(`[bookingService] Booking ${bookingDoc.id} is not in PENDING_PAYMENT status, skipping.`);
+                    continue;
+                }
 
                 const bookingRef = doc(db, BOOKINGS_COLLECTION, bookingDoc.id);
                 await updateDoc(bookingRef, {
@@ -116,12 +189,34 @@ export const bookingService = {
                     status: 'pending', // Set status to 'pending' for provider review
                     updatedAt: serverTimestamp()
                 });
+                console.log(`[bookingService] Successfully updated booking ${bookingDoc.id} to PAID`);
             }
             return true;
         } catch (error) {
             console.error("Error finalizing pending booking:", error);
             throw error;
         }
+    },
+
+    /**
+     * Subscribe to bookings for a specific user (Real-time)
+     */
+    subscribeBookingsByUser: (userId, onUpdate) => {
+        const q = query(
+            collection(db, BOOKINGS_COLLECTION),
+            where('senderId', '==', userId)
+        );
+
+        const { onSnapshot } = require('firebase/firestore');
+        return onSnapshot(q, (querySnapshot) => {
+            const bookings = [];
+            querySnapshot.forEach((doc) => {
+                bookings.push({ id: doc.id, ...doc.data() });
+            });
+            onUpdate(bookings);
+        }, (error) => {
+            console.error("Error subscribing to bookings:", error);
+        });
     },
 
     /**
@@ -158,5 +253,26 @@ export const bookingService = {
             console.error("Error fetching provider booking stats:", error);
             return { total: 0, pending: 0, accepted: 0, completed: 0, earnings: 0 };
         }
+    },
+
+    /**
+     * Subscribe to bookings for a provider (incoming requests)
+     */
+    subscribeBookingsForProvider: (providerId, onUpdate) => {
+        const q = query(
+            collection(db, BOOKINGS_COLLECTION),
+            where('providerId', '==', providerId)
+        );
+
+        const { onSnapshot } = require('firebase/firestore');
+        return onSnapshot(q, (querySnapshot) => {
+            const bookings = [];
+            querySnapshot.forEach((doc) => {
+                bookings.push({ id: doc.id, ...doc.data() });
+            });
+            onUpdate(bookings);
+        }, (error) => {
+            console.error("Error subscribing to provider bookings:", error);
+        });
     }
 };

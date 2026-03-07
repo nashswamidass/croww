@@ -8,11 +8,13 @@ import { chatService } from '../../services/chatService';
 import { bookingService } from '../../services/bookingService';
 import { getVerificationStatus } from '../../services/verificationService';
 import { getAvatarSource } from '../../utils/avatarHelper';
+import { calculateFees, formatINR, getSettlementDate } from '../../utils/feeCalculator';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { useFocusEffect } from '@react-navigation/native';
+import PolicyAcceptanceModal from '../../components/PolicyAcceptanceModal';
 
 const { width } = Dimensions.get('window');
 
@@ -45,6 +47,7 @@ const BusinessDashboardScreen = ({ navigation }) => {
     });
     const [loading, setLoading] = useState(true);
     const [verificationStatus, setVerificationStatus] = useState(null);
+    const [isPolicyModalVisible, setIsPolicyModalVisible] = useState(false);
 
     const isProvider = userData?.userType === 'provider';
 
@@ -82,6 +85,10 @@ const BusinessDashboardScreen = ({ navigation }) => {
             }
             setUserData(user);
 
+            // Check if policy needs acceptance
+            if (!user.policyAccepted) {
+                setIsPolicyModalVisible(true);
+            }
             // Fetch verification status
             const vStatus = await getVerificationStatus();
             setVerificationStatus(vStatus);
@@ -113,28 +120,44 @@ const BusinessDashboardScreen = ({ navigation }) => {
                     const eventStats = await ticketService.getEventStats(event.id, user.id);
                     const sold = eventStats?.sold || 0;
                     const price = parseFloat(event.price) || 0;
+                    const fees = event.isPaid && price > 0 ? calculateFees(price, sold) : null;
 
                     return {
+                        event,
                         sold,
-                        earnings: (event.isPaid && price > 0) ? (sold * price) : 0
+                        grossEarnings: fees ? fees.subtotal : 0,
+                        netOrganizerPayout: fees ? fees.netOrganizerPayout : 0,
+                        platformCommission: fees ? fees.platformCommission : 0,
+                        platformCommissionGST: fees ? fees.platformCommissionGST : 0,
+                        settlementDate: event.date ? getSettlementDate(event.date) : null,
                     };
                 });
 
                 const allStats = await Promise.all(statPromises);
 
-                let totalEarnings = 0;
+                let totalGross = 0;
+                let totalNetPayout = 0;
+                let totalCommission = 0;
+                let totalCommissionGST = 0;
                 let totalTicketsSold = 0;
 
                 allStats.forEach(s => {
                     totalTicketsSold += s.sold;
-                    totalEarnings += s.earnings;
+                    totalGross += s.grossEarnings;
+                    totalNetPayout += s.netOrganizerPayout;
+                    totalCommission += s.platformCommission;
+                    totalCommissionGST += s.platformCommissionGST;
                 });
 
                 setStats(prev => ({
                     ...prev,
                     totalEvents: events.length,
-                    totalEarnings,
+                    totalEarnings: totalNetPayout,  // Show net payout (after commission)
+                    grossEarnings: totalGross,
+                    totalCommission,
+                    totalCommissionGST,
                     totalTicketsSold,
+                    eventBreakdowns: allStats,
                     recentActivity: [],
                 }));
             }
@@ -409,6 +432,49 @@ const BusinessDashboardScreen = ({ navigation }) => {
                             </View>
                         </View>
 
+                        {/* Earnings & Payouts Section (Business/Venue only) */}
+                        {!isProvider && stats.grossEarnings > 0 && (
+                            <View style={styles.section}>
+                                <Typography variant="h3" style={styles.sectionTitle}>💰 Earnings & Payouts</Typography>
+                                <NotionCard style={{ padding: SPACING.m }}>
+                                    <View style={styles.payoutRow}>
+                                        <Typography variant="body" style={styles.payoutLabel}>Gross Ticket Sales</Typography>
+                                        <Typography variant="body" style={styles.payoutValue}>{formatINR(stats.grossEarnings)}</Typography>
+                                    </View>
+                                    <View style={styles.payoutRow}>
+                                        <Typography variant="caption" style={{ color: COLORS.secondary }}>Platform Commission (7%)</Typography>
+                                        <Typography variant="caption" style={{ color: COLORS.accent }}>− {formatINR(stats.totalCommission)}</Typography>
+                                    </View>
+                                    <View style={styles.payoutRow}>
+                                        <Typography variant="caption" style={{ color: COLORS.secondary }}>GST on Commission (18%)</Typography>
+                                        <Typography variant="caption" style={{ color: COLORS.accent }}>− {formatINR(stats.totalCommissionGST)}</Typography>
+                                    </View>
+                                    <View style={[styles.payoutRow, styles.totalPayoutRow]}>
+                                        <Typography variant="body" style={{ fontWeight: '700', color: COLORS.primary }}>Net Payout</Typography>
+                                        <Typography variant="body" style={{ fontWeight: '700', color: '#4CAF50' }}>{formatINR(stats.totalEarnings)}</Typography>
+                                    </View>
+                                    {stats.eventBreakdowns?.length > 0 && (
+                                        <>
+                                            <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: SPACING.m, marginBottom: SPACING.s, fontWeight: '600' }}>Per-Event Settlements</Typography>
+                                            {stats.eventBreakdowns.filter(e => e.sold > 0).map((item, idx) => (
+                                                <View key={idx} style={styles.settlementRow}>
+                                                    <View style={{ flex: 1 }}>
+                                                        <Typography variant="caption" style={{ fontWeight: '600' }} numberOfLines={1}>{item.event.title}</Typography>
+                                                        <Typography variant="small" style={{ color: COLORS.secondary }}>
+                                                            {item.sold} ticket{item.sold > 1 ? 's' : ''} • Settlement: {item.settlementDate ? item.settlementDate.toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) : 'TBD'}
+                                                        </Typography>
+                                                    </View>
+                                                    <Typography variant="caption" style={{ fontWeight: '700', color: '#4CAF50' }}>
+                                                        {formatINR(item.netOrganizerPayout)}
+                                                    </Typography>
+                                                </View>
+                                            ))}
+                                        </>
+                                    )}
+                                </NotionCard>
+                            </View>
+                        )}
+
                         {/* Recent Activity */}
                         <View style={styles.section}>
                             <Typography variant="h3" style={styles.sectionTitle}>Recent Activity</Typography>
@@ -450,7 +516,14 @@ const BusinessDashboardScreen = ({ navigation }) => {
 
                     </>
                 )}
+                <View style={{ height: 40 }} />
             </ScrollView>
+
+            <PolicyAcceptanceModal
+                visible={isPolicyModalVisible}
+                user={userData}
+                onAccept={() => setIsPolicyModalVisible(false)}
+            />
         </ScreenWrapper >
     );
 };
@@ -589,6 +662,33 @@ const styles = StyleSheet.create({
     profileImage: {
         width: '100%',
         height: '100%',
+    },
+    payoutRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: 5,
+    },
+    payoutLabel: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    payoutValue: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    totalPayoutRow: {
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        marginTop: SPACING.s,
+        paddingTop: SPACING.s,
+    },
+    settlementRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: SPACING.s,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
     },
 });
 

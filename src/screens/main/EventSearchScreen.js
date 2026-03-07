@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -7,38 +7,61 @@ import NotionInput from '../../components/NotionInput';
 import NotionCard from '../../components/NotionCard';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { eventService } from '../../services/eventService';
-import { ActivityIndicator } from 'react-native';
+import { userService } from '../../services/userService';
 import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
 
 const EventSearchScreen = ({ navigation }) => {
     const [searchQuery, setSearchQuery] = useState('');
-    const [events, setEvents] = useState([]);
-    const [filteredEvents, setFilteredEvents] = useState([]);
+    const [allData, setAllData] = useState([]);
+    const [filteredData, setFilteredData] = useState([]);
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        const fetchEvents = async () => {
+        const fetchData = async () => {
             try {
-                const data = await eventService.getEvents();
-                setEvents(data);
-                setFilteredEvents(data);
+                // Fetch both Events and Providers/Businesses at the same time
+                const [eventsData, providersData] = await Promise.all([
+                    eventService.getEvents(),
+                    userService.getServiceProviders()
+                ]);
+
+                // Tag them so we know which is which in the mixed list
+                const formattedEvents = eventsData.map(e => ({ ...e, resultType: 'event' }));
+                const formattedProviders = providersData.map(p => ({ ...p, resultType: 'provider' }));
+
+                const combined = [...formattedEvents, ...formattedProviders];
+                setAllData(combined);
+                setFilteredData(combined);
             } catch (error) {
-                console.error("Error fetching events for search:", error);
+                console.error("Error fetching data for search:", error);
             } finally {
                 setLoading(false);
             }
         };
-        fetchEvents();
+        fetchData();
     }, []);
 
     useEffect(() => {
-        const results = events.filter(event =>
-            event.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.category?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-            event.location?.toLowerCase().includes(searchQuery.toLowerCase())
-        );
-        setFilteredEvents(results);
-    }, [searchQuery, events]);
+        if (!searchQuery.trim()) {
+            setFilteredData(allData);
+            return;
+        }
+
+        const lowerQuery = searchQuery.toLowerCase();
+        const results = allData.filter(item => {
+            if (item.resultType === 'event') {
+                return item.title?.toLowerCase().includes(lowerQuery) ||
+                    item.category?.toLowerCase().includes(lowerQuery) ||
+                    item.location?.toLowerCase().includes(lowerQuery);
+            } else {
+                return item.name?.toLowerCase().includes(lowerQuery) ||
+                    item.category?.toLowerCase().includes(lowerQuery) ||
+                    item.location?.toLowerCase().includes(lowerQuery) ||
+                    item.role?.toLowerCase().includes(lowerQuery);
+            }
+        });
+        setFilteredData(results);
+    }, [searchQuery, allData]);
 
     return (
         <ScreenWrapper edges={['top']}>
@@ -47,57 +70,99 @@ const EventSearchScreen = ({ navigation }) => {
                     <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
                     </TouchableOpacity>
-                    <Typography variant="h2">Search Events</Typography>
+                    <Typography variant="h2">Global Search</Typography>
                 </View>
                 <NotionInput
-                    placeholder="Search titles, categories, locations..."
+                    placeholder="Search events, venues, providers..."
                     value={searchQuery}
                     onChangeText={setSearchQuery}
                     autoFocus
                 />
             </View>
 
-            <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
-                {filteredEvents.length === 0 ? (
-                    <View style={styles.emptyState}>
-                        <Ionicons name="search-outline" size={48} color={COLORS.border} />
-                        <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.m }}>
-                            No events found matching "{searchQuery}"
-                        </Typography>
-                    </View>
-                ) : (
-                    filteredEvents.map((event) => (
-                        <TouchableOpacity
-                            key={event.id}
-                            style={styles.eventCard}
-                            onPress={() => navigation.navigate('EventDetail', { id: event.id, event })}
-                        >
-                            <NotionCard style={styles.cardInner}>
-                                {getValidImageUri(event.imageUri) ? (
-                                    <Image source={{ uri: getValidImageUri(event.imageUri) }} style={styles.eventImage} />
-                                ) : (
-                                    <Image source={{ uri: DEFAULT_EVENT_IMAGE }} style={styles.eventImage} />
-                                )}
-                                <View style={styles.eventInfo}>
-                                    <Typography variant="body" numberOfLines={1} style={{ fontWeight: '600' }}>
-                                        {event.title}
-                                    </Typography>
-                                    <Typography variant="caption" color={COLORS.secondary}>
-                                        {event.date} • {event.category}
-                                    </Typography>
-                                    <View style={styles.locationRow}>
-                                        <Ionicons name="location-outline" size={14} color={COLORS.accent} />
-                                        <Typography variant="caption" color={COLORS.accent} style={{ marginLeft: 4 }}>
-                                            {event.location || 'Online'}
+            {loading ? (
+                <View style={styles.loadingContainer}>
+                    <ActivityIndicator size="large" color={COLORS.accent} />
+                </View>
+            ) : (
+                <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+                    {filteredData.length === 0 ? (
+                        <View style={styles.emptyState}>
+                            <Ionicons name="search-outline" size={48} color={COLORS.border} />
+                            <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.m }}>
+                                No results found matching "{searchQuery}"
+                            </Typography>
+                        </View>
+                    ) : (
+                        filteredData.map((item) => (
+                            <TouchableOpacity
+                                key={item.id + item.resultType}
+                                style={styles.resultCard}
+                                onPress={() => {
+                                    if (item.resultType === 'event') {
+                                        navigation.navigate('EventDetail', { id: item.id, event: item });
+                                    } else {
+                                        navigation.navigate('ServiceDetail', { serviceId: item.id });
+                                    }
+                                }}
+                            >
+                                <NotionCard style={styles.cardInner}>
+                                    {item.resultType === 'event' ? (
+                                        <>
+                                            {/* Event Listing Image */}
+                                            {getValidImageUri(item.imageUri) ? (
+                                                <Image source={{ uri: getValidImageUri(item.imageUri) }} style={styles.resultImage} />
+                                            ) : (
+                                                <Image source={{ uri: DEFAULT_EVENT_IMAGE }} style={styles.resultImage} />
+                                            )}
+                                        </>
+                                    ) : (
+                                        <>
+                                            {/* Circular DP feature for Providers/Businesses */}
+                                            <View style={styles.avatarContainer}>
+                                                {(item.photoURL || item.avatar) ? (
+                                                    <Image source={{ uri: item.photoURL || item.avatar }} style={styles.avatarImage} />
+                                                ) : (
+                                                    <Ionicons name={item.userType === 'business' ? "business" : "person"} size={24} color={COLORS.secondary} />
+                                                )}
+                                            </View>
+                                        </>
+                                    )}
+
+                                    <View style={styles.resultInfo}>
+                                        <View style={styles.nameRow}>
+                                            <Typography variant="body" numberOfLines={1} style={{ fontWeight: '600', flex: 1 }}>
+                                                {item.resultType === 'event' ? item.title : item.name}
+                                            </Typography>
+
+                                            {/* Type Badge */}
+                                            <View style={[styles.badge, item.resultType !== 'event' && styles.providerBadge]}>
+                                                <Typography variant="small" style={[styles.badgeText, item.resultType !== 'event' && styles.providerBadgeText]}>
+                                                    {item.resultType === 'event' ? 'EVENT' : (item.userType === 'business' ? 'VENUE' : 'SERVICE')}
+                                                </Typography>
+                                            </View>
+                                        </View>
+
+                                        <Typography variant="caption" color={COLORS.secondary}>
+                                            {item.resultType === 'event'
+                                                ? `${item.date} • ${item.category}`
+                                                : (item.role || item.category || 'Professional')}
                                         </Typography>
+
+                                        <View style={styles.locationRow}>
+                                            <Ionicons name="location-outline" size={14} color={COLORS.accent} />
+                                            <Typography variant="caption" color={COLORS.accent} style={{ marginLeft: 4 }}>
+                                                {item.location || 'Online'}
+                                            </Typography>
+                                        </View>
                                     </View>
-                                </View>
-                                <Ionicons name="chevron-forward" size={20} color={COLORS.secondary} />
-                            </NotionCard>
-                        </TouchableOpacity>
-                    ))
-                )}
-            </ScrollView>
+                                    <Ionicons name="chevron-forward" size={20} color={COLORS.secondary} />
+                                </NotionCard>
+                            </TouchableOpacity>
+                        ))
+                    )}
+                </ScrollView>
+            )}
         </ScreenWrapper>
     );
 };
@@ -114,11 +179,16 @@ const styles = StyleSheet.create({
     backButton: {
         marginRight: SPACING.s,
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
     content: {
         paddingHorizontal: SPACING.m,
         paddingBottom: SPACING.xl,
     },
-    eventCard: {
+    resultCard: {
         marginBottom: SPACING.m,
     },
     cardInner: {
@@ -126,23 +196,53 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         padding: SPACING.m,
     },
-    eventImage: {
+    resultImage: {
         width: 60,
         height: 60,
         borderRadius: BORDER_RADIUS.m,
         marginRight: SPACING.m,
     },
-    imagePlaceholder: {
+    avatarContainer: {
         width: 60,
         height: 60,
-        borderRadius: BORDER_RADIUS.m,
+        borderRadius: 30, // Make DP circular for providers/businesses
         backgroundColor: COLORS.surfaceHighlight,
         justifyContent: 'center',
         alignItems: 'center',
         marginRight: SPACING.m,
+        overflow: 'hidden',
     },
-    eventInfo: {
+    avatarImage: {
+        width: '100%',
+        height: '100%',
+    },
+    resultInfo: {
         flex: 1,
+        marginRight: SPACING.s,
+    },
+    nameRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 2,
+    },
+    badge: {
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: BORDER_RADIUS.s,
+        marginLeft: SPACING.xs,
+    },
+    badgeText: {
+        fontSize: 10,
+        fontWeight: '700',
+        color: COLORS.secondary,
+    },
+    providerBadge: {
+        backgroundColor: COLORS.accent + '20', // Transparent accent
+    },
+    providerBadgeText: {
+        color: COLORS.accent,
     },
     locationRow: {
         flexDirection: 'row',

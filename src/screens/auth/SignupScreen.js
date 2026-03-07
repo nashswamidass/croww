@@ -58,7 +58,9 @@ const SignupScreen = ({ navigation }) => {
                 eventsAttended: 0,
                 friends: 0,
                 buddyConnections: 0
-            })
+            }),
+            policyAccepted: (userType !== 'business' && userType !== 'provider'),
+            policyAcceptedAt: null
         };
 
         try {

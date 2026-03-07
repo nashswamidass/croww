@@ -6,7 +6,7 @@ import {
     sendEmailVerification,
     sendPasswordResetEmail
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, deleteDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 import { userService } from './userService';
 
@@ -26,14 +26,32 @@ export const authService = {
             const user = userCredential.user;
 
             // 2. Prepare user document
+            const { userType } = userData; // Destructure userType for conditional logic
             const UserProfile = {
                 id: user.uid,
                 email: email,
                 name: userData.name,
-                userType: userData.userType || 'individual',
+                userType: userType || 'individual',
                 category: userData.category || null,
+                stats: userType === 'provider' ? {
+                    bookings: 0,
+                    rating: 0,
+                    experience: '0 years',
+                    reviews: 0
+                } : (userType === 'business' ? {
+                    totalEvents: 0,
+                    followers: 0,
+                    rating: 0,
+                    reviews: 0
+                } : {
+                    eventsAttended: 0,
+                    friends: 0,
+                    buddyConnections: 0
+                }),
+                policyAccepted: (userType !== 'business' && userType !== 'provider'), // Individuals don't need to accept
+                policyAcceptedAt: null,
                 isVerified: false,
-                role: userData.userType || 'individual', // Duplicate for ease of access if needed
+                role: userType || 'individual', // Duplicate for ease of access if needed
                 createdAt: serverTimestamp(),
                 ...userData
             };
@@ -124,21 +142,32 @@ export const authService = {
 
             const uid = user.uid;
 
-            // 1. Delete from Firestore
-            // Note: In a production app, you might want to use a Cloud Function
-            // to delete user-generated content (posts, comments, etc.) to ensure complete cleanup.
-            await deleteDoc(doc(db, USERS_COLLECTION, uid));
+            // Call custom Cloud Function for secure account deletion
+            const API_URL = 'https://deleteuseraccount-6vktyfoeaa-uc.a.run.app';
 
-            // 2. Delete Auth User
-            await user.delete();
+            console.log(`[AuthService] Calling deleteAccount function for UID: ${uid}`);
 
-            // 3. Clear local storage
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ uid }),
+            });
+
+            if (!response.ok) {
+                const errorText = await response.text();
+                console.error(`[AuthService] Delete Error: ${errorText}`);
+                throw new Error(`Failed to delete account: ${errorText}`);
+            }
+
+            // 3. Clear local storage and log out
             await userService.logout();
+            await signOut(auth);
 
             return true;
         } catch (error) {
             console.error('Delete account error:', error);
-            // Handle "requires-recent-login" error specifically in UI if needed
             throw error;
         }
     },
@@ -175,6 +204,33 @@ export const authService = {
         } catch (error) {
             console.error('[AuthService] Reset flow failed:', error);
             // Re-throw so the UI can capture the REAL error instead of hiding it with a fallback
+            throw error;
+        }
+    },
+
+    /**
+     * Accept commission policy
+     * @param {string} uid 
+     */
+    acceptPolicy: async (uid) => {
+        try {
+            const userRef = doc(db, USERS_COLLECTION, uid);
+            const updateData = {
+                policyAccepted: true,
+                policyAcceptedAt: new Date().toISOString()
+            };
+
+            await updateDoc(userRef, updateData);
+
+            // Update local cache
+            const currentUser = await userService.getUser();
+            if (currentUser && currentUser.id === uid) {
+                await userService.saveUserToStorage({ ...currentUser, ...updateData });
+            }
+
+            return true;
+        } catch (error) {
+            console.error('Error accepting policy:', error);
             throw error;
         }
     }

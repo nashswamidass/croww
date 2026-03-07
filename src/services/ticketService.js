@@ -18,8 +18,14 @@ const EVENTS_COLLECTION = 'events';
 export const ticketService = {
     /**
      * Issue a ticket to a user for an event
+     * @param {string} userId
+     * @param {string} eventId
+     * @param {Object} eventData
+     * @param {string} status - 'valid', 'scanned', 'cancelled', 'PENDING_PAYMENT'
+     * @param {string|null} cashfreeOrderId
+     * @param {Object|null} feeBreakdown - Result from calculateFees()
      */
-    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null) => {
+    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null, feeBreakdown = null) => {
         try {
             // 1. Create the ticket document
             const ticketData = {
@@ -29,12 +35,27 @@ export const ticketService = {
                 date: eventData.date,
                 location: eventData.locationName,
                 image: eventData.imageUri,
-                status: status, // valid, scanned, cancelled, PENDING_PAYMENT
+                status: status,
                 type: eventData.isPaid ? 'Paid' : 'Free',
                 price: eventData.price || 0,
                 organizerId: eventData.organizerId || null,
                 cashfreeOrderId: cashfreeOrderId,
                 issuedAt: serverTimestamp(),
+
+                // --- Fee Breakdown (stored for accounting & organizer dashboard) ---
+                feeBreakdown: feeBreakdown ? {
+                    subtotal: feeBreakdown.subtotal,
+                    convenienceFee: feeBreakdown.convenienceFee,
+                    convenienceFeeGST: feeBreakdown.convenienceFeeGST,
+                    totalPayable: feeBreakdown.totalPayable,
+                    platformCommission: feeBreakdown.platformCommission,
+                    platformCommissionGST: feeBreakdown.platformCommissionGST,
+                    netOrganizerPayout: feeBreakdown.netOrganizerPayout,
+                } : null,
+
+                // Settlement tracking
+                settlementStatus: 'PENDING', // PENDING | SETTLED
+                settlementDate: null,
             };
 
             const docRef = await addDoc(collection(db, TICKETS_COLLECTION), ticketData);

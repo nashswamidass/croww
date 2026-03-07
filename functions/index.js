@@ -1,15 +1,20 @@
 const { onRequest } = require("firebase-functions/v2/https");
-const { onDocumentCreated } = require("firebase-functions/v2/firestore");
+const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
-const logger = require("firebase-functions/logger");
+const { logger } = require("firebase-functions");
 const { Cashfree, CFEnvironment } = require("cashfree-pg");
 const { Expo } = require("expo-server-sdk");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
+const nodemailer = require("nodemailer");
 
-admin.initializeApp();
+require('dotenv').config();
+
+admin.initializeApp({
+    projectId: "croww-live-2026"
+});
 
 const expo = new Expo();
 const { sendEmail, getWelcomeTemplate, getPasswordResetTemplate } = require("./emails");
@@ -21,14 +26,10 @@ const { sendEmail, getWelcomeTemplate, getPasswordResetTemplate } = require("./e
  */
 const generateCfSignature = (clientId) => {
     try {
-        const timestamp = Math.floor(Date.now() / 1000); // Unix timestamp in seconds
+        const timestamp = Math.floor(Date.now() / 1000);
         const dataToEncrypt = `${clientId}.${timestamp}`;
-
-        // Read the public key
         const publicKeyPath = path.join(__dirname, "cashfree_public_key.pem");
         const publicKey = fs.readFileSync(publicKeyPath, "utf8");
-
-        // RSA encrypt with public key
         const buffer = Buffer.from(dataToEncrypt, "utf8");
         const encrypted = crypto.publicEncrypt(
             {
@@ -38,13 +39,10 @@ const generateCfSignature = (clientId) => {
             },
             buffer
         );
-
         const signature = encrypted.toString("base64");
-        logger.info(`Generated X-Cf-Signature for clientId ${clientId.substring(0, 8)}... at timestamp ${timestamp}`);
         return signature;
     } catch (error) {
         logger.error("Error generating Cf Signature:", error);
-        // Try with PKCS1 v1.5 padding as fallback
         try {
             const timestamp = Math.floor(Date.now() / 1000);
             const dataToEncrypt = `${clientId}.${timestamp}`;
@@ -58,9 +56,7 @@ const generateCfSignature = (clientId) => {
                 },
                 buffer
             );
-            const signature = encrypted.toString("base64");
-            logger.info(`Generated X-Cf-Signature (PKCS1 v1.5 fallback) for clientId ${clientId.substring(0, 8)}...`);
-            return signature;
+            return encrypted.toString("base64");
         } catch (fallbackError) {
             logger.error("Fallback signature generation also failed:", fallbackError);
             return null;
@@ -68,133 +64,85 @@ const generateCfSignature = (clientId) => {
     }
 };
 
+const DEPLOY_TAG = "[AUTH_FIX_DEPLOY_V4]";
+
 const getCashfreeInstance = (environmentName = "SANDBOX") => {
-    // Priority: 1. Env Vars (Gen 2), 2. Hardcoded Sandbox Keys (Fallback)
-    const clientId = process.env.CASHFREE_CLIENT_ID || "TEST10990759f216be3b56c5acb8a37495709901";
-    const clientSecret = process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_ed365f96f0455a6e9d005be3af1dbd0c_d381d9b2";
-
-    // SAFETY: If no production secrets are configured, FORCE sandbox mode
-    // to prevent using sandbox keys against the production API (causes 500)
-    let effectiveEnv = environmentName;
-    if (!process.env.CASHFREE_CLIENT_ID && environmentName === "PRODUCTION") {
-        logger.warn("⚠️ No production CASHFREE_CLIENT_ID set! Falling back to SANDBOX mode.");
-        effectiveEnv = "SANDBOX";
-    }
-
-    const cfEnv = effectiveEnv === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
-
-    logger.info(`Initializing Cashfree [${effectiveEnv}] with Client ID:`, clientId.substring(0, 8) + "...");
-
-    // V5 SDK: Instance based
+    const clientId = (process.env.CASHFREE_CLIENT_ID || "1206869833208382a0c03e5759a9686021").trim();
+    const clientSecret = (process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_prod_644a138b5eb0d40a062ecf5aeb667bd2_1ca04f9f").trim();
+    let normalizedEnv = (environmentName || "SANDBOX").toUpperCase().trim();
+    const cfEnv = normalizedEnv === "PRODUCTION" ? CFEnvironment.PRODUCTION : CFEnvironment.SANDBOX;
     const cashfree = new Cashfree(cfEnv, clientId, clientSecret);
-    cashfree.XApiVersion = "2023-08-01"; // Required for current order schema
-
-    return cashfree;
+    cashfree.XApiVersion = "2023-08-01";
+    return { cashfree, clientId, clientSecret, normalizedEnv };
 };
 
 exports.createCashfreeOrder = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("createCashfreeOrder hit! [DYNAMIC_ENV_FIX]", { method: request.method, body: request.body });
-
     try {
         const { orderAmount, customerId, customerPhone, customerName, customerEmail, environment } = request.body;
-
-        // SANITIZE: Remove any non-numeric characters from phone
-        let sanitizedPhone = (customerPhone || "").replace(/\D/g, '');
-        // Cashfree usually expects 10 digits for Indian numbers. If it's 12 (with 91), take the last 10.
-        if (sanitizedPhone.length > 10) {
-            sanitizedPhone = sanitizedPhone.slice(-10);
-        }
-
-        // SANITIZE: Customer ID should be alphanumeric
-        const sanitizedCustomerId = (customerId || "").replace(/[^a-zA-Z0-9_\-\.]/g, '');
-
-        if (!orderAmount || !sanitizedCustomerId || sanitizedPhone.length < 10) {
-            logger.warn("Validation failed:", { orderAmount, sanitizedCustomerId, sanitizedPhone });
-            response.status(400).send({
-                error: "Invalid request data",
-                message: "Ensure orderAmount > 0, customerId is valid, and phone is exactly 10 digits."
-            });
-            return;
-        }
-
-        const cashfree = getCashfreeInstance(environment);
+        const { clientId, clientSecret, normalizedEnv } = getCashfreeInstance(environment);
         const orderId = `ORDER_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
-        const appUrl = "https://croww-app.web.app"; // Default production app URL
+        const origin = request.headers.origin || "https://croww.ai";
 
         const requestData = {
             order_amount: Number(parseFloat(orderAmount).toFixed(2)),
             order_currency: "INR",
             order_id: orderId,
             customer_details: {
-                customer_id: sanitizedCustomerId,
+                customer_id: (customerId || "").replace(/[^a-zA-Z0-9_\-\.]/g, ''),
                 customer_name: customerName || "Customer",
                 customer_email: customerEmail || "customer@example.com",
-                customer_phone: sanitizedPhone,
+                customer_phone: (customerPhone || "").replace(/\D/g, '').slice(-10),
             },
             order_meta: {
-                return_url: `${appUrl}/payment-return?order_id=${orderId}`,
-            },
-            order_note: "Croww App Booking",
+                return_url: `${origin}/payment-return?order_id=${orderId}`,
+            }
         };
 
-        logger.info("Calling PGCreateOrder with:", requestData);
-        // V5 SDK: method called on instance
-        const apiResponse = await cashfree.PGCreateOrder(requestData);
-        logger.info("Cashfree Success Response:", apiResponse.data);
+        const baseUrl = normalizedEnv === "PRODUCTION" ? "https://api.cashfree.com/pg" : "https://sandbox.cashfree.com/pg";
+        const cfResponse = await fetch(`${baseUrl}/orders`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "x-client-id": clientId,
+                "x-client-secret": clientSecret,
+                "x-api-version": "2023-08-01"
+            },
+            body: JSON.stringify(requestData)
+        });
 
-        response.status(200).send(apiResponse.data);
+        const responseText = await cfResponse.text();
+        let data;
+        try { data = JSON.parse(responseText); } catch (e) { data = { raw: responseText }; }
 
-    } catch (error) {
-        logger.error("Error creating order:", error);
-
-        // Passthrough specific Cashfree errors if available
-        if (error.response && error.response.data) {
-            const cfError = error.response.data;
-            logger.error("Cashfree API Rejected:", cfError);
-            response.status(error.response.status || 400).send({
-                error: cfError.message || "Cashfree API Error",
-                code: cfError.code,
-                type: cfError.type,
-                details: cfError
-            });
-        } else {
-            response.status(500).send({
-                error: "Failed to create order",
-                message: error.message
-            });
+        if (!cfResponse.ok) {
+            response.status(cfResponse.status).send(data);
+            return;
         }
+        response.status(200).send(data);
+    } catch (error) {
+        logger.error(`${DEPLOY_TAG} Internal Error:`, error);
+        response.status(500).send({ error: "Internal Server Error", message: error.message });
     }
 });
 
 exports.verifyCashfreePayment = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("verifyCashfreePayment hit!", { body: request.body });
-
     try {
-        const { orderId } = request.body;
-
+        const { orderId, environment } = request.body;
         if (!orderId) {
-            logger.warn("Missing orderId in verify request");
             response.status(400).send({ error: "Missing orderId" });
             return;
         }
-
-        const cashfree = getCashfreeInstance();
-        // V5 SDK: method called on instance
+        const { cashfree } = getCashfreeInstance(environment);
         const apiResponse = await cashfree.PGOrderFetchPayments(orderId);
-
-        // Find successful payment
         const payments = apiResponse.data || [];
         const successPayment = payments.find(p => p.payment_status === 'SUCCESS');
-
         response.status(200).send({
             order_id: orderId,
             status: successPayment ? 'PAID' : 'PENDING',
             payment_details: successPayment || null
         });
-
     } catch (error) {
         logger.error("Error verifying payment:", error);
-        // Passthrough specific Cashfree errors if available
         if (error.response && error.response.data) {
             const cfError = error.response.data;
             response.status(error.response.status || 400).send({
@@ -211,29 +159,18 @@ exports.verifyCashfreePayment = onRequest({ cors: true, invoker: "public" }, asy
     }
 });
 
-/**
- * [NEW] Generate DigiLocker Verification URL
- */
 exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("getDigiLockerUrl hit!", { body: request.body });
-
     try {
         const { userFlow, environment, clientId: reqClientId, clientSecret: reqClientSecret } = request.body;
         const clientId = reqClientId || process.env.CASHFREE_CLIENT_ID || "TEST10990759f216be3b56c5acb8a37495709901";
         const clientSecret = reqClientSecret || process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_ed365f96f0455a6e9d005be3af1dbd0c_d381d9b2";
-        logger.info(`DigiLocker using clientId: ${clientId.substring(0, 8)}... env: ${environment}`);
-
         const baseUrl = environment === "PRODUCTION"
             ? "https://api.cashfree.com/verification/digilocker"
             : "https://sandbox.cashfree.com/verification/digilocker";
-
         const verificationId = `VER-${Date.now()}`;
-        const appUrl = "https://croww-app.web.app";
-
-        logger.info(`Initiating DigiLocker for ${verificationId} on ${environment}`);
+        const appUrl = "https://croww.ai";
 
         const fetchWithFallback = async (url) => {
-            logger.info(`Calling Cashfree: ${url}`);
             return await fetch(url, {
                 method: "POST",
                 headers: {
@@ -254,32 +191,18 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
         };
 
         let apiResponse = await fetchWithFallback(baseUrl);
-
-        // FALLBACK: Try alternative path if first one fails for ANY reason
         if (!apiResponse.ok) {
-            logger.info(`DigiLocker Primary URL failed [${apiResponse.status}], trying /identity fallback...`);
             const altUrl = environment === "PRODUCTION"
                 ? "https://api.cashfree.com/identity/verification/digilocker"
                 : "https://sandbox.cashfree.com/identity/verification/digilocker";
-
-            if (baseUrl !== altUrl) {
-                apiResponse = await fetchWithFallback(altUrl);
-            }
+            if (baseUrl !== altUrl) apiResponse = await fetchWithFallback(altUrl);
         }
 
-        let data;
         const responseText = await apiResponse.text();
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            data = { rawResponse: responseText };
-        }
+        let data;
+        try { data = JSON.parse(responseText); } catch (e) { data = { rawResponse: responseText }; }
 
         if (!apiResponse.ok) {
-            logger.error("Cashfree API Error Response:", {
-                status: apiResponse.status,
-                data: data
-            });
             response.status(apiResponse.status).send({
                 error: "Cashfree API Error",
                 message: data.message || data.msg || `Verification Error (Status ${apiResponse.status})`,
@@ -287,40 +210,25 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
             });
             return;
         }
-
-        logger.info("Cashfree Verification API success:", { verification_id: data.verification_id });
         response.status(200).send(data);
-
     } catch (error) {
         logger.error("Error generating DigiLocker URL:", error);
-        response.status(500).send({
-            error: "Internal Server Error",
-            message: error.message
-        });
+        response.status(500).send({ error: "Internal Server Error", message: error.message });
     }
 });
 
-/**
- * [NEW] Get DigiLocker Verification Status
- */
 exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("getDigiLockerStatus hit!", { body: request.body });
-
     try {
         const { verificationId, environment, clientId: reqClientId, clientSecret: reqClientSecret } = request.body;
         const clientId = reqClientId || process.env.CASHFREE_CLIENT_ID || "TEST10990759f216be3b56c5acb8a37495709901";
         const clientSecret = reqClientSecret || process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_ed365f96f0455a6e9d005be3af1dbd0c_d381d9b2";
-        logger.info(`DigiLocker status using clientId: ${clientId.substring(0, 8)}... env: ${environment}`);
-
         if (!verificationId) {
             response.status(400).send({ error: "Missing verificationId" });
             return;
         }
-
         const baseUrl = environment === "PRODUCTION"
             ? "https://api.cashfree.com/verification/digilocker"
             : "https://sandbox.cashfree.com/verification/digilocker";
-
         const apiResponse = await fetch(`${baseUrl}/${verificationId}`, {
             method: "GET",
             headers: {
@@ -331,54 +239,34 @@ exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public" }, async
             },
             timeout: 10000
         });
-
-        const status = apiResponse.status;
         const responseText = await apiResponse.text();
         let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            data = { rawResponse: responseText };
-        }
-
+        try { data = JSON.parse(responseText); } catch (e) { data = { rawResponse: responseText }; }
         if (!apiResponse.ok) {
-            logger.error("Cashfree API Error Response:", { status, data });
-            response.status(status).send({
+            response.status(apiResponse.status).send({
                 error: "Cashfree API Error",
-                message: data.message || data.msg || `Status Check Error (Status ${status})`,
+                message: data.message || data.msg || `Status Check Error (Status ${apiResponse.status})`,
                 details: data
             });
             return;
         }
-
         response.status(200).send(data);
-
     } catch (error) {
         logger.error("Error fetching DigiLocker status:", error);
         response.status(500).send({ error: "Internal Server Error", details: error.message });
     }
 });
 
-/**
- * [NEW] Initiate Aadhaar Integrated OTP Verification
- */
 exports.initiateAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("initiateAadhaarOTP hit!", { body: request.body });
-
     try {
         const { aadhaarNumber, environment, clientId: reqClientId, clientSecret: reqClientSecret } = request.body;
         const clientId = reqClientId || process.env.CASHFREE_CLIENT_ID || "TEST10990759f216be3b56c5acb8a37495709901";
         const clientSecret = reqClientSecret || process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_ed365f96f0455a6e9d005be3af1dbd0c_d381d9b2";
-        logger.info(`Aadhaar OTP using clientId: ${clientId.substring(0, 8)}... env: ${environment}`);
-
         if (!aadhaarNumber) {
             response.status(400).send({ error: "Missing aadhaarNumber" });
             return;
         }
-
-        // [SANDBOX BYPASS] for development testing
         if (environment === "SANDBOX" && aadhaarNumber === "000000000000") {
-            logger.info("Sandbox Bypass triggered for Aadhaar Verification");
             response.status(200).send({
                 status: "SUCCESS",
                 ref_id: "BYPASS-REF-ID",
@@ -386,12 +274,9 @@ exports.initiateAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async 
             });
             return;
         }
-
         const verificationId = `VER-OTP-${Date.now()}`;
         const isProd = environment === "PRODUCTION";
         const base = isProd ? "https://api.cashfree.com" : "https://sandbox.cashfree.com";
-
-        // Try ALL known Cashfree Aadhaar OTP endpoint paths
         const urlsToTry = [
             `${base}/verification/offline-aadhaar/otp`,
             `${base}/verification/aadhaar`,
@@ -399,7 +284,6 @@ exports.initiateAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async 
             `${base}/verification/aadhaar-verification/otp`,
             `${base}/offline-aadhaar/otp`,
         ];
-
         const headers = {
             "Content-Type": "application/json",
             "x-client-id": clientId,
@@ -407,96 +291,47 @@ exports.initiateAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async 
             "x-api-version": "2023-08-01",
             "x-cf-signature": generateCfSignature(clientId)
         };
-
-        const body = JSON.stringify({
-            aadhaar_number: aadhaarNumber,
-            verification_id: verificationId
-        });
-
+        const body = JSON.stringify({ aadhaar_number: aadhaarNumber, verification_id: verificationId });
         let apiResponse = null;
-        let lastStatus = 0;
-
         for (const url of urlsToTry) {
-            logger.info(`Trying Aadhaar OTP endpoint: ${url}`);
             try {
-                apiResponse = await fetch(url, {
-                    method: "POST",
-                    headers,
-                    body,
-                    timeout: 15000
-                });
-                lastStatus = apiResponse.status;
-                logger.info(`Endpoint ${url} returned status: ${lastStatus}`);
-                if (apiResponse.ok) {
-                    logger.info(`SUCCESS with endpoint: ${url}`);
-                    break;
-                }
-                // Read body to prevent connection issues, but don't consume it for the last attempt
-                if (urlsToTry.indexOf(url) < urlsToTry.length - 1) {
-                    await apiResponse.text(); // consume body
-                    apiResponse = null; // reset so we don't use stale response
-                }
-            } catch (fetchErr) {
-                logger.warn(`Fetch error for ${url}: ${fetchErr.message}`);
-            }
+                apiResponse = await fetch(url, { method: "POST", headers, body, timeout: 15000 });
+                if (apiResponse.ok) break;
+                if (urlsToTry.indexOf(url) < urlsToTry.length - 1) await apiResponse.text();
+            } catch (err) { logger.warn(`Fetch error for ${url}`); }
         }
-
         if (!apiResponse) {
-            response.status(500).send({
-                error: "All Cashfree endpoints failed",
-                message: `None of the ${urlsToTry.length} endpoint paths returned a successful response. Last status: ${lastStatus}`
-            });
+            response.status(500).send({ error: "All endpoints failed" });
             return;
         }
-
         const responseText = await apiResponse.text();
         let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            data = { rawResponse: responseText };
-        }
-
-        logger.info("Cashfree OTP Init Details:", { status: apiResponse.status, ok: apiResponse.ok, data });
-
+        try { data = JSON.parse(responseText); } catch (e) { data = { rawResponse: responseText }; }
         if (!apiResponse.ok) {
             response.status(apiResponse.status).send({
                 error: "Cashfree API Error",
-                message: data.message || data.msg || `OTP Init Error (Status ${apiResponse.status})`,
+                message: data.message || data.msg || `OTP Init Error`,
                 details: data
             });
             return;
         }
-
         response.status(200).send(data);
-
     } catch (error) {
         logger.error("Error initiating Aadhaar OTP:", error);
         response.status(500).send({ error: "Internal Server Error", details: error.message });
     }
 });
 
-
-/**
- * [NEW] Verify Aadhaar Integrated OTP
- */
 exports.verifyAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("verifyAadhaarOTP hit!", { body: request.body });
-
     try {
         const { refId, otp, environment, clientId: reqClientId, clientSecret: reqClientSecret } = request.body;
         const clientId = reqClientId || process.env.CASHFREE_CLIENT_ID || "TEST10990759f216be3b56c5acb8a37495709901";
         const clientSecret = reqClientSecret || process.env.CASHFREE_CLIENT_SECRET || "cfsk_ma_test_ed365f96f0455a6e9d005be3af1dbd0c_d381d9b2";
-        logger.info(`Aadhaar OTP verify using clientId: ${clientId.substring(0, 8)}... env: ${environment}`);
-
         if (!refId || !otp) {
             response.status(400).send({ error: "Missing refId or otp" });
             return;
         }
-
-        // [SANDBOX BYPASS] for development testing
         if (environment === "SANDBOX" && (refId === "BYPASS-REF-ID" || otp === "000000")) {
-            logger.info("Sandbox Bypass triggered for OTP Verification");
             response.status(200).send({
                 status: "SUCCESS",
                 message: "Aadhaar details fetched successfully",
@@ -509,11 +344,8 @@ exports.verifyAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async (r
             });
             return;
         }
-
         const isProd = environment === "PRODUCTION";
         const base = isProd ? "https://api.cashfree.com" : "https://sandbox.cashfree.com";
-
-        // Try ALL known Cashfree Aadhaar verify endpoint paths
         const urlsToTry = [
             `${base}/verification/offline-aadhaar/verify`,
             `${base}/verification/aadhaar`,
@@ -521,7 +353,6 @@ exports.verifyAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async (r
             `${base}/verification/aadhaar-verification/verify`,
             `${base}/offline-aadhaar/verify`,
         ];
-
         const headers = {
             "Content-Type": "application/json",
             "x-client-id": clientId,
@@ -529,115 +360,48 @@ exports.verifyAadhaarOTP = onRequest({ cors: true, invoker: "public" }, async (r
             "x-api-version": "2023-08-01",
             "x-cf-signature": generateCfSignature(clientId)
         };
-
-        const body = JSON.stringify({
-            ref_id: refId,
-            otp: otp
-        });
-
+        const body = JSON.stringify({ ref_id: refId, otp: otp });
         let apiResponse = null;
-        let lastStatus = 0;
-
         for (const url of urlsToTry) {
-            logger.info(`Trying Aadhaar Verify endpoint: ${url}`);
             try {
-                apiResponse = await fetch(url, {
-                    method: "POST",
-                    headers,
-                    body,
-                    timeout: 15000
-                });
-                lastStatus = apiResponse.status;
-                logger.info(`Endpoint ${url} returned status: ${lastStatus}`);
-                if (apiResponse.ok) {
-                    logger.info(`SUCCESS with endpoint: ${url}`);
-                    break;
-                }
-                if (urlsToTry.indexOf(url) < urlsToTry.length - 1) {
-                    await apiResponse.text();
-                    apiResponse = null;
-                }
-            } catch (fetchErr) {
-                logger.warn(`Fetch error for ${url}: ${fetchErr.message}`);
-            }
+                apiResponse = await fetch(url, { method: "POST", headers, body, timeout: 15000 });
+                if (apiResponse.ok) break;
+                if (urlsToTry.indexOf(url) < urlsToTry.length - 1) await apiResponse.text();
+            } catch (err) { logger.warn(`Fetch error for ${url}`); }
         }
-
         if (!apiResponse) {
-            response.status(500).send({
-                error: "All Cashfree endpoints failed",
-                message: `None of the ${urlsToTry.length} endpoint paths returned a successful response. Last status: ${lastStatus}`
-            });
+            response.status(500).send({ error: "All endpoints failed" });
             return;
         }
-
         const responseText = await apiResponse.text();
         let data;
-        try {
-            data = JSON.parse(responseText);
-        } catch (e) {
-            data = { rawResponse: responseText };
-        }
-
-        logger.info("Cashfree OTP Verify Details:", { status: apiResponse.status, ok: apiResponse.ok, data });
-
+        try { data = JSON.parse(responseText); } catch (e) { data = { rawResponse: responseText }; }
         if (!apiResponse.ok) {
             response.status(apiResponse.status).send({
                 error: "Cashfree API Error",
-                message: data.message || data.msg || `OTP Verify Error (Status ${apiResponse.status})`,
+                message: data.message || data.msg || `OTP Verify Error`,
                 details: data
             });
             return;
         }
-
         response.status(200).send(data);
-
     } catch (error) {
         logger.error("Error verifying Aadhaar OTP:", error);
         response.status(500).send({ error: "Internal Server Error", details: error.message });
     }
 });
 
-
-/**
- * [NEW] Trigger to send push notification when a record is added to 'notifications'
- */
 exports.sendPushNotification = onDocumentCreated("notifications/{notificationId}", async (event) => {
     const snapshot = event.data;
-    if (!snapshot) {
-        logger.error("No data associated with the event");
-        return;
-    }
-
+    if (!snapshot) return;
     const notification = snapshot.data();
     const { toUserId, title, message, data } = notification;
-
-    if (!toUserId) {
-        logger.warn("No toUserId found in notification record:", event.params.notificationId);
-        return;
-    }
-
+    if (!toUserId) return;
     try {
-        // Fetch the user's push token
         const userDoc = await admin.firestore().collection("users").doc(toUserId).get();
-        if (!userDoc.exists) {
-            logger.warn(`User ${toUserId} not found in Firestore`);
-            return;
-        }
-
-        const userData = userDoc.data();
-        const pushToken = userData.pushToken;
-
-        if (!pushToken) {
-            logger.info(`User ${toUserId} does not have a pushToken registered`);
-            return;
-        }
-
-        if (!Expo.isExpoPushToken(pushToken)) {
-            logger.error(`Push token ${pushToken} is not a valid Expo push token`);
-            return;
-        }
-
-        // Prepare the message
+        if (!userDoc.exists) return;
+        const pushToken = userDoc.data().pushToken;
+        if (!pushToken || !Expo.isExpoPushToken(pushToken)) return;
         const messages = [{
             to: pushToken,
             sound: 'default',
@@ -645,168 +409,376 @@ exports.sendPushNotification = onDocumentCreated("notifications/{notificationId}
             body: message || 'You have a new message from Croww',
             data: data || {},
         }];
-
-        // Send the notification
         const chunks = expo.chunkPushNotifications(messages);
-        const tickets = [];
-
         for (const chunk of chunks) {
             try {
-                const ticketChunk = await expo.sendPushNotificationsAsync(chunk);
-                logger.info("Push Ticket Chunk:", ticketChunk);
-                tickets.push(...ticketChunk);
-            } catch (error) {
-                logger.error("Error sending push notification chunk:", error);
-            }
+                await expo.sendPushNotificationsAsync(chunk);
+            } catch (error) { logger.error("Error sending push notification chunk:", error); }
         }
-
-        logger.info(`Successfully processed push notification for user ${toUserId}`);
-
-    } catch (error) {
-        logger.error("Error in sendPushNotification trigger:", error);
-    }
+    } catch (error) { logger.error("Error in sendPushNotification trigger:", error); }
 });
 
-/**
- * [NEW] Trigger: Send Welcome Email when a new user profile is created in Firestore
- */
 exports.sendWelcomeEmail = onDocumentCreated("users/{userId}", async (event) => {
     const snapshot = event.data;
     if (!snapshot) return;
-
     const userData = snapshot.data();
     const { email, name } = userData;
-
-    if (!email) {
-        logger.warn(`No email found for user ${event.params.userId}`);
-        return;
-    }
-
+    if (!email) return;
     try {
-        const html = getWelcomeTemplate(name || "there");
-        await sendEmail({
-            to: email,
-            subject: `Welcome to Croww, ${name || "User"}!`,
-            html: html
-        });
-        logger.info(`Welcome email sent to ${email}`);
-    } catch (error) {
-        logger.error(`Failed to send welcome email to ${email}:`, error);
-    }
+        const nameText = name || "there";
+        const html = getWelcomeTemplate(nameText);
+        const text = `Welcome to Croww, ${nameText}!\n\nWe're thrilled to have you join our exclusive community of event enthusiasts and service providers.\n\nStart exploring the most premium events and services curated just for you at https://croww.ai`;
+
+        await sendEmail({ to: email, subject: `Welcome to Croww, ${name || "User"}!`, html, text });
+    } catch (error) { logger.error(`Failed to send welcome email to ${email}:`, error); }
 });
 
-/**
- * [NEW] HTTPS Function: Send a custom, branded password reset email
- */
 exports.sendCustomPasswordReset = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    logger.info("sendCustomPasswordReset hit!", { body: request.body });
-
+    const { email } = request.body;
     try {
-        const { email } = request.body;
-
         if (!email) {
             response.status(400).send({ error: "Missing email" });
             return;
         }
 
-        // 1. Check if user exists
+        logger.info(`[AuthReset] Request for: ${email}`);
+
         let userRecord;
         try {
             userRecord = await admin.auth().getUserByEmail(email);
         } catch (e) {
-            // Security best practice: Don't reveal if user exists. 
-            // Just return success even if not found, or a generic message.
-            logger.info(`Password reset requested for non-existent email: ${email}`);
-            response.status(200).send({ message: "If an account exists with this email, a reset link has been sent." });
+            logger.warn(`[AuthReset] User not found or error for ${email}:`, e.message);
+            // Safety measure: Still return 200 to prevent user enumeration
+            response.status(200).send({ success: true, message: "If an account exists with this email, a reset link has been sent." });
             return;
         }
 
-        // 2. Generate the Firebase Auth reset link
-        // This handles the security/tokens automatically
+        // Use multiple URLs in actionCodeSettings to ensure at least one is whitelisted
+        // The default firebase domain is ALWAYS whitelisted, but croww.ai is preferred
         const actionCodeSettings = {
-            url: 'https://croww-live-2026.firebaseapp.com/login', // Use canonically allowlisted domain
+            url: 'https://croww.ai/login', // Preferred authorized domain
             handleCodeInApp: false
         };
-        const resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
 
-        // 3. Send the custom HTML email
+        logger.info(`[AuthReset] Generating reset link for ${email} with continueUrl: ${actionCodeSettings.url}`);
+
+        let resetLink;
+        try {
+            resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
+        } catch (linkError) {
+            logger.error(`[AuthReset] Whitelist check or link generation failed for ${email}:`, {
+                code: linkError.code,
+                message: linkError.message
+            });
+            // Fallback: Try without actionCodeSettings if specific URL causes issues
+            // This link will use the default Firebase handler and won't redirect back automatically
+            resetLink = await admin.auth().generatePasswordResetLink(email);
+        }
+
         const html = getPasswordResetTemplate(userRecord.displayName || "User", resetLink);
+        const text = `Reset Your Password\n\nHi ${userRecord.displayName || "User"},\n\nWe received a request to reset your password for your Croww account.\n\nCopy and paste the link below into your browser to choose a new password. This link will expire in 1 hour.\n\n${resetLink}\n\nIf you didn't request a password reset, you can safely ignore this email.`;
 
         const emailResult = await sendEmail({
             to: email,
             subject: "Reset your Croww password",
-            html: html
+            html,
+            text
         });
 
         if (!emailResult.success) {
-            logger.error(`[Auth] sendEmail failed for ${email}:`, emailResult.error);
+            logger.error(`[AuthReset] SMTP Error for ${email}:`, emailResult.error);
             response.status(500).send({
-                error: "SMTP Error",
-                message: emailResult.error
+                error: "Email Delivery Failed",
+                message: emailResult.error,
+                details: "Check SMTP configuration or Mailgun quota."
             });
             return;
         }
 
-        logger.info(`Successfully sent custom reset email to ${email}`);
-
-        response.status(200).send({
-            success: true,
-            message: "Custom reset email sent successfully."
-        });
-
+        logger.info(`[AuthReset] Success for ${email}`);
+        response.status(200).send({ success: true, message: "Custom reset email sent successfully." });
     } catch (error) {
-        logger.error("Error in sendCustomPasswordReset:", error);
-
-        // Handle specific Firebase Auth errors
-        if (error.code === 'auth/quota-exceeded' || error.message?.includes('EXCEED_LIMIT')) {
-            response.status(429).send({
-                error: "Rate Limit Exceeded",
-                message: "Too many password reset requests. Please wait a few minutes and try again."
-            });
-            return;
-        }
-
+        logger.error(`[AuthReset] CRITICAL ERROR for ${email}:`, error);
         response.status(500).send({
             error: "Internal Server Error",
-            message: error.message
+            message: error.message,
+            stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
         });
     }
 });
 
-
-/**
- * Automatically delete events that are older than 24 hours.
- * Runs every day at midnight (UTC).
- */
 exports.cleanupExpiredEvents = onSchedule("0 0 * * *", async (event) => {
-    logger.info("[Cleanup] Starting cleanupExpiredEvents job");
-    const now = new Date();
-    // Delete events that started more than 24 hours ago
-    const cutoffDate = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+    const cutoffDate = new Date(Date.now() - (24 * 60 * 60 * 1000));
     const cutoffISO = cutoffDate.toISOString();
-
     const eventsRef = admin.firestore().collection("events");
-    // Filter for events where the date field is less than the cutoff
     const q = eventsRef.where("date", "<", cutoffISO);
-
     try {
         const snapshot = await q.get();
-        if (snapshot.empty) {
-            logger.info("[Cleanup] No expired events found to clean up.");
+        if (snapshot.empty) return;
+        const batch = admin.firestore().batch();
+        snapshot.docs.forEach((doc) => batch.delete(doc.ref));
+        await batch.commit();
+    } catch (error) { logger.error("[Cleanup] Error in cleanupExpiredEvents:", error); }
+});
+
+exports.deleteUserAccount = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+    try {
+        const { uid } = request.body;
+        if (!uid) {
+            response.status(400).send({ error: "Missing user UID" });
+            return;
+        }
+        const db = admin.firestore();
+        const userRef = db.collection("users").doc(uid);
+        try {
+            await userRef.update({ isBlocked: true, deletedAt: new Date().toISOString() });
+        } catch (flagErr) { logger.warn(`[DeleteAccount] Could not flag isBlocked`); }
+        const batch = db.batch();
+        const collections = ["buddy_requests", "buddy_join_requests", "friend_requests", "notifications", "tickets", "events"];
+        for (const coll of collections) {
+            let field = "userId";
+            if (coll === "friend_requests") {
+                const s1 = await db.collection(coll).where("fromUserId", "==", uid).get();
+                s1.forEach(doc => batch.delete(doc.ref));
+                const s2 = await db.collection(coll).where("toUserId", "==", uid).get();
+                s2.forEach(doc => batch.delete(doc.ref));
+                continue;
+            }
+            if (coll === "buddy_join_requests") {
+                const s1 = await db.collection(coll).where("requesterId", "==", uid).get();
+                s1.forEach(doc => batch.delete(doc.ref));
+                const s2 = await db.collection(coll).where("ownerId", "==", uid).get();
+                s2.forEach(doc => batch.delete(doc.ref));
+                continue;
+            }
+            if (coll === "notifications") field = "toUserId";
+            if (coll === "events") field = "organizerId";
+            const snap = await db.collection(coll).where(field, "==", uid).get();
+            snap.forEach(doc => batch.delete(doc.ref));
+        }
+        batch.delete(userRef);
+        await batch.commit();
+        try { await admin.auth().deleteUser(uid); } catch (authError) { if (authError.code !== 'auth/user-not-found') throw authError; }
+        response.status(200).send({ success: true, message: "Account deleted successfully." });
+    } catch (error) {
+        logger.error(`[DeleteAccount] Error:`, error);
+        response.status(500).send({ error: "Internal Server Error", message: error.message });
+    }
+});
+
+exports.toggleUserBlock = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+    const { uid, block } = request.body;
+    if (!uid) return response.status(400).send({ error: "User ID is required." });
+    try {
+        const db = admin.firestore();
+        const userRef = db.collection("users").doc(uid);
+        await userRef.update({ isBlocked: block, blockedAt: block ? new Date().toISOString() : admin.firestore.FieldValue.delete() });
+        await admin.auth().updateUser(uid, { disabled: block });
+        response.status(200).send({ success: true, message: `User ${block ? 'blocked' : 'unblocked'}` });
+    } catch (error) {
+        logger.error(`[ToggleBlock] Error:`, error);
+        response.status(500).send({ error: "Internal Server Error", message: error.message });
+    }
+});
+
+exports.onEventCreated = onDocumentCreated("events/{eventId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const eventData = snapshot.data();
+    if (eventData.isPublic !== true) return;
+    const city = eventData.locationName;
+    if (!city) return;
+    try {
+        const db = admin.firestore();
+        const usersSnapshot = await db.collection("users").where("location", "==", city).limit(100).get();
+        if (usersSnapshot.empty) return;
+        const batch = db.batch();
+        let count = 0;
+        usersSnapshot.docs.forEach((userDoc) => {
+            if (userDoc.id === eventData.organizerId) return;
+            const notificationRef = db.collection("notifications").doc();
+            batch.set(notificationRef, {
+                toUserId: userDoc.id,
+                title: "New Event in Your Area! 🌍",
+                message: `${eventData.organizerName || 'Someone'} just hosted "${eventData.title}" in ${city}.`,
+                data: { type: "NEW_EVENT", eventId: event.params.eventId, location: city },
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            count++;
+        });
+        if (count > 0) await batch.commit();
+    } catch (error) { logger.error("Error in onEventCreated trigger:", error); }
+});
+
+/**
+ * [NEW] Trigger: Notify participants of a new chat message
+ */
+exports.onChatMessageCreated = onDocumentCreated("chats/{chatId}/messages/{messageId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const messageData = snapshot.data();
+    const chatId = event.params.chatId;
+    const senderId = messageData.senderId;
+    try {
+        const db = admin.firestore();
+        const chatSnap = await db.collection("chats").doc(chatId).get();
+        if (!chatSnap.exists) return;
+        const chatData = chatSnap.data();
+        const participantIds = chatData.participantIds || [];
+        const batch = db.batch();
+        let count = 0;
+        participantIds.forEach((userId) => {
+            if (userId === senderId) return;
+            const notificationRef = db.collection("notifications").doc();
+            batch.set(notificationRef, {
+                toUserId: userId,
+                title: chatData.type === 'group' ? `Group: ${chatData.name}` : `New message from ${messageData.senderName || 'Someone'}`,
+                message: messageData.text ? (messageData.text.length > 60 ? messageData.text.substring(0, 57) + '...' : messageData.text) : 'Sent a message',
+                data: { type: "CHAT_MESSAGE", chatId: chatId, senderId: senderId },
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            count++;
+        });
+        if (count > 0) await batch.commit();
+    } catch (error) { logger.error("Error in onChatMessageCreated:", error); }
+});
+
+/**
+ * [NEW] Trigger: Notify user of a new friend request
+ */
+exports.onFriendRequestCreated = onDocumentCreated("friend_requests/{requestId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const requestData = snapshot.data();
+    try {
+        const db = admin.firestore();
+        const notificationRef = db.collection("notifications").doc();
+        await notificationRef.set({
+            toUserId: requestData.toUserId,
+            title: "New Friend Request! 👋",
+            message: `${requestData.fromUserName || 'Someone'} wants to be your friend.`,
+            data: { type: "FRIEND_REQUEST", requestId: event.params.requestId },
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) { logger.error("Error in onFriendRequestCreated:", error); }
+});
+
+/**
+ * [NEW] Trigger: Notify sender when a friend request is accepted
+ */
+exports.onFriendRequestUpdated = onDocumentUpdated("friend_requests/{requestId}", async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+    if (beforeData.status !== 'accepted' && afterData.status === 'accepted') {
+        try {
+            const db = admin.firestore();
+            const notificationRef = db.collection("notifications").doc();
+            const responderDoc = await db.collection("users").doc(afterData.toUserId).get();
+            const responderName = responderDoc.exists ? responderDoc.data().name : 'Someone';
+            await notificationRef.set({
+                toUserId: afterData.fromUserId,
+                title: "Friend Request Accepted! ✨",
+                message: `${responderName} accepted your friend request.`,
+                data: { type: "FRIEND_ACCEPTED", userId: afterData.toUserId },
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) { logger.error("Error in onFriendRequestUpdated:", error); }
+    }
+});
+
+/**
+ * [NEW] Trigger: Notify provider of a new booking
+ */
+exports.onBookingCreated = onDocumentCreated("bookings/{bookingId}", async (event) => {
+    const snapshot = event.data;
+    if (!snapshot) return;
+    const bookingData = snapshot.data();
+    try {
+        const db = admin.firestore();
+        const notificationRef = db.collection("notifications").doc();
+        await notificationRef.set({
+            toUserId: bookingData.providerId,
+            title: "New Booking Request! 📅",
+            message: `New request for "${bookingData.serviceName}" from ${bookingData.customerName || 'customer'}.`,
+            data: { type: "NEW_BOOKING", bookingId: event.params.bookingId },
+            read: false,
+            createdAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+    } catch (error) { logger.error("Error in onBookingCreated:", error); }
+});
+
+/**
+ * [NEW] Trigger: Notify customer of booking status change
+ */
+exports.onBookingUpdated = onDocumentUpdated("bookings/{bookingId}", async (event) => {
+    const beforeData = event.data.before.data();
+    const afterData = event.data.after.data();
+    if (beforeData.status !== afterData.status) {
+        try {
+            const db = admin.firestore();
+            const notificationRef = db.collection("notifications").doc();
+            await notificationRef.set({
+                toUserId: afterData.senderId,
+                title: `Booking Update: ${afterData.status} ✅`,
+                message: `Your booking for "${afterData.serviceName}" has been ${afterData.status}.`,
+                data: { type: "BOOKING_UPDATE", bookingId: event.params.bookingId, status: afterData.status },
+                read: false,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+        } catch (error) { logger.error("Error in onBookingUpdated:", error); }
+    }
+});
+/**
+ * [NEW] Action: Toggle Follow/Unfollow a user/business securely on the server
+ */
+exports.toggleFollow = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+    try {
+        const { followerId, targetUserId, action } = request.body; // action: 'follow' or 'unfollow'
+
+        if (!followerId || !targetUserId) {
+            response.status(400).send({ error: "Missing followerId or targetUserId" });
             return;
         }
 
-        logger.info(`[Cleanup] Found ${snapshot.size} expired events. Preparing batch delete...`);
+        if (followerId === targetUserId) {
+            response.status(400).send({ error: "Cannot follow yourself" });
+            return;
+        }
 
-        // Firestore batch delete (limited to 500 documents per batch)
-        const batch = admin.firestore().batch();
-        snapshot.docs.forEach((doc) => {
-            batch.delete(doc.ref);
-        });
+        const db = admin.firestore();
+        const followId = `${followerId}_${targetUserId}`;
+        const followRef = db.collection("follows").doc(followId);
+        const targetUserRef = db.collection("users").doc(targetUserId);
+
+        const batch = db.batch();
+
+        if (action === 'follow') {
+            batch.set(followRef, {
+                followerId,
+                targetUserId,
+                createdAt: admin.firestore.FieldValue.serverTimestamp()
+            });
+            batch.update(targetUserRef, {
+                followersCount: admin.firestore.FieldValue.increment(1),
+                'stats.followers': admin.firestore.FieldValue.increment(1)
+            });
+        } else {
+            batch.delete(followRef);
+            batch.update(targetUserRef, {
+                followersCount: admin.firestore.FieldValue.increment(-1),
+                'stats.followers': admin.firestore.FieldValue.increment(-1)
+            });
+        }
 
         await batch.commit();
-        logger.info(`[Cleanup] Successfully deleted ${snapshot.size} expired events.`);
+        logger.info(`[ToggleFollow] Success: ${followerId} ${action}ed ${targetUserId}`);
+        response.status(200).send({ success: true, action });
     } catch (error) {
-        logger.error("[Cleanup] Error in cleanupExpiredEvents:", error);
+        logger.error("[ToggleFollow] Error:", error);
+        response.status(500).send({ error: "Internal Server Error", message: error.message });
     }
 });
