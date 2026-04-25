@@ -52,6 +52,13 @@ const EditProfileScreen = ({ navigation }) => {
     const providerCategories = SERVICE_CATEGORIES.filter(c => c.type === 'provider').map(c => c.name);
     const businessCategories = SERVICE_CATEGORIES.filter(c => c.type === 'business').map(c => c.name);
 
+    // Dynamic Portfolio Rules
+    const showSoundcloud = category === 'Music/DJ';
+    const showBehance = ['Photography', 'Makeup', 'Decor', 'Mehendi'].includes(category);
+    const showYoutube = ['Music/DJ', 'Planning'].includes(category) || isBusiness;
+    const showGoogleDrive = true;
+    const showInstagram = true;
+
     const allInterests = [
         'Music', 'Nightlife', 'Networking', 'Art', 'Food',
         'Sports', 'Tech', 'Photography', 'Travel', 'Gaming',
@@ -592,65 +599,75 @@ const EditProfileScreen = ({ navigation }) => {
                             Add links to your professional work and social media
                         </Typography>
 
-                        <View style={styles.socialInputContainer}>
-                            <Ionicons name="logo-instagram" size={20} color="#E1306C" style={styles.socialIcon} />
-                            <TextInput
-                                style={styles.socialInput}
-                                value={instagram}
-                                onChangeText={setInstagram}
-                                placeholder="Instagram Profile URL"
-                                placeholderTextColor={COLORS.secondary}
-                                autoCapitalize="none"
-                            />
-                        </View>
+                        {showInstagram && (
+                            <View style={styles.socialInputContainer}>
+                                <Ionicons name="logo-instagram" size={20} color="#E1306C" style={styles.socialIcon} />
+                                <TextInput
+                                    style={styles.socialInput}
+                                    value={instagram}
+                                    onChangeText={setInstagram}
+                                    placeholder="Instagram Profile URL"
+                                    placeholderTextColor={COLORS.secondary}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        )}
 
-                        <View style={styles.socialInputContainer}>
-                            <Ionicons name="musical-notes" size={20} color="#FF5500" style={styles.socialIcon} />
-                            <TextInput
-                                style={styles.socialInput}
-                                value={soundcloud}
-                                onChangeText={setSoundcloud}
-                                placeholder="SoundCloud Profile URL"
-                                placeholderTextColor={COLORS.secondary}
-                                autoCapitalize="none"
-                            />
-                        </View>
+                        {showSoundcloud && (
+                            <View style={styles.socialInputContainer}>
+                                <Ionicons name="musical-notes" size={20} color="#FF5500" style={styles.socialIcon} />
+                                <TextInput
+                                    style={styles.socialInput}
+                                    value={soundcloud}
+                                    onChangeText={setSoundcloud}
+                                    placeholder="SoundCloud Profile URL"
+                                    placeholderTextColor={COLORS.secondary}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        )}
 
-                        <View style={styles.socialInputContainer}>
-                            <Ionicons name="color-palette" size={20} color="#1769FF" style={styles.socialIcon} />
-                            <TextInput
-                                style={styles.socialInput}
-                                value={behance}
-                                onChangeText={setBehance}
-                                placeholder="Behance Portfolio URL"
-                                placeholderTextColor={COLORS.secondary}
-                                autoCapitalize="none"
-                            />
-                        </View>
+                        {showBehance && (
+                            <View style={styles.socialInputContainer}>
+                                <Ionicons name="color-palette" size={20} color="#1769FF" style={styles.socialIcon} />
+                                <TextInput
+                                    style={styles.socialInput}
+                                    value={behance}
+                                    onChangeText={setBehance}
+                                    placeholder="Behance Portfolio URL"
+                                    placeholderTextColor={COLORS.secondary}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        )}
 
-                        <View style={styles.socialInputContainer}>
-                            <Ionicons name="cloud-outline" size={20} color="#4285F4" style={styles.socialIcon} />
-                            <TextInput
-                                style={styles.socialInput}
-                                value={googleDrive}
-                                onChangeText={setGoogleDrive}
-                                placeholder="Google Drive / Portfolio Link"
-                                placeholderTextColor={COLORS.secondary}
-                                autoCapitalize="none"
-                            />
-                        </View>
+                        {showGoogleDrive && (
+                            <View style={styles.socialInputContainer}>
+                                <Ionicons name="cloud-outline" size={20} color="#4285F4" style={styles.socialIcon} />
+                                <TextInput
+                                    style={styles.socialInput}
+                                    value={googleDrive}
+                                    onChangeText={setGoogleDrive}
+                                    placeholder="Google Drive / Portfolio Link"
+                                    placeholderTextColor={COLORS.secondary}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        )}
 
-                        <View style={styles.socialInputContainer}>
-                            <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.socialIcon} />
-                            <TextInput
-                                style={styles.socialInput}
-                                value={youtube}
-                                onChangeText={setYoutube}
-                                placeholder="YouTube Channel URL"
-                                placeholderTextColor={COLORS.secondary}
-                                autoCapitalize="none"
-                            />
-                        </View>
+                        {showYoutube && (
+                            <View style={styles.socialInputContainer}>
+                                <Ionicons name="logo-youtube" size={20} color="#FF0000" style={styles.socialIcon} />
+                                <TextInput
+                                    style={styles.socialInput}
+                                    value={youtube}
+                                    onChangeText={setYoutube}
+                                    placeholder="YouTube Channel URL"
+                                    placeholderTextColor={COLORS.secondary}
+                                    autoCapitalize="none"
+                                />
+                            </View>
+                        )}
                     </View>
                 )}
 

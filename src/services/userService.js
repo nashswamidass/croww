@@ -13,6 +13,7 @@ import {
     writeBatch
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
+import API_ENDPOINTS from '../constants/apiConfig';
 
 const USERS_COLLECTION = 'users';
 const FOLLOWS_COLLECTION = 'follows';
@@ -295,7 +296,7 @@ export const userService = {
      */
     followUser: async (followerId, targetUserId) => {
         try {
-            const API_URL = 'https://togglefollow-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.TOGGLE_FOLLOW;
             console.log(`[UserService] Following user via: ${API_URL}`);
 
             const response = await fetch(API_URL, {
@@ -322,7 +323,7 @@ export const userService = {
      */
     unfollowUser: async (followerId, targetUserId) => {
         try {
-            const API_URL = 'https://togglefollow-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.TOGGLE_FOLLOW;
             console.log(`[UserService] Unfollowing user via: ${API_URL}`);
 
             const response = await fetch(API_URL, {
@@ -373,6 +374,23 @@ export const userService = {
             return querySnapshot.docs.map(doc => doc.data().followerId);
         } catch (error) {
             console.error("Error getting follower IDs:", error);
+            return [];
+        }
+    },
+
+    /**
+     * Get IDs of all users that a user is following
+     */
+    getFollowingIds: async (userId) => {
+        try {
+            const q = query(
+                collection(db, FOLLOWS_COLLECTION),
+                where('followerId', '==', userId)
+            );
+            const querySnapshot = await getDocs(q);
+            return querySnapshot.docs.map(doc => doc.data().targetUserId);
+        } catch (error) {
+            console.error("Error getting following IDs:", error);
             return [];
         }
     },

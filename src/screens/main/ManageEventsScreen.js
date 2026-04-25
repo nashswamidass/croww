@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Image, Alert, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -32,43 +32,153 @@ const ManageEventsScreen = ({ navigation }) => {
         }
     };
 
-    const renderEventItem = ({ item }) => (
-        <TouchableOpacity
-            onPress={() => navigation.navigate('EventStats', { event: item })}
-        >
-            <NotionCard style={styles.eventCard}>
-                <View style={styles.cardContent}>
-                    <Image
-                        source={{ uri: getValidImageUri(item.imageUri) || DEFAULT_EVENT_IMAGE }}
-                        style={styles.eventImage}
-                    />
-                    <View style={styles.info}>
-                        <Typography variant="h3" numberOfLines={1}>{item.title}</Typography>
-                        <Typography variant="caption" color={COLORS.secondary}>
-                            {item.date} • {item.locationName}
-                        </Typography>
-                        <View style={styles.statsRow}>
-                            <View style={styles.stat}>
-                                <Typography variant="small" style={{ color: COLORS.secondary }}>Tickets Left</Typography>
-                                <Typography variant="body" style={{ fontWeight: '600' }}>
-                                    {item.remainingTickets} / {item.maxTickets}
+    const handleSharePress = async (item) => {
+        try {
+            const shareUrl = `https://croww.ai/event/${item.id}`;
+            await Share.share({
+                message: `Check out my event "${item.title}" on Croww!\n\n${shareUrl}`,
+                url: shareUrl,
+                title: item.title,
+            });
+        } catch (error) {
+            console.error("Error sharing event:", error.message);
+        }
+    };
+
+    const handleDeletePress = (item) => {
+        const hasAttendees = (item.attendeesCount || 0) > 1; // >1 because organizer counts as 1
+
+        const options = [
+            {
+                text: 'Cancel Event',
+                style: 'destructive',
+                onPress: () => confirmAction(item, 'cancel'),
+            },
+        ];
+
+        if (!hasAttendees) {
+            options.push({
+                text: 'Delete Event',
+                style: 'destructive',
+                onPress: () => confirmAction(item, 'delete'),
+            });
+        }
+
+        options.push({ text: 'Dismiss', style: 'cancel' });
+
+        Alert.alert(
+            'Manage Event',
+            hasAttendees
+                ? 'This event has attendees. You can cancel it — they will be notified via push notification and email.'
+                : 'Choose an action for this event.',
+            options
+        );
+    };
+
+    const confirmAction = (item, action) => {
+        const isCancel = action === 'cancel';
+        Alert.alert(
+            isCancel ? 'Cancel Event?' : 'Delete Event?',
+            isCancel
+                ? `Are you sure you want to cancel "${item.title}"? All attendees will be notified.`
+                : `Are you sure you want to permanently delete "${item.title}"? This cannot be undone.`,
+            [
+                { text: 'No, Go Back', style: 'cancel' },
+                {
+                    text: isCancel ? 'Yes, Cancel Event' : 'Yes, Delete',
+                    style: 'destructive',
+                    onPress: () => isCancel ? doCancel(item) : doDelete(item),
+                },
+            ]
+        );
+    };
+
+    const doCancel = async (item) => {
+        try {
+            await eventService.cancelEvent(item.id);
+            Alert.alert('Event Cancelled', 'The event has been cancelled. All attendees have been notified.');
+            loadEvents();
+        } catch (error) {
+            Alert.alert('Error', 'Failed to cancel the event. Please try again.');
+        }
+    };
+
+    const doDelete = async (item) => {
+        try {
+            await eventService.deleteEvent(item.id);
+            Alert.alert('Event Deleted', 'The event has been permanently deleted.');
+            setEvents(prev => prev.filter(e => e.id !== item.id));
+        } catch (error) {
+            Alert.alert('Error', 'Failed to delete the event. Please try again.');
+        }
+    };
+
+    const renderEventItem = ({ item }) => {
+        const isCancelled = item.status === 'cancelled';
+        return (
+            <TouchableOpacity
+                onPress={() => !isCancelled && navigation.navigate('EventStats', { event: item })}
+                activeOpacity={isCancelled ? 1 : 0.7}
+            >
+                <NotionCard style={[styles.eventCard, isCancelled && styles.cancelledCard]}>
+                    <View style={styles.cardContent}>
+                        <Image
+                            source={{ uri: getValidImageUri(item.imageUri) || DEFAULT_EVENT_IMAGE }}
+                            style={[styles.eventImage, isCancelled && { opacity: 0.4 }]}
+                        />
+                        <View style={styles.info}>
+                            <View style={styles.titleRow}>
+                                <Typography variant="h3" numberOfLines={1} style={[styles.eventTitle, isCancelled && { color: COLORS.secondary }]}>
+                                    {item.title}
                                 </Typography>
+                                {isCancelled && (
+                                    <View style={styles.cancelledBadge}>
+                                        <Typography variant="small" style={{ color: '#fff', fontWeight: '700', fontSize: 9 }}>CANCELLED</Typography>
+                                    </View>
+                                )}
                             </View>
-                            <View style={styles.cardActions}>
-                                <TouchableOpacity
-                                    style={styles.editButton}
-                                    onPress={() => navigation.navigate('CreateEvent', { event: item })}
-                                >
-                                    <Ionicons name="create-outline" size={20} color={COLORS.primary} />
-                                </TouchableOpacity>
-                                <Ionicons name="chevron-forward" size={20} color={COLORS.border} />
+                            <Typography variant="caption" color={COLORS.secondary}>
+                                {item.date} • {item.locationName}
+                            </Typography>
+                            <View style={styles.statsRow}>
+                                <View style={styles.stat}>
+                                    <Typography variant="small" style={{ color: COLORS.secondary }}>Tickets Left</Typography>
+                                    <Typography variant="body" style={{ fontWeight: '600' }}>
+                                        {item.remainingTickets} / {item.maxTickets}
+                                    </Typography>
+                                </View>
+                                <View style={styles.cardActions}>
+                                    {!isCancelled && (
+                                        <>
+                                            <TouchableOpacity
+                                                style={styles.editButton}
+                                                onPress={() => handleSharePress(item)}
+                                            >
+                                                <Ionicons name="share-social-outline" size={20} color={COLORS.primary} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity
+                                                style={styles.editButton}
+                                                onPress={() => navigation.navigate('CreateEvent', { event: item })}
+                                            >
+                                                <Ionicons name="create-outline" size={20} color={COLORS.primary} />
+                                            </TouchableOpacity>
+                                        </>
+                                    )}
+                                    <TouchableOpacity
+                                        style={styles.deleteButton}
+                                        onPress={() => handleDeletePress(item)}
+                                    >
+                                        <Ionicons name="trash-outline" size={20} color={COLORS.error || '#e74c3c'} />
+                                    </TouchableOpacity>
+                                    {!isCancelled && <Ionicons name="chevron-forward" size={20} color={COLORS.border} />}
+                                </View>
                             </View>
                         </View>
                     </View>
-                </View>
-            </NotionCard>
-        </TouchableOpacity>
-    );
+                </NotionCard>
+            </TouchableOpacity>
+        );
+    };
 
     if (loading) {
         return (
@@ -137,6 +247,11 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.m,
         overflow: 'hidden',
     },
+    cancelledCard: {
+        opacity: 0.8,
+        borderColor: COLORS.error || '#e74c3c',
+        borderWidth: 1,
+    },
     cardContent: {
         flexDirection: 'row',
         padding: SPACING.m,
@@ -150,6 +265,22 @@ const styles = StyleSheet.create({
     info: {
         flex: 1,
         justifyContent: 'center',
+    },
+    titleRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        marginBottom: 2,
+    },
+    eventTitle: {
+        fontWeight: '700',
+        flex: 1,
+    },
+    cancelledBadge: {
+        backgroundColor: COLORS.error || '#e74c3c',
+        borderRadius: 4,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
     },
     statsRow: {
         flexDirection: 'row',
@@ -165,6 +296,12 @@ const styles = StyleSheet.create({
         padding: 8,
         marginRight: 4,
         backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: 8,
+    },
+    deleteButton: {
+        padding: 8,
+        marginRight: 4,
+        backgroundColor: (COLORS.error || '#e74c3c') + '18',
         borderRadius: 8,
     },
     stat: {

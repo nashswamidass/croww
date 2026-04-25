@@ -1,13 +1,20 @@
+/**
+ * BuddyRequestsScreen (formerly FriendRequestsScreen)
+ *
+ * Shows pending buddy-join requests that need the current user's approval.
+ * "Buddies" in Croww = people you've been in the same accepted buddy group with.
+ */
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Image, RefreshControl, Alert } from 'react-native';
+import { View, StyleSheet, FlatList, Image, RefreshControl, TouchableOpacity } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
 import AntigravityButton from '../../components/AntigravityButton';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { friendService } from '../../services/friendService';
+import { approveJoinRequest, getJoinRequests, ignoreJoinRequest } from '../../services/buddyService';
 import { getAvatarSource } from '../../utils/avatarHelper';
+import { showAlert } from '../../utils/showAlert';
 
 const FriendRequestsScreen = ({ navigation }) => {
     const [requests, setRequests] = useState([]);
@@ -20,46 +27,34 @@ const FriendRequestsScreen = ({ navigation }) => {
 
     const loadRequests = async () => {
         try {
-            const data = await friendService.getFriendRequests();
+            // getJoinRequests with no args returns pending requests I need to approve (as owner)
+            // We pass null for buddyRequestId to get all join requests for the current user as owner
+            const data = await getJoinRequests(null, 'pending', null);
             setRequests(data);
         } catch (error) {
-            console.error("Error loading requests:", error);
+            console.error('Error loading buddy join requests:', error);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
     };
 
-    const handleAccept = async (request) => {
-        try {
-            const result = await friendService.acceptFriendRequest(
-                request.id,
-                request.fromUserId,
-                request.fromUserName,
-                request.fromUserAvatar
-            );
-            if (result.success) {
-                // Remove from list
-                setRequests(prev => prev.filter(r => r.id !== request.id));
-                Alert.alert("Connected!", `You differ now friends with ${request.fromUserName}`);
-            } else {
-                Alert.alert("Error", result.message);
-            }
-        } catch (error) {
-            Alert.alert("Error", "Failed to accept request");
+    const handleApprove = async (item) => {
+        const result = await approveJoinRequest(item.id);
+        if (result.success) {
+            setRequests(prev => prev.filter(r => r.id !== item.id));
+            showAlert('Approved! 🎉', `${item.requesterName} has joined your buddy group.`);
+        } else {
+            showAlert('Error', result.message || 'Failed to approve');
         }
     };
 
-    const handleReject = async (requestId) => {
-        try {
-            const result = await friendService.rejectFriendRequest(requestId);
-            if (result.success) {
-                setRequests(prev => prev.filter(r => r.id !== requestId));
-            } else {
-                Alert.alert("Error", result.message);
-            }
-        } catch (error) {
-            Alert.alert("Error", "Failed to reject request");
+    const handleIgnore = async (item) => {
+        const result = await ignoreJoinRequest(item.id);
+        if (result.success) {
+            setRequests(prev => prev.filter(r => r.id !== item.id));
+        } else {
+            showAlert('Error', result.message || 'Failed to ignore');
         }
     };
 
@@ -67,31 +62,31 @@ const FriendRequestsScreen = ({ navigation }) => {
         <NotionCard style={styles.card}>
             <View style={styles.userInfo}>
                 <Image
-                    source={getAvatarSource(item.fromUserAvatar, 'individual')}
+                    source={getAvatarSource(item.requesterAvatar, 'individual')}
                     style={styles.avatar}
                 />
                 <View style={styles.textContainer}>
                     <Typography variant="body" style={{ fontWeight: '600' }}>
-                        {item.fromUserName}
+                        {item.requesterName}
                     </Typography>
                     <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                        Sent you a friend request
+                        Wants to join your buddy group
                     </Typography>
                 </View>
             </View>
             <View style={styles.actions}>
                 <AntigravityButton
-                    title="Confirm"
+                    title="Approve"
                     size="small"
                     style={{ flex: 1, marginRight: SPACING.s }}
-                    onPress={() => handleAccept(item)}
+                    onPress={() => handleApprove(item)}
                 />
                 <AntigravityButton
-                    title="Delete"
+                    title="Ignore"
                     variant="secondary"
                     size="small"
                     style={{ flex: 1 }}
-                    onPress={() => handleReject(item.id)}
+                    onPress={() => handleIgnore(item)}
                 />
             </View>
         </NotionCard>
@@ -100,15 +95,12 @@ const FriendRequestsScreen = ({ navigation }) => {
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <Ionicons
-                        name="arrow-back"
-                        size={24}
-                        color={COLORS.primary}
-                        onPress={() => navigation.goBack()}
-                    />
-                    <Typography variant="h3" style={{ marginLeft: SPACING.m }}>Friend Requests</Typography>
-                </View>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+                </TouchableOpacity>
+                <Typography variant="h3" style={{ marginLeft: SPACING.m }}>
+                    Buddy Requests
+                </Typography>
             </View>
 
             <FlatList
@@ -117,14 +109,17 @@ const FriendRequestsScreen = ({ navigation }) => {
                 renderItem={renderItem}
                 contentContainerStyle={styles.content}
                 refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadRequests(); }} />
+                    <RefreshControl
+                        refreshing={refreshing}
+                        onRefresh={() => { setRefreshing(true); loadRequests(); }}
+                    />
                 }
                 ListEmptyComponent={
                     !loading && (
                         <View style={styles.emptyState}>
-                            <Ionicons name="people-outline" size={64} color={COLORS.secondary + '80'} />
+                            <Ionicons name="people-outline" size={64} color={COLORS.border} />
                             <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.m }}>
-                                No pending friend requests
+                                No pending buddy requests
                             </Typography>
                         </View>
                     )
@@ -136,13 +131,11 @@ const FriendRequestsScreen = ({ navigation }) => {
 
 const styles = StyleSheet.create({
     header: {
+        flexDirection: 'row',
+        alignItems: 'center',
         padding: SPACING.m,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
-    },
-    headerTop: {
-        flexDirection: 'row',
-        alignItems: 'center',
     },
     content: {
         padding: SPACING.m,

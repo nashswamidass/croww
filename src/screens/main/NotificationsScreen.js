@@ -1,14 +1,18 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import { SPACING, COLORS } from '../../constants/theme';
+import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { notificationService } from '../../services/notificationService';
+import { navigateFromNotification } from '../../utils/notificationNavigation';
+import { approveJoinRequest, ignoreJoinRequest } from '../../services/buddyService';
+import { showAlert } from '../../utils/showAlert';
 
 const NotificationsScreen = ({ navigation }) => {
     const [notifications, setNotifications] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [actionLoading, setActionLoading] = useState({});
 
     useEffect(() => {
         const unsubscribe = notificationService.getNotifications((data) => {
@@ -22,15 +26,54 @@ const NotificationsScreen = ({ navigation }) => {
         if (!notification.read) {
             await notificationService.markAsRead(notification.id);
         }
+        navigateFromNotification(navigation, notification.data || {});
+    };
 
-        // Logic to navigate based on notification type
-        if (notification.data?.requestId) {
-            // Find the event ID for this request if possible, 
-            // or just navigate to EventBuddyScreen with a "search for request" logic
-            // For now, simpler: Alert with info
-            Alert.alert(notification.title, notification.message);
-        } else {
-            Alert.alert(notification.title, notification.message);
+    const handleApprove = async (notification) => {
+        const requestId = notification.data?.joinRequestId || notification.data?.requestId;
+        if (!requestId) {
+            showAlert("Error", "Missing request ID");
+            return;
+        }
+        
+        setActionLoading(prev => ({ ...prev, [notification.id]: 'approve' }));
+        try {
+            const result = await approveJoinRequest(requestId);
+            if (result.success) {
+                showAlert("Success", "Buddy request approved!");
+                await notificationService.markAsRead(notification.id); // Mark as read on success
+            } else {
+                showAlert("Error", result.message || 'Could not approve request.');
+            }
+        } catch (error) {
+            console.error("Approve error:", error);
+            showAlert("Error", "Failed to approve request");
+        } finally {
+            setActionLoading(prev => ({ ...prev, [notification.id]: null }));
+        }
+    };
+
+    const handleReject = async (notification) => {
+        const requestId = notification.data?.joinRequestId || notification.data?.requestId;
+        if (!requestId) {
+            showAlert("Error", "Missing request ID");
+            return;
+        }
+
+        setActionLoading(prev => ({ ...prev, [notification.id]: 'reject' }));
+        try {
+            const result = await ignoreJoinRequest(requestId);
+            if (result.success) {
+                showAlert("Success", "Request ignored");
+                await notificationService.markAsRead(notification.id); // Mark as read on success
+            } else {
+                showAlert("Error", result.message || 'Could not reject request.');
+            }
+        } catch (error) {
+            console.error("Ignore error:", error);
+            showAlert("Error", "Failed to ignore request");
+        } finally {
+            setActionLoading(prev => ({ ...prev, [notification.id]: null }));
         }
     };
 
@@ -40,7 +83,8 @@ const NotificationsScreen = ({ navigation }) => {
         setLoading(false);
     };
 
-    const getIconDetails = (type) => {
+    const getIconDetails = (rawType) => {
+        const type = (rawType || '').toLowerCase();
         switch (type) {
             case 'buddy_request_join':
                 return { icon: 'person-add', color: COLORS.accent };
@@ -48,8 +92,18 @@ const NotificationsScreen = ({ navigation }) => {
                 return { icon: 'checkmark-circle', color: COLORS.success };
             case 'event_reminder':
                 return { icon: 'time', color: COLORS.accents.blue };
+            case 'new_event':
+                return { icon: 'calendar-outline', color: COLORS.accents.blue };
             case 'friend_request':
                 return { icon: 'person-add', color: COLORS.success };
+            case 'friend_accepted':
+                return { icon: 'people', color: COLORS.success };
+            case 'chat_message':
+            case 'chat':
+                return { icon: 'chatbubble-ellipses', color: COLORS.accents.purple || '#9C27B0' };
+            case 'new_booking':
+            case 'booking_update':
+                return { icon: 'bookmark', color: COLORS.accents.orange || '#FF9800' };
             default:
                 return { icon: 'notifications', color: COLORS.secondary };
         }
@@ -72,7 +126,13 @@ const NotificationsScreen = ({ navigation }) => {
             {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity
-                    onPress={() => navigation.goBack()}
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.replace('Tabs');
+                        }
+                    }}
                     style={styles.backButton}
                 >
                     <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
@@ -96,7 +156,11 @@ const NotificationsScreen = ({ navigation }) => {
                 {loading && notifications.length === 0 ? (
                     <ActivityIndicator color={COLORS.accent} style={{ marginTop: 40 }} />
                 ) : notifications.map((notification) => {
-                    const { icon, color } = getIconDetails(notification.type);
+                    const type = (notification.type || '').toLowerCase();
+                    const { icon, color } = getIconDetails(type);
+                    const isBuddyJoin = type === 'buddy_request_join';
+                    const isActioning = actionLoading[notification.id];
+
                     return (
                         <TouchableOpacity
                             key={notification.id}
@@ -123,6 +187,32 @@ const NotificationsScreen = ({ navigation }) => {
                                 <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: 4 }}>
                                     {formatTime(notification.createdAt)}
                                 </Typography>
+
+                                {/* Inline Approve / Reject for buddy join requests */}
+                                {isBuddyJoin && (
+                                    <View style={styles.actionRow}>
+                                        <TouchableOpacity
+                                            style={[styles.actionBtn, styles.approveBtn]}
+                                            onPress={() => handleApprove(notification)}
+                                            disabled={!!isActioning}
+                                        >
+                                            {isActioning === 'approve'
+                                                ? <ActivityIndicator size="small" color="#fff" />
+                                                : <Typography variant="small" style={styles.actionBtnText}>✅ Approve</Typography>
+                                            }
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            style={[styles.actionBtn, styles.rejectBtn]}
+                                            onPress={() => handleReject(notification)}
+                                            disabled={!!isActioning}
+                                        >
+                                            {isActioning === 'reject'
+                                                ? <ActivityIndicator size="small" color="#fff" />
+                                                : <Typography variant="small" style={styles.actionBtnText}>❌ Reject</Typography>
+                                            }
+                                        </TouchableOpacity>
+                                    </View>
+                                )}
                             </View>
                         </TouchableOpacity>
                     );
@@ -197,6 +287,29 @@ const styles = StyleSheet.create({
         borderRadius: 4,
         backgroundColor: COLORS.accent,
         marginLeft: SPACING.s,
+    },
+    actionRow: {
+        flexDirection: 'row',
+        gap: 8,
+        marginTop: SPACING.m,
+    },
+    actionBtn: {
+        flex: 1,
+        paddingVertical: 8,
+        borderRadius: BORDER_RADIUS.s,
+        alignItems: 'center',
+        justifyContent: 'center',
+        minHeight: 36,
+    },
+    approveBtn: {
+        backgroundColor: COLORS.accent,
+    },
+    rejectBtn: {
+        backgroundColor: COLORS.error || '#E53935',
+    },
+    actionBtnText: {
+        color: '#fff',
+        fontWeight: '700',
     },
     emptyState: {
         alignItems: 'center',

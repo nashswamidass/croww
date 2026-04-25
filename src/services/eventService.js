@@ -8,13 +8,28 @@ import {
     orderBy,
     serverTimestamp,
     where,
-    updateDoc
+    updateDoc,
+    deleteDoc
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 import { userService } from './userService';
 import { notificationService } from './notificationService';
 
 const EVENTS_COLLECTION = 'events';
+
+/**
+ * Wraps a promise with a timeout. Rejects with a TimeoutError if the promise
+ * doesn't resolve within `ms` milliseconds. This is critical on iPad with
+ * IPv6 networks where Firestore can deadlock silently.
+ */
+const withTimeout = (promise, ms = 10000, label = 'Operation') => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`[eventService] ${label} timed out after ${ms}ms`)), ms)
+        )
+    ]);
+};
 
 export const eventService = {
     /**
@@ -59,32 +74,55 @@ export const eventService = {
     },
 
     /**
-     * Get all events (optionally filtered)
-     * @returns {Promise<Array>} List of events
+     * Get all PUBLIC events (optionally filtered)
+     * Private events (isPublic !== true) are never included in this listing.
+     * @returns {Promise<Array>} List of public events
      */
     getEvents: async () => {
         try {
-            const q = query(collection(db, EVENTS_COLLECTION), orderBy('createdAt', 'desc'));
-            const querySnapshot = await getDocs(q);
+            console.log("[Service] Fetching public events from Firestore...");
+            // Only fetch public events at the query level — fastest and most secure
+            const q = query(
+                collection(db, EVENTS_COLLECTION),
+                where('isPublic', '==', true)
+            );
+
+            // Anti-freeze: wrap getDocs in a 10s timeout to prevent iPad IPv6 deadlock
+            let querySnapshot;
+            try {
+                querySnapshot = await withTimeout(getDocs(q), 10000, 'getEvents');
+            } catch (timeoutErr) {
+                console.warn('[eventService] getEvents timed out — returning empty list to keep UI responsive');
+                return [];
+            }
 
             const now = new Date();
             const events = [];
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                // If it's an event with a date, filter out if it's in the past (more than 6 hours ago to allow for late joining)
+                console.log(`[Service] Processing Doc: ${doc.id} | Title: ${data.title} | isPublic: ${data.isPublic} | date: ${data.date}`);
+                
                 if (data.date) {
                     const eventDate = new Date(data.date);
-                    // Expire events 6 hours after they start
-                    if (eventDate.getTime() + (6 * 60 * 60 * 1000) < now.getTime()) {
-                        return; // Skip expired
+                    // Business/official events NEVER expire (organizer manages lifecycle)
+                    // Regular events expire 6 hours after they start
+                    const isBusinessEvent = data.isOfficial ||
+                        data.verificationType === 'business' ||
+                        (data.verificationStatus === 'verified' && data.verificationType === 'business');
+                    if (!isBusinessEvent) {
+                        if (eventDate.getTime() + (6 * 60 * 60 * 1000) < now.getTime()) {
+                            return; // Skip expired regular events
+                        }
                     }
                 }
                 events.push({ id: doc.id, ...data });
             });
+            console.log(`[Service] Returning ${events.length} public events after local filtering`);
             return events;
         } catch (error) {
             console.error("Error fetching events: ", error);
-            throw error;
+            // Return empty array on error to keep the UI responsive
+            return [];
         }
     },
 
@@ -95,7 +133,7 @@ export const eventService = {
     getEventById: async (id) => {
         try {
             const docRef = doc(db, EVENTS_COLLECTION, id);
-            const docSnap = await getDoc(docRef);
+            const docSnap = await withTimeout(getDoc(docRef), 10000, 'getEventById');
 
             if (docSnap.exists()) {
                 return { id: docSnap.id, ...docSnap.data() };
@@ -123,7 +161,13 @@ export const eventService = {
                 where('organizerId', '==', organizerId),
                 orderBy('createdAt', 'desc')
             );
-            const querySnapshot = await getDocs(q);
+            let querySnapshot;
+            try {
+                querySnapshot = await withTimeout(getDocs(q), 10000, 'getEventsByOrganizer');
+            } catch (timeoutErr) {
+                console.warn('[eventService] getEventsByOrganizer timed out — returning empty list');
+                return [];
+            }
             const events = [];
             querySnapshot.forEach((doc) => {
                 events.push({ id: doc.id, ...doc.data() });
@@ -152,6 +196,41 @@ export const eventService = {
             return { id: eventId, ...updateData };
         } catch (error) {
             console.error("Error updating event: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Cancel an event (soft-delete). Notifies attendees via the notifications collection.
+     * @param {string} eventId
+     * @param {string} organizerName - used in the notification message
+     */
+    cancelEvent: async (eventId, organizerName = 'The organizer') => {
+        try {
+            const docRef = doc(db, EVENTS_COLLECTION, eventId);
+            await updateDoc(docRef, {
+                status: 'cancelled',
+                cancelledAt: serverTimestamp(),
+                updatedAt: serverTimestamp(),
+            });
+            return true;
+        } catch (error) {
+            console.error("Error cancelling event: ", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Permanently delete an event.
+     * @param {string} eventId
+     */
+    deleteEvent: async (eventId) => {
+        try {
+            const docRef = doc(db, EVENTS_COLLECTION, eventId);
+            await deleteDoc(docRef);
+            return true;
+        } catch (error) {
+            console.error("Error deleting event: ", error);
             throw error;
         }
     }

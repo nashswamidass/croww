@@ -35,6 +35,7 @@ const CreateBookingScreen = ({ route, navigation }) => {
     const [availability, setAvailability] = useState({});
     const [markedDates, setMarkedDates] = useState({});
     const [initLoading, setInitLoading] = useState(true);
+    const [providerData, setProviderData] = useState(null);
 
     // For web time input
     const formatTimeForInput = (d) => {
@@ -85,16 +86,19 @@ const CreateBookingScreen = ({ route, navigation }) => {
         const fetchProviderData = async () => {
             try {
                 const provider = await userService.getUserById(providerId);
-                if (provider && provider.availability) {
-                    setAvailability(provider.availability);
+                if (provider) {
+                    setProviderData(provider);
+                    if (provider.availability) {
+                        setAvailability(provider.availability);
 
-                    const marks = {};
-                    Object.keys(provider.availability).forEach(dateKey => {
-                        if (provider.availability[dateKey] === false) {
-                            marks[dateKey] = { disabled: true, disableTouchEvent: true, selectedColor: COLORS.border };
-                        }
-                    });
-                    setMarkedDates(marks);
+                        const marks = {};
+                        Object.keys(provider.availability).forEach(dateKey => {
+                            if (provider.availability[dateKey] === false) {
+                                marks[dateKey] = { disabled: true, disableTouchEvent: true, selectedColor: COLORS.border };
+                            }
+                        });
+                        setMarkedDates(marks);
+                    }
                 }
             } catch (error) {
                 console.error("Error fetching provider data:", error);

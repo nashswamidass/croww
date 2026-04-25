@@ -1,0 +1,46 @@
+{
+  "project_info": {
+    "project_number": "113101837709",
+    "project_id": "croww-staging-2026",
+    "storage_bucket": "croww-staging-2026.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:113101837709:android:28a68f73a13191e10799c4",
+        "android_client_info": {
+          "package_name": "com.croww.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "113101837709-cfojivn6kqgvjmm4ab2cg09fv4us0aqq.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCgBfE2usUNz-lCxCq5-6UlKVJtSv7cKrg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "113101837709-cfojivn6kqgvjmm4ab2cg09fv4us0aqq.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "113101837709-t4p5968h2ivd1sfom3dr5jtrg3gu06an.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.croww.app"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

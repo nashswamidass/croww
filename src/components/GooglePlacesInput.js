@@ -16,10 +16,11 @@ const loadGoogleMapsScript = () => {
 
     window.__googleMapsLoading = new Promise((resolve) => {
         const script = document.createElement('script');
-        script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places`;
+        script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async&callback=__googleMapsCallback`;
         script.async = true;
         script.defer = true;
-        script.onload = () => {
+        
+        window.__googleMapsCallback = () => {
             console.log('Google Maps JS SDK loaded');
             resolve(true);
         };

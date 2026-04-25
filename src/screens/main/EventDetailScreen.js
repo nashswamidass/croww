@@ -17,6 +17,7 @@ import { formatIndianDate } from '../../utils/localization';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ticketService } from '../../services/ticketService';
 import { auth, db } from '../../services/firebaseConfig';
+import { collection, getDocs, query, where } from 'firebase/firestore';
 import { eventService } from '../../services/eventService';
 import { paymentService } from '../../services/paymentService';
 import { userService } from '../../services/userService';
@@ -27,6 +28,8 @@ import SEO from '../../components/SEO';
 
 const EventDetailScreen = ({ route, navigation }) => {
     const insets = useSafeAreaInsets();
+    const { user: authUser } = useAuth();
+    const isBusiness = authUser?.userType === 'business';
     const { event, id: routeId } = route.params || {};
     const [eventData, setEventData] = useState(event || null);
     const [userLocation, setUserLocation] = useState(null);
@@ -35,6 +38,8 @@ const EventDetailScreen = ({ route, navigation }) => {
     const [totalBuddyCount, setTotalBuddyCount] = useState(0);
     const [loading, setLoading] = useState(!event);
 
+    const currentUserId = authUser?.id || authUser?.uid;
+    const isOrganizer = currentUserId && eventData?.organizerId === currentUserId;
     React.useEffect(() => {
         (async () => {
             const cached = await locationService.getCachedLocation();
@@ -45,7 +50,11 @@ const EventDetailScreen = ({ route, navigation }) => {
         })();
     }, []);
 
-    // Load Event Data if missing (Deep Linking)
+    // Load Event Data if missing (Deep Linking / Invite Links)
+    // NOTE: Private events are intentionally accessible via direct ID link.
+    // That is the invite mechanism — the organizer shares the link and friends open it.
+    // Privacy is enforced at the listing level (getEvents() only returns isPublic==true events),
+    // so private events never appear in Home, Search, Map, or Landing screens.
     useEffect(() => {
         const loadEvent = async () => {
             if (!eventData && (routeId || event?.id)) {
@@ -69,6 +78,38 @@ const EventDetailScreen = ({ route, navigation }) => {
         };
         loadEvent();
     }, [routeId, event]);
+
+
+
+
+    // --- Privacy Guard for events passed directly via route.params ---
+    // Prevents someone from navigating to a private event via an internal navigation call
+    // that bypasses the listings (which already filter out private events at the Firestore level).
+    useEffect(() => {
+        const enforcePrivacy = async () => {
+            if (!eventData || eventData.isPublic !== false) return; // Only act on private events
+            const currentUserId = authUser?.id || authUser?.uid;
+            const isOrganizer = currentUserId && eventData.organizerId === currentUserId;
+            if (isOrganizer) return; // Organizer can always see their own event
+
+            let hasTicket = false;
+            if (currentUserId) {
+                const ticketQuery = query(
+                    collection(db, 'tickets'),
+                    where('userId', '==', currentUserId),
+                    where('eventId', '==', eventData.id),
+                    where('status', 'in', ['valid', 'scanned'])
+                );
+                const snap = await getDocs(ticketQuery);
+                hasTicket = !snap.empty;
+            }
+            if (!hasTicket) {
+                showAlert("Private Event", "This is an invite-only event. You need a ticket to view it.");
+                navigation.goBack();
+            }
+        };
+        enforcePrivacy();
+    }, [eventData?.id]);
 
     // Load Buddies
     useEffect(() => {
@@ -101,6 +142,21 @@ const EventDetailScreen = ({ route, navigation }) => {
     // Mock State
     const [isGoing, setIsGoing] = useState(false);
     const [ticketCount, setTicketCount] = useState(1);
+
+    // Check if user is already going
+    useEffect(() => {
+        const checkStatus = async () => {
+            if (eventData?.id) {
+                const userData = await userService.getUser();
+                const userId = userData?.id || auth.currentUser?.uid;
+                if (userId) {
+                    const status = await ticketService.checkUserTicket(userId, eventData.id);
+                    setIsGoing(status);
+                }
+            }
+        };
+        checkStatus();
+    }, [eventData]);
 
     // Register Payment Callbacks on Mount
     useEffect(() => {
@@ -142,9 +198,17 @@ const EventDetailScreen = ({ route, navigation }) => {
             const userData = await userService.getUser();
             const userId = userData?.id || auth.currentUser?.uid;
             if (!userId) throw new Error('User not found. Please login again.');
-            for (let i = 0; i < ticketCount; i++) {
-                await ticketService.issueTicket(userId, eventData.id, eventData);
+
+            // Try to finalize pending tickets first (prevents duplicates if already issued as PENDING)
+            const finalized = await ticketService.finalizePendingTickets(orderId);
+            
+            if (!finalized) {
+                // If no pending tickets found (e.g. native flow), issue them now
+                for (let i = 0; i < ticketCount; i++) {
+                    await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', orderId, null, userData?.name || 'Attendee');
+                }
             }
+            
             setIsGoing(true);
             showAlert('Success', `${ticketCount} ticket${ticketCount > 1 ? 's' : ''} booked! Check "My Tickets" for details.`);
         } catch (error) {
@@ -203,22 +267,23 @@ const EventDetailScreen = ({ route, navigation }) => {
 
     const handleShare = async () => {
         try {
+            const eventUrl = `https://croww.ai/event/${eventData.id}`;
             const priceInfo = eventData.isPaid ? `\n💰 Entry: ₹${eventData.price}` : '\n🎟️ Free Entry';
             const ticketsInfo = eventData.remainingTickets > 0 ? `\n🎫 ${eventData.remainingTickets} tickets left` : '';
             const locationInfo = eventData.locationName ? `\n📍 ${eventData.locationName}` : '';
 
-            const shareMessage = `🎉 *${eventData.title}*\n` +
+            const shareMessage = `${eventUrl}\n\n` +
+                `🎉 *${eventData.title}*\n` +
                 `📅 ${formatIndianDate(eventData.date)}` +
                 locationInfo +
                 priceInfo +
                 ticketsInfo +
                 `\n\n${eventData.description || ''}` +
-                (eventData.imageUri ? `\n\n${eventData.imageUri}` : '') +
                 `\n\n— Shared via Croww App`;
 
             await Share.share({
                 message: shareMessage,
-                url: eventData.imageUri || undefined, // iOS uses this to attach the image
+                url: eventUrl, // Helpful for iOS Safari/Apps to pick up the metadata
             });
         } catch (error) {
             console.log(error.message);
@@ -263,7 +328,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                     // PRE-EMPTIVE: Create the tickets in PENDING_PAYMENT status first (with full fee breakdown)
                     for (let i = 0; i < ticketCount; i++) {
                         const singleTicketFees = calculateFees(eventData.price, 1);
-                        await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId, singleTicketFees);
+                        await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId, singleTicketFees, userData?.name || 'Attendee');
                     }
 
                     navigation.navigate('WebPayment', {
@@ -284,7 +349,7 @@ const EventDetailScreen = ({ route, navigation }) => {
         } else {
             try {
                 for (let i = 0; i < ticketCount; i++) {
-                    await ticketService.issueTicket(userId, eventData.id, eventData);
+                    await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', null, null, userData?.name || 'Attendee');
                 }
                 setIsGoing(true);
                 showAlert('Success', `You've joined this event with ${ticketCount} ticket${ticketCount > 1 ? 's' : ''}!`);
@@ -325,6 +390,15 @@ const EventDetailScreen = ({ route, navigation }) => {
                     </View>
                 )}
 
+                {/* Floating Share Button */}
+                <TouchableOpacity 
+                    style={styles.floatingShareButton} 
+                    onPress={handleShare}
+                    accessibilityLabel="Share Event"
+                >
+                    <Ionicons name="share-social" size={20} color={'#FFF'} />
+                </TouchableOpacity>
+
                 <View style={styles.header}>
                     <View style={styles.tagRow}>
                         {eventData.isOfficial && (
@@ -340,7 +414,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                         </Typography>
                     </View>
 
-                    <Typography variant="h1">{eventData.title}</Typography>
+                    <Typography variant="h1" style={{ marginTop: SPACING.xs, marginBottom: SPACING.s }}>{eventData.title}</Typography>
 
                     {eventData.isOfficial && (
                         <TouchableOpacity
@@ -420,7 +494,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                 </View>
 
                 {/* Ticket Quantity Selector */}
-                {!isGoing && (
+                {!isGoing && !isOrganizer && !eventData.isBuddyEvent && (
                     <View style={styles.quantitySection}>
                         <Typography variant="body" style={{ fontWeight: '600' }}>Tickets</Typography>
                         <View style={styles.quantitySelector}>
@@ -452,7 +526,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                 )}
 
                 {/* Price Breakdown Card (shown only for paid events, before purchase) */}
-                {eventData.isPaid && !isGoing && (() => {
+                {eventData.isPaid && !isGoing && !isOrganizer && !eventData.isBuddyEvent && (() => {
                     const fees = calculateFees(eventData.price, ticketCount);
                     return (
                         <NotionCard style={styles.breakdownCard}>
@@ -478,26 +552,48 @@ const EventDetailScreen = ({ route, navigation }) => {
                 })()}
 
                 {/* Action Buttons */}
-                <View style={styles.actionRow}>
-                    <AntigravityButton
-                        title={loading ? "Processing..." : (isGoing
-                            ? "Going ✓"
-                            : (eventData.isPaid
-                                ? `Pay ${formatINR(calculateFees(eventData.price, ticketCount).totalPayable)}`
-                                : "Join Event"))
-                        }
-                        variant={isGoing ? "secondary" : "primary"}
-                        style={{ flex: 1, marginRight: SPACING.s }}
-                        onPress={loading ? null : handleJoin}
-                        disabled={(!isGoing && eventData.remainingTickets <= 0 && eventData.isPaid) || loading}
-                    />
-                    <AntigravityButton
-                        title="Invite Friends"
-                        variant="secondary"
-                        style={{ flex: 1, marginLeft: SPACING.s }}
-                        onPress={handleShare}
-                    />
-                </View>
+                {!isOrganizer && (
+                    <View style={styles.actionRow}>
+                        {eventData.isBuddyEvent ? (
+                            <AntigravityButton
+                                title="View Buddy Group"
+                                variant="primary"
+                                style={{ flex: 1, marginRight: SPACING.s }}
+                                onPress={() => navigation.navigate('EventBuddy', { event: eventData })}
+                            />
+                        ) : (
+                            <AntigravityButton
+                                title={loading ? "Processing..." : (isGoing
+                                    ? "Going ✓"
+                                    : (eventData.isPaid
+                                        ? `Pay ${formatINR(calculateFees(eventData.price, ticketCount).totalPayable)}`
+                                        : "Join Event"))
+                                }
+                                variant={isGoing ? "secondary" : "primary"}
+                                style={{ flex: 1, marginRight: SPACING.s }}
+                                onPress={loading ? null : handleJoin}
+                                disabled={(!isGoing && eventData.remainingTickets <= 0 && eventData.isPaid) || loading}
+                            />
+                        )}
+                        <AntigravityButton
+                            title="Invite Friends"
+                            variant="secondary"
+                            style={{ flex: 1, marginLeft: SPACING.s }}
+                            onPress={handleShare}
+                        />
+                    </View>
+                )}
+                
+                {isOrganizer && (
+                    <View style={styles.actionRow}>
+                        <AntigravityButton
+                            title="Invite Friends"
+                            variant="secondary"
+                            style={{ flex: 1 }}
+                            onPress={handleShare}
+                        />
+                    </View>
+                )}
 
                 <View style={styles.section}>
                     <Typography variant="h3">About</Typography>
@@ -507,57 +603,91 @@ const EventDetailScreen = ({ route, navigation }) => {
                 </View>
 
                 {/* Find Event Buddies Section */}
-                <BuddyActionCard
-                    onPress={() => navigation.navigate('EventBuddy', { event: eventData })}
-                    requestCount={buddyGroups.length}
-                    avatars={buddyLeaders.map(b => ({ url: b.avatar }))}
-                />
-
-                {/* Who's Coming Section (Buddies) */}
-                {buddyLeaders.length > 0 && (
-                    <View style={styles.section}>
-                        <Typography variant="h3">Event Buddies</Typography>
-                        <TouchableOpacity
-                            activeOpacity={0.8}
-                            onPress={() => navigation.navigate('EventBuddy', { event: eventData })}
-                        >
-                            <NotionCard style={styles.attendeesCard}>
-                                <View style={styles.avatarRow}>
-                                    {buddyGroups.slice(0, 5).map((group, i) => (
-                                        <TouchableOpacity
-                                            key={group.id || i}
-                                            onPress={() => {
-                                                if (group.userId) {
-                                                    navigation.navigate('ServiceDetail', { serviceId: group.userId });
-                                                } else {
-                                                    navigation.navigate('BuddyRequestDetail', {
-                                                        requestId: group.id,
-                                                        event: eventData
-                                                    });
-                                                }
-                                            }}
-                                        >
-                                            <View style={[styles.avatar, { overflow: 'hidden' }]}>
-                                                <Image
-                                                    source={getAvatarSource(group.userAvatar, 'individual')}
-                                                    style={{ width: '100%', height: '100%' }}
-                                                />
-                                            </View>
-                                        </TouchableOpacity>
-                                    ))}
-                                    {buddyGroups.length > 5 && (
-                                        <View style={[styles.avatar, styles.moreAvatar]}>
-                                            <Typography variant="small" style={{ color: COLORS.primary }}>+{totalBuddyCount - 5}</Typography>
-                                        </View>
-                                    )}
-                                </View>
-                                <Typography variant="caption" style={{ marginTop: SPACING.s }}>
-                                    {buddyLeaders[0].name} {buddyLeaders.length > 1 ? `and ${totalBuddyCount - 1} other buddies` : 'is looking for a buddy!'}
-                                </Typography>
-                            </NotionCard>
-                        </TouchableOpacity>
-                    </View>
+                {!isBusiness && (
+                    <BuddyActionCard
+                        onPress={() => navigation.navigate('EventBuddy', { event: eventData })}
+                        requestCount={buddyGroups.length}
+                        avatars={buddyLeaders.map(b => ({ url: b.avatar }))}
+                    />
                 )}
+
+                {/* Organizer Actions */}
+                {isOrganizer && (() => {
+                    const handleDelete = async () => {
+                        showAlert(
+                            'Delete Event',
+                            'Are you sure you want to permanently delete this event?',
+                            [
+                                { text: 'Cancel', style: 'cancel' },
+                                { 
+                                    text: 'Delete', 
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        setLoading(true);
+                                        try {
+                                            await eventService.deleteEvent(eventData.id);
+                                            showAlert('Success', 'Event deleted permanently.');
+                                            navigation.goBack();
+                                        } catch (error) {
+                                            showAlert('Error', 'Failed to delete event.');
+                                            setLoading(false);
+                                        }
+                                    }
+                                }
+                            ]
+                        );
+                    };
+
+                    const handleCancel = async () => {
+                        if (eventData.status === 'cancelled') return;
+                        showAlert(
+                            'Cancel Event',
+                            'Are you sure you want to cancel this event? All attendees will be notified.',
+                            [
+                                { text: 'No', style: 'cancel' },
+                                { 
+                                    text: 'Yes, Cancel', 
+                                    style: 'destructive',
+                                    onPress: async () => {
+                                        setLoading(true);
+                                        try {
+                                            await eventService.cancelEvent(eventData.id);
+                                            setEventData({...eventData, status: 'cancelled'});
+                                            showAlert('Success', 'Event has been cancelled.');
+                                        } catch (error) {
+                                            showAlert('Error', 'Failed to cancel event.');
+                                        } finally {
+                                            setLoading(false);
+                                        }
+                                    }
+                                }
+                            ]
+                        );
+                    };
+
+                    return (
+                        <View style={{ paddingHorizontal: SPACING.l, marginBottom: SPACING.xl, marginTop: SPACING.m }}>
+                            <Typography variant="h3" style={{ marginBottom: SPACING.s }}>Organizer Tools</Typography>
+                            <View style={{ flexDirection: 'row', gap: SPACING.s }}>
+                                <AntigravityButton
+                                    title={eventData.status === 'cancelled' ? "Cancelled" : "Cancel Event"}
+                                    variant="secondary"
+                                    style={{ flex: 1, borderColor: eventData.status === 'cancelled' ? COLORS.border : COLORS.error }}
+                                    textStyle={{ color: eventData.status === 'cancelled' ? COLORS.secondary : COLORS.error }}
+                                    onPress={handleCancel}
+                                    disabled={eventData.status === 'cancelled' || loading}
+                                />
+                                <AntigravityButton
+                                    title="Delete Event"
+                                    variant="primary"
+                                    style={{ flex: 1, backgroundColor: COLORS.error }}
+                                    onPress={handleDelete}
+                                    disabled={loading}
+                                />
+                            </View>
+                        </View>
+                    );
+                })()}
 
             </ScrollView>
             {/* Close Button Overlay */}
@@ -586,6 +716,18 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.surfaceHighlight,
         alignItems: 'center',
         justifyContent: 'center',
+    },
+    floatingShareButton: {
+        position: 'absolute',
+        top: SPACING.m,
+        right: SPACING.m,
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 10,
     },
     header: {
         padding: SPACING.l,
@@ -617,9 +759,11 @@ const styles = StyleSheet.create({
     organizerLink: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: SPACING.m,
-        padding: SPACING.s,
-        backgroundColor: COLORS.surfaceHighlight, // Changed to surface highlight
+        marginTop: 2,
+        marginBottom: SPACING.s,
+        paddingVertical: SPACING.xs,
+        paddingHorizontal: SPACING.s,
+        backgroundColor: COLORS.surfaceHighlight,
         borderRadius: BORDER_RADIUS.m,
         alignSelf: 'flex-start',
     },

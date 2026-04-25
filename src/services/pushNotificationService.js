@@ -13,6 +13,18 @@ Notifications.setNotificationHandler({
     }),
 });
 
+/**
+ * Wraps a promise with a timeout so notification-related calls never hang the UI.
+ * Critical for iPad review devices where Expo push registration can deadlock.
+ */
+const withTimeout = (promise, ms = 5000, label = 'Operation') =>
+    Promise.race([
+        promise,
+        new Promise((_, reject) =>
+            setTimeout(() => reject(new Error(`[pushNotification] ${label} timed out after ${ms}ms`)), ms)
+        )
+    ]);
+
 export const pushNotificationService = {
     /**
      * Check if the required native module is available
@@ -27,7 +39,9 @@ export const pushNotificationService = {
     },
 
     /**
-     * Register for push notifications and get the token
+     * Register for push notifications and get the token.
+     * All async operations are wrapped in timeouts to prevent post-login freezes
+     * on iPad review devices with restrictive IPv6 network configurations.
      */
     registerForPushNotificationsAsync: async () => {
         try {
@@ -45,12 +59,34 @@ export const pushNotificationService = {
                 return null;
             }
 
-            const { status: existingStatus } = await Notifications.getPermissionsAsync();
+            // Wrap permission check in timeout — can hang on iPad sandbox/review environments
+            let existingStatus;
+            try {
+                const result = await withTimeout(
+                    Notifications.getPermissionsAsync(),
+                    5000,
+                    'getPermissionsAsync'
+                );
+                existingStatus = result.status;
+            } catch (err) {
+                console.warn('[pushNotification] getPermissionsAsync timed out or failed:', err.message);
+                return null;
+            }
+
             let finalStatus = existingStatus;
 
             if (existingStatus !== 'granted') {
-                const { status } = await Notifications.requestPermissionsAsync();
-                finalStatus = status;
+                try {
+                    const result = await withTimeout(
+                        Notifications.requestPermissionsAsync(),
+                        8000,
+                        'requestPermissionsAsync'
+                    );
+                    finalStatus = result.status;
+                } catch (err) {
+                    console.warn('[pushNotification] requestPermissionsAsync timed out or failed:', err.message);
+                    return null;
+                }
             }
 
             if (finalStatus !== 'granted') {
@@ -67,19 +103,31 @@ export const pushNotificationService = {
                 });
             }
 
-            // Get the token from Expo
+            // Get the token from Expo — this makes a network request and can hang on slow networks
             const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
-            const token = (await Notifications.getExpoPushTokenAsync({
-                projectId,
-            })).data;
-            console.log('Push Token Generated:', token);
-
-            // Save token to user profile
-            const user = await userService.getUser();
-            if (user && user.id) {
-                await userService.saveUser({ ...user, pushToken: token });
+            let token;
+            try {
+                const tokenResult = await withTimeout(
+                    Notifications.getExpoPushTokenAsync({ projectId }),
+                    10000,
+                    'getExpoPushTokenAsync'
+                );
+                token = tokenResult.data;
+                console.log('Push Token Generated:', token);
+            } catch (err) {
+                console.warn('[pushNotification] getExpoPushTokenAsync timed out or failed:', err.message);
+                return null;
             }
+
+            // Save token to user profile — fire-and-forget (non-blocking) so it never blocks login flow
+            userService.getUser().then(user => {
+                if (user && user.id) {
+                    userService.saveUser({ ...user, pushToken: token }).catch(err =>
+                        console.warn('[pushNotification] Failed to save push token:', err.message)
+                    );
+                }
+            }).catch(() => { });
 
             return token;
         } catch (e) {

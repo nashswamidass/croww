@@ -149,7 +149,7 @@ const SearchScreen = ({ navigation }) => {
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
-                <Typography variant="h2">Marketplace</Typography>
+                <Typography variant="h2" style={styles.pageTitle}>Marketplace</Typography>
 
                 {/* Search Bar - More action-oriented */}
                 <NotionInput
@@ -205,7 +205,7 @@ const SearchScreen = ({ navigation }) => {
                                 </TouchableOpacity>
                             )}
                         </View>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ paddingRight: SPACING.m }}>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryScroll} contentContainerStyle={{ paddingHorizontal: SPACING.m }}>
                             {visibleCategories.map((cat) => (
                                 <TouchableOpacity
                                     key={cat.id}
@@ -404,6 +404,10 @@ const styles = StyleSheet.create({
         paddingTop: SPACING.m,
         paddingBottom: SPACING.s,
     },
+    pageTitle: {
+        textAlign: 'center',
+        marginBottom: SPACING.s,
+    },
     tabContainer: {
         flexDirection: 'row',
         backgroundColor: COLORS.surfaceHighlight,
@@ -447,12 +451,12 @@ const styles = StyleSheet.create({
     },
     categoryScroll: {
         marginTop: SPACING.s,
-        marginLeft: -SPACING.xs,
+        marginHorizontal: -SPACING.m,
     },
     categoryButton: {
         alignItems: 'center',
-        marginHorizontal: SPACING.s,
-        width: 70,
+        marginHorizontal: SPACING.xs,
+        minWidth: 80,
     },
     iconCircle: {
         width: 48,
@@ -482,16 +486,19 @@ const styles = StyleSheet.create({
     filterRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 8,
+        justifyContent: 'space-between',
+        gap: SPACING.s,
         marginBottom: SPACING.m,
         marginTop: SPACING.xs,
     },
     filterChip: {
+        flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
+        justifyContent: 'center',
         backgroundColor: COLORS.surfaceHighlight,
-        paddingHorizontal: SPACING.m,
-        paddingVertical: 8,
+        paddingHorizontal: SPACING.s,
+        paddingVertical: 10,
         borderRadius: BORDER_RADIUS.l,
         borderWidth: 1,
         borderColor: COLORS.border,

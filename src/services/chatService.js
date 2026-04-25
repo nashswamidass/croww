@@ -22,21 +22,17 @@ const MESSAGES_COLLECTION = 'messages';
 
 // Helper to ensure auth
 const ensureAuth = () => {
+    if (auth.currentUser) return Promise.resolve(auth.currentUser);
+
     return new Promise((resolve, reject) => {
         const unsubscribe = onAuthStateChanged(auth, (user) => {
-            console.log('Auth state changed:', user ? user.uid : 'null');
+            console.log('Auth state changed in chatService:', user ? user.uid : 'null');
             unsubscribe();
             if (user) {
                 resolve(user);
             } else {
-                console.log('Signing in anonymously...');
-                signInAnonymously(auth).then(userCred => {
-                    console.log('Signed in anonymously:', userCred.user.uid);
-                    resolve(userCred.user);
-                }).catch(error => {
-                    console.error('Anonymous auth failed:', error);
-                    reject(error);
-                });
+                console.error('No authenticated user found for chat operation.');
+                reject(new Error("You must be logged in to send messages."));
             }
         });
     });
@@ -54,7 +50,6 @@ export const chatService = {
     createChat: async (participantIds, participantNames = {}) => {
         try {
             if (!participantIds || !Array.isArray(participantIds)) {
-                console.error("Invalid participantIds passed to createChat:", participantIds);
                 return null;
             }
 
@@ -67,7 +62,6 @@ export const chatService = {
             await ensureAuth();
 
             // Safer search: query for chats containing one of the participants, then filter manually
-            // This is more resilient than array equality queries which can be tricky with indexes/permissions
             const q = query(
                 collection(db, CHATS_COLLECTION),
                 where('participantIds', 'array-contains', validIds[0]),
@@ -241,7 +235,7 @@ export const chatService = {
         // ideally we'd wait for auth but onSnapshot handles connection retries.
 
         const messagesRef = collection(db, CHATS_COLLECTION, chatId, MESSAGES_COLLECTION);
-        const q = query(messagesRef, orderBy('createdAt', 'asc'));
+        const q = query(messagesRef, orderBy('createdAt', 'desc'), limit(50));
 
         return onSnapshot(q, (snapshot) => {
             const messages = snapshot.docs.map(docSnapshot => ({
@@ -250,6 +244,7 @@ export const chatService = {
                 // Convert Firestore Timestamp to Date/String if needed, or handle in component
                 createdAt: docSnapshot.data().createdAt ? docSnapshot.data().createdAt.toDate() : new Date()
             }));
+            // Provide messages in descending order (newest first) for inverted list
             callback(messages);
         }, (error) => {
             console.error('Error subscribing to chat:', error);
@@ -283,7 +278,7 @@ export const chatService = {
         }, (error) => {
             console.error('Chat list listener FIREBASE ERROR:', error.code, error.message);
 
-            // Fallback for index issues
+            // Fallback for index issues — query without orderBy
             if (error.code === 'failed-precondition') {
                 console.warn("Attempting fallback chat list query (no index)...");
                 const fallbackQ = query(
@@ -296,7 +291,14 @@ export const chatService = {
                         ...docSnapshot.data()
                     })).sort((a, b) => (b.lastMessageTimestamp?.seconds || 0) - (a.lastMessageTimestamp?.seconds || 0));
                     callback(chats);
+                }, (fallbackError) => {
+                    console.error('Fallback chat list query also failed:', fallbackError.message);
+                    // Always resolve so the screen stops loading
+                    callback([]);
                 });
+            } else {
+                // For any other error, resolve with empty list to stop infinite loading
+                callback([]);
             }
         });
     },

@@ -1,9 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import NotionCard from '../../components/NotionCard';
 import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { eventService } from '../../services/eventService';
 import { formatIndianDate } from '../../utils/localization';
@@ -18,16 +17,31 @@ const EventListScreen = ({ route, navigation }) => {
         const fetchEvents = async () => {
             try {
                 const data = await eventService.getEvents();
-                let filteredData = data;
+                // Safety-net: always exclude private events on the client too
+                const publicData = data.filter(e => e.isPublic === true);
+                let filteredData = publicData;
 
                 if (filter === 'featured') {
-                    filteredData = data.filter(e => e.isFeatured);
-                    if (filteredData.length === 0) filteredData = data.slice(0, 10);
+                    const today = new Date().setHours(0, 0, 0, 0);
+                    filteredData = publicData.filter(e => {
+                        const isBusiness = e.isOfficial ||
+                            e.verificationType === 'business' ||
+                            (e.verificationStatus === 'verified' && e.verificationType === 'business');
+                        return e.isFeatured && isBusiness;
+                    });
+
+                    // Fallback to upcoming events if no featured business events
+                    if (filteredData.length === 0) {
+                        filteredData = publicData
+                            .filter(e => new Date(e.date) >= today)
+                            .sort((a, b) => new Date(a.date) - new Date(b.date))
+                            .slice(0, 10);
+                    }
                 } else if (filter === 'upcoming') {
                     const today = new Date();
-                    today.setHours(0, 0, 0, 0); // Reset time part for accurate date comparison
+                    today.setHours(0, 0, 0, 0);
 
-                    filteredData = data
+                    filteredData = publicData
                         .filter(e => {
                             const eventDate = new Date(e.date);
                             return eventDate >= today;
@@ -48,7 +62,10 @@ const EventListScreen = ({ route, navigation }) => {
     const renderEventCard = ({ item: event }) => (
         <TouchableOpacity
             style={styles.gridCard}
-            onPress={() => navigation.navigate('EventDetail', { id: event.id, event })}
+            onPress={(e) => {
+                if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                navigation.navigate('EventDetail', { id: event.id, event });
+            }}
             activeOpacity={0.9}
         >
             <View style={styles.cardContainer}>
@@ -83,7 +100,13 @@ const EventListScreen = ({ route, navigation }) => {
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={(e) => {
+                        if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                        navigation.goBack();
+                    }} 
+                    style={styles.backButton}
+                >
                     <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <Typography variant="h2">{title}</Typography>

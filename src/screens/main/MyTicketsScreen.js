@@ -12,6 +12,7 @@ import { userService } from '../../services/userService';
 import { ticketService } from '../../services/ticketService';
 import { bookingService } from '../../services/bookingService';
 import { db } from '../../services/firebaseConfig';
+import { useAuth } from '../../context/AuthContext';
 import { paymentService } from '../../services/paymentService';
 import { showAlert } from '../../utils/showAlert';
 import { formatDateToKey } from '../../utils/dateUtils';
@@ -24,6 +25,7 @@ const MyTicketsScreen = ({ navigation, route }) => {
     const [loading, setLoading] = React.useState(true);
     const [showSuccess, setShowSuccess] = React.useState(false);
     const [verifiedOrderId, setVerifiedOrderId] = React.useState(null);
+    const { user } = useAuth();
     const [currentUserId, setCurrentUserId] = React.useState('Loading...');
 
     // Robust Loading Tracker
@@ -35,51 +37,62 @@ const MyTicketsScreen = ({ navigation, route }) => {
         let unsubTickets = () => { };
         let unsubBookings = () => { };
 
-        userService.getUser().then(user => {
-            const userId = user?.id || user?.uid;
-            setCurrentUserId(userId || 'Not Logged In');
+        if (user) {
+            const userId = user.id || user.uid;
+            setCurrentUserId(userId);
 
-            if (userId) {
-                // Subscribe Tickets
-                unsubTickets = ticketService.subscribeTicketsByUser(userId, (tickets) => {
-                    console.log(`MyTickets: Received ${tickets.length} total tickets`);
-                    const validTickets = tickets.filter(t => t.status !== 'PENDING_PAYMENT');
+            // Subscribe Tickets
+            unsubTickets = ticketService.subscribeTicketsByUser(userId, (tickets) => {
+                console.log(`MyTickets: Received ${tickets.length} total tickets`);
+                const validTickets = tickets.filter(t => t.status !== 'PENDING_PAYMENT');
 
-                    const grouped = validTickets.reduce((acc, ticket) => {
-                        const eventId = ticket.eventId;
-                        if (!acc[eventId]) acc[eventId] = [];
-                        acc[eventId].push(ticket);
-                        return acc;
-                    }, {});
+                const grouped = validTickets.reduce((acc, ticket) => {
+                    const eventId = ticket.eventId;
+                    if (!acc[eventId]) acc[eventId] = [];
+                    acc[eventId].push(ticket);
+                    return acc;
+                }, {});
 
-                    setGroupedTickets(grouped);
-                    setTicketsLoaded(true);
+                setGroupedTickets(grouped);
+                setTicketsLoaded(true);
+            });
+
+            // Subscribe Bookings
+            unsubBookings = bookingService.subscribeBookingsByUser(userId, (userBookings) => {
+                console.log(`MyTickets: Received ${userBookings.length} total bookings`);
+                const validBookings = userBookings.filter(b => {
+                    const pStatus = (b.paymentStatus || '').toUpperCase();
+                    return pStatus === 'PAID' || pStatus === 'SUCCESS' || (b.packageDetails?.price || 0) === 0 || pStatus === 'PENDING_PAYMENT';
                 });
 
-                // Subscribe Bookings
-                unsubBookings = bookingService.subscribeBookingsByUser(userId, (userBookings) => {
-                    console.log(`MyTickets: Received ${userBookings.length} total bookings`);
-                    const validBookings = userBookings.filter(b => {
-                        const pStatus = (b.paymentStatus || '').toUpperCase();
-                        return pStatus === 'PAID' || pStatus === 'SUCCESS' || (b.packageDetails?.price || 0) === 0 || pStatus === 'PENDING_PAYMENT';
-                    });
-
-                    setBookings(validBookings);
-                    setBookingsLoaded(true);
-                });
-            } else {
-                setLoading(false);
-            }
-        }).catch(err => {
-            console.error("User fetch error:", err);
+                setBookings(validBookings);
+                setBookingsLoaded(true);
+            });
+        } else {
+            setCurrentUserId('Not Logged In');
+            setGroupedTickets({});
+            setBookings([]);
             setLoading(false);
-        });
+            setTicketsLoaded(true);
+            setBookingsLoaded(true);
+        }
 
         return () => {
             unsubTickets();
             unsubBookings();
         };
-    }, []);
+    }, [user?.id, user?.uid]);
+
+    // Check for payment return in route params
+    React.useEffect(() => {
+        const orderId = route.params?.order_id;
+        if (orderId) {
+            console.log("MyTickets: Payment return detected via route params:", orderId);
+            verifyPaymentReturn(orderId);
+            // Clear params to avoid re-triggering on rotation/refresh
+            navigation.setParams({ order_id: undefined });
+        }
+    }, [route.params?.order_id]);
 
     // Global loading sync
     React.useEffect(() => {
@@ -165,7 +178,7 @@ const MyTicketsScreen = ({ navigation, route }) => {
                 sortDate,
                 dateDisplay: firstTicket.date,
                 title: firstTicket.eventTitle,
-                image: firstTicket.image,
+                image: firstTicket.image || firstTicket.eventImage || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=600&auto=format&fit=crop', // Provide a premium default
                 subtitle: firstTicket.location
             });
         });
@@ -186,7 +199,7 @@ const MyTicketsScreen = ({ navigation, route }) => {
                 sortDate,
                 dateDisplay: formatDateToKey(new Date(booking.eventDate?.seconds * 1000 || booking.eventDate)),
                 title: booking.serviceName,
-                image: booking.providerAvatar || 'https://via.placeholder.com/80',
+                image: booking.providerAvatar || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?q=80&w=600&auto=format&fit=crop',
                 subtitle: `with ${booking.providerName}`,
                 status: booking.status
             });
@@ -201,7 +214,10 @@ const MyTicketsScreen = ({ navigation, route }) => {
             const ticketCount = tickets.length;
 
             return (
-                <TouchableOpacity key={item.id} activeOpacity={0.8} onPress={() => handleEventPress(eventId, tickets)}>
+                <TouchableOpacity key={item.id} activeOpacity={0.8} onPress={(e) => {
+                    if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                    handleEventPress(eventId, tickets);
+                }}>
                     <NotionCard style={styles.ticketCard}>
                         <View style={styles.ticketMain}>
                             <Image source={{ uri: image }} style={styles.eventImage} />
@@ -235,7 +251,10 @@ const MyTicketsScreen = ({ navigation, route }) => {
         } else {
             const { booking, title, subtitle, dateDisplay, image, status } = item;
             return (
-                <TouchableOpacity key={item.id} activeOpacity={0.8} onPress={() => navigation.navigate('BookingDetail', { booking })}>
+                <TouchableOpacity key={item.id} activeOpacity={0.8} onPress={(e) => {
+                    if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                    navigation.navigate('BookingDetail', { booking });
+                }}>
                     <NotionCard style={styles.ticketCard}>
                         <View style={styles.ticketMain}>
                             <Image source={{ uri: image }} style={styles.eventImage} />
@@ -284,9 +303,6 @@ const MyTicketsScreen = ({ navigation, route }) => {
             <View style={styles.header}>
                 <View style={{ flex: 1 }}>
                     <Typography variant="h2">My Tickets</Typography>
-                    <Typography variant="small" color={COLORS.accent} numberOfLines={1}>
-                        v2.1-unified • Combined View
-                    </Typography>
                 </View>
 
             </View>

@@ -12,23 +12,24 @@
                     "source": "**",
                     "destination": "/index.html"
                 }
-            ]
-        },
-        {
-            "site": "croww-live-2026",
-            "public": "dist",
-            "ignore": [
-                "firebase.json",
-                "**/.*"
             ],
-            "rewrites": [
+            "headers": [
                 {
-                    "source": "**",
-                    "destination": "/index.html"
+                    "source": "/index.html",
+                    "headers": [
+                        {
+                            "key": "Cache-Control",
+                            "value": "no-cache, no-store, must-revalidate"
+                        }
+                    ]
                 }
             ]
         }
     ],
+    "firestore": {
+        "rules": "firestore.rules",
+        "indexes": "firestore.indexes.json"
+    },
     "functions": [
         {
             "source": "functions",

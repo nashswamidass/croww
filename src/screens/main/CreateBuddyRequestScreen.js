@@ -6,6 +6,7 @@ import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
 import GenderPreferenceSelector from '../../components/GenderPreferenceSelector';
 import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { showAlert } from '../../utils/showAlert';
 import { createBuddyRequest } from '../../services/buddyService';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -18,7 +19,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
 
     const handleCreate = async () => {
         if (spotsAvailable < 1) {
-            Alert.alert('Invalid Spots', 'Please select at least 1 spot');
+            showAlert('Invalid Spots', 'Please select at least 1 spot');
             return;
         }
 
@@ -31,7 +32,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
             });
 
             if (result.success) {
-                Alert.alert(
+                showAlert(
                     'Success!',
                     'Your buddy request has been created',
                     [
@@ -41,9 +42,11 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
                         }
                     ]
                 );
+            } else {
+                showAlert('Error', result.message || 'Failed to create buddy request');
             }
         } catch (error) {
-            Alert.alert('Error', 'Failed to create buddy request');
+            showAlert('Error', 'Failed to create buddy request');
         } finally {
             setLoading(false);
         }

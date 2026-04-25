@@ -24,8 +24,9 @@ export const ticketService = {
      * @param {string} status - 'valid', 'scanned', 'cancelled', 'PENDING_PAYMENT'
      * @param {string|null} cashfreeOrderId
      * @param {Object|null} feeBreakdown - Result from calculateFees()
+     * @param {string} attendeeName - Name of the attendee
      */
-    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null, feeBreakdown = null) => {
+    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null, feeBreakdown = null, attendeeName = 'Attendee') => {
         try {
             // 1. Create the ticket document
             const ticketData = {
@@ -40,6 +41,7 @@ export const ticketService = {
                 price: eventData.price || 0,
                 organizerId: eventData.organizerId || null,
                 cashfreeOrderId: cashfreeOrderId,
+                attendeeName: attendeeName,
                 issuedAt: serverTimestamp(),
 
                 // --- Fee Breakdown (stored for accounting & organizer dashboard) ---
@@ -137,6 +139,8 @@ export const ticketService = {
             onUpdate(tickets);
         }, (error) => {
             console.error("Error subscribing to tickets:", error);
+            // Always resolve loading state even on error
+            onUpdate([]);
         });
     },
 
@@ -185,7 +189,8 @@ export const ticketService = {
             }
             const q = query(
                 collection(db, TICKETS_COLLECTION),
-                where('organizerId', '==', organizerId)
+                where('organizerId', '==', organizerId),
+                orderBy('issuedAt', 'desc')
             );
             const querySnapshot = await getDocs(q);
             const tickets = [];
@@ -229,6 +234,27 @@ export const ticketService = {
             console.error("Error fetching event stats:", error);
             // Return empty instead of throwing to avoid crashing the UI
             return { sold: 0, scanned: 0, attendees: [] };
+        }
+    },
+
+    /**
+     * Check if a user has a ticket for an event
+     */
+    checkUserTicket: async (userId, eventId) => {
+        try {
+            if (!userId || !eventId) return false;
+
+            const q = query(
+                collection(db, TICKETS_COLLECTION),
+                where('userId', '==', userId),
+                where('eventId', '==', eventId),
+                where('status', '==', 'valid')
+            );
+            const querySnapshot = await getDocs(q);
+            return !querySnapshot.empty;
+        } catch (error) {
+            console.error("Error checking user ticket:", error);
+            return false;
         }
     }
 };

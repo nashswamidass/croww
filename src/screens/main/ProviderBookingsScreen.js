@@ -40,6 +40,13 @@ const ProviderBookingsScreen = ({ navigation }) => {
                         text: { color: COLORS.error, fontWeight: '600' }
                     }
                 };
+            } else {
+                marks[dateKey] = {
+                    customStyles: {
+                        container: { backgroundColor: COLORS.success + '20', borderRadius: 6 },
+                        text: { color: COLORS.success, fontWeight: '600' }
+                    }
+                };
             }
         });
 
@@ -197,9 +204,6 @@ const ProviderBookingsScreen = ({ navigation }) => {
             </TouchableOpacity>
             <View style={{ flex: 1, marginLeft: 10 }}>
                 <Typography variant="h2">My Bookings</Typography>
-                <Typography variant="small" color={COLORS.accent} numberOfLines={1}>
-                    v1.2-diag • Cache: {currentUserId} • Auth: {getAuth().currentUser?.uid || 'N/A'}
-                </Typography>
             </View>
         </View>
     );

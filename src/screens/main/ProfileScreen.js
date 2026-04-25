@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useFocusEffect } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -15,18 +15,27 @@ import { eventService } from '../../services/eventService';
 import { bookingService } from '../../services/bookingService';
 import { ticketService } from '../../services/ticketService';
 import { reviewService } from '../../services/reviewService';
+import { buddyService } from '../../services/buddyService';
 import { getValidImageUri, DEFAULT_EVENT_IMAGE } from '../../utils/imageUtils';
-import { Share } from 'react-native';
+import { Share, Linking } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const ProfileScreen = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const { user: authUser, loading: authLoading } = useAuth();
     const [activeTab, setActiveTab] = useState('events');
+    const [eventsFilter, setEventsFilter] = useState('active'); // active, completed, cancelled
     const [reviews, setReviews] = useState([]);
     const [fetchingReviews, setFetchingReviews] = useState(false);
     const [profileEvents, setProfileEvents] = useState([]);
     const [loadingData, setLoadingData] = useState(false);
+    // Real follower/following/buddy counts from Firestore
+    const [followerCount, setFollowerCount] = useState(null);
+    const [followingCount, setFollowingCount] = useState(null);
+    const [buddyCount, setBuddyCount] = useState(null);
+    // Followers list for the tab
+    const [followerProfiles, setFollowerProfiles] = useState([]);
+    const [loadingFollowers, setLoadingFollowers] = useState(false);
 
     useFocusEffect(
         useCallback(() => {
@@ -46,20 +55,40 @@ const ProfileScreen = ({ navigation }) => {
                     }
 
                     // 2. Load Tab Specific Data
-                    if (authUser.userType === 'business') {
-                        // Fetch Posted Events
+                    if (authUser.userType === 'provider') {
+                        const bookings = await bookingService.getBookingsForProvider(authUser.id);
+                        setProfileEvents(bookings);
+                    } else {
+                        // Standard users and businesses see Events they've organized
                         const events = await eventService.getEventsByOrganizer(authUser.id);
                         setProfileEvents(events);
-                    } else if (authUser.userType === 'provider') {
-                        // Fetch Bookings
-                        const bookings = await bookingService.getBookingsForProvider(authUser.id);
-                        setProfileEvents(bookings); // Reusing state for the tab list
-                    } else {
-                        // Fetch Tickets for Individuals
-                        unsubscribeTickets = ticketService.subscribeTicketsByUser(authUser.id, (tickets) => {
-                            setProfileEvents(tickets);
-                        });
                     }
+
+                    // 3. Load real follower / following / buddy counts and profiles in parallel
+                    const [followerIds, followingIds, buddies] = await Promise.all([
+                        userService.getFollowerIds(authUser.id),
+                        userService.getFollowingIds(authUser.id),
+                        buddyService.getMyBuddies(authUser.id),
+                    ]);
+
+                    setLoadingFollowers(true);
+
+                    // Ensure we only count valid (non-deleted) users for accurate counts
+                    const [validFollowers, validFollowing] = await Promise.all([
+                        Promise.all(followerIds.map(id => userService.getUserById(id).catch(() => null))),
+                        Promise.all(followingIds.map(id => userService.getUserById(id).catch(() => null)))
+                    ]);
+
+                    const filteredFollowers = validFollowers.filter(Boolean);
+                    const filteredFollowing = validFollowing.filter(Boolean);
+
+                    setFollowerCount(filteredFollowers.length);
+                    setFollowingCount(filteredFollowing.length);
+                    setBuddyCount(buddies.length);
+
+                    setFollowerProfiles(filteredFollowers);
+                    setLoadingFollowers(false);
+
                 } catch (error) {
                     console.error('Error loading profile data:', error);
                 } finally {
@@ -137,7 +166,7 @@ const ProfileScreen = ({ navigation }) => {
         <View>
             <View style={styles.sectionHeader}>
                 <Typography variant="h3">
-                    {isBusiness ? "Posted Events" : (isProvider ? "Incoming Bookings" : "My Tickets")}
+                    {isProvider ? "Incoming Bookings" : "My Events"}
                 </Typography>
                 {isBusiness && (
                     <TouchableOpacity onPress={() => navigation.navigate('CreateEvent')}>
@@ -146,7 +175,59 @@ const ProfileScreen = ({ navigation }) => {
                 )}
             </View>
 
-            {(profileEvents || []).map((item) => {
+            {/* Subtabs for Event Categories */}
+            {!isProvider && profileEvents.length > 0 && (
+                <View style={styles.segmentedControl}>
+                    {['active', 'completed', 'cancelled'].map(tab => (
+                        <TouchableOpacity
+                            key={tab}
+                            style={[
+                                styles.segmentButton,
+                                eventsFilter === tab && styles.segmentButtonActive
+                            ]}
+                            onPress={() => setEventsFilter(tab)}
+                        >
+                            <Typography
+                                variant="small"
+                                style={{
+                                    fontWeight: '600',
+                                    color: eventsFilter === tab ? COLORS.primary : COLORS.secondary,
+                                    textTransform: 'capitalize'
+                                }}
+                            >
+                                {tab}
+                            </Typography>
+                        </TouchableOpacity>
+                    ))}
+                </View>
+            )}
+
+            {(() => {
+                const now = new Date();
+                const filteredEvents = isProvider ? profileEvents : profileEvents.filter(item => {
+                    if (!item.date) return true;
+                    // Standardize status checks
+                    const isCancelledObj = item.status === 'cancelled';
+                    const eventDate = new Date(item.date);
+                    const isPassed = eventDate < now;
+                    
+                    if (eventsFilter === 'cancelled') return isCancelledObj;
+                    if (eventsFilter === 'completed') return !isCancelledObj && isPassed;
+                    return !isCancelledObj && !isPassed; // active
+                });
+
+                if (filteredEvents.length === 0 && !loading) {
+                    return (
+                        <View style={styles.emptyState}>
+                            <Ionicons name={isProvider ? "briefcase-outline" : "calendar-outline"} size={48} color={COLORS.border} />
+                            <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.m, textAlign: 'center' }}>
+                                {isProvider ? "No bookings found yet." : `No ${eventsFilter} events found.`}
+                            </Typography>
+                        </View>
+                    );
+                }
+
+                return filteredEvents.map((item) => {
                 // Normalize data structure for the card
                 const title = item.title || item.serviceName || item.eventTitle || 'Untitled';
                 const dateText = item.date || 'No date set';
@@ -156,9 +237,8 @@ const ProfileScreen = ({ navigation }) => {
                     <TouchableOpacity
                         key={item.id}
                         onPress={() => {
-                            if (isBusiness) navigation.navigate('EventStats', { event: item });
-                            else if (isProvider) navigation.navigate('BookingDetail', { booking: item });
-                            else navigation.navigate('TicketDetail', { ticket: item });
+                            if (isProvider) navigation.navigate('BookingDetail', { booking: item });
+                            else navigation.navigate('EventStats', { event: item });
                         }}
                     >
                         <NotionCard style={styles.eventCard}>
@@ -170,21 +250,18 @@ const ProfileScreen = ({ navigation }) => {
                                 <Typography variant="caption" style={{ color: COLORS.secondary }}>
                                     {dateText}
                                 </Typography>
+                                {!isProvider && item.status === 'cancelled' && (
+                                    <View style={[styles.statusBadgeInline, { backgroundColor: COLORS.error + '20' }]}>
+                                        <Typography variant="small" style={{ color: COLORS.error, fontSize: 10, fontWeight: '700' }}>CANCELLED</Typography>
+                                    </View>
+                                )}
                             </View>
                             <Ionicons name="chevron-forward" size={20} color={COLORS.secondary} />
                         </NotionCard>
                     </TouchableOpacity>
                 );
-            })}
-
-            {profileEvents.length === 0 && !loading && (
-                <View style={styles.emptyState}>
-                    <Ionicons name={isBusiness ? "calendar-outline" : (isProvider ? "briefcase-outline" : "ticket-outline")} size={48} color={COLORS.border} />
-                    <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.m }}>
-                        {isBusiness ? "You haven't posted any events yet." : (isProvider ? "No bookings found yet." : "You don't have any tickets yet.")}
-                    </Typography>
-                </View>
-            )}
+            });
+            })()}
         </View>
     );
 
@@ -196,6 +273,43 @@ const ProfileScreen = ({ navigation }) => {
                     <Typography variant="small" style={{ color: COLORS.accent }}>+ Add Work</Typography>
                 </TouchableOpacity>
             </View>
+
+            {/* Social & External Portfolio Links */}
+            {user.socialLinks && Object.values(user.socialLinks).some(link => link) && (
+                <View style={styles.socialLinksRow}>
+                    {user.socialLinks.instagram ? (
+                        <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(user.socialLinks.instagram)}>
+                            <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                            <Typography variant="small" style={styles.socialLinkText}>Instagram</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                    {user.socialLinks.soundcloud ? (
+                        <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(user.socialLinks.soundcloud)}>
+                            <Ionicons name="musical-notes" size={20} color="#FF5500" />
+                            <Typography variant="small" style={styles.socialLinkText}>SoundCloud</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                    {user.socialLinks.behance ? (
+                        <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(user.socialLinks.behance)}>
+                            <Ionicons name="color-palette" size={20} color="#1769FF" />
+                            <Typography variant="small" style={styles.socialLinkText}>Behance</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                    {user.socialLinks.youtube ? (
+                        <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(user.socialLinks.youtube)}>
+                            <Ionicons name="logo-youtube" size={20} color="#FF0000" />
+                            <Typography variant="small" style={styles.socialLinkText}>YouTube</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                    {user.socialLinks.googleDrive ? (
+                        <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(user.socialLinks.googleDrive)}>
+                            <Ionicons name="cloud-outline" size={20} color="#4285F4" />
+                            <Typography variant="small" style={styles.socialLinkText}>External Link</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+            )}
+
             <View style={styles.portfolioGrid}>
                 {user.profilePhotos && user.profilePhotos.length > 0 ? (
                     user.profilePhotos.map((photo, index) => (
@@ -221,15 +335,15 @@ const ProfileScreen = ({ navigation }) => {
     const renderFriendsTab = () => (
         <View>
             <View style={styles.sectionHeader}>
-                <Typography variant="h3">{isProvider ? "Reviews" : "Friends"}</Typography>
+                <Typography variant="h3">{isProvider ? "Reviews" : "Followers"}</Typography>
                 <TouchableOpacity
                     onPress={() => isProvider
                         ? navigation.navigate('ReviewList', { businessId: user.id, businessName: user.name })
-                        : null // TODO: Friends list navigation if needed
+                        : navigation.navigate('FriendsList', { userId: user.id, activeTab: 'followers' })
                     }
                 >
                     <Typography variant="small" style={{ color: COLORS.accent }}>
-                        {isProvider ? "Read All" : `See All (${user.stats?.friends || 0})`}
+                        {isProvider ? "Read All" : `See All (${followerCount ?? 0})`}
                     </Typography>
                 </TouchableOpacity>
             </View>
@@ -260,23 +374,46 @@ const ProfileScreen = ({ navigation }) => {
                         No reviews yet.
                     </Typography>
                 )
-            ) : (
-                (user.friends || []).map((friend) => (
-                    <NotionCard key={friend.id} style={styles.friendCard}>
-                        <Image source={{ uri: friend.avatar }} style={styles.friendAvatar} />
-                        <View style={styles.friendInfo}>
-                            <Typography variant="body" style={{ fontWeight: '600' }}>
-                                {friend.name}
-                            </Typography>
-                            <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                                {friend.mutualFriends} mutual friends
-                            </Typography>
-                        </View>
-                        <TouchableOpacity style={styles.messageButton}>
-                            <Ionicons name="chatbubble-outline" size={20} color={COLORS.accent} />
-                        </TouchableOpacity>
-                    </NotionCard>
+            ) : loadingFollowers ? (
+                <ActivityIndicator size="small" color={COLORS.accent} style={{ marginTop: SPACING.l }} />
+            ) : followerProfiles.length > 0 ? (
+                followerProfiles.slice(0, 5).map((follower) => (
+                    <TouchableOpacity
+                        key={follower.id}
+                        onPress={() => navigation.push('ServiceDetail', { serviceId: follower.id })}
+                        activeOpacity={0.75}
+                    >
+                        <NotionCard style={styles.friendCard}>
+                            <Image
+                                source={follower.avatar ? { uri: follower.avatar } : require('../../../assets/croww-logo.png')}
+                                style={styles.friendAvatar}
+                            />
+                            <View style={styles.friendInfo}>
+                                <Typography variant="body" style={{ fontWeight: '600' }}>
+                                    {follower.name || 'User'}
+                                </Typography>
+                                {follower.bio ? (
+                                    <Typography variant="caption" style={{ color: COLORS.secondary }} numberOfLines={1}>
+                                        {follower.bio}
+                                    </Typography>
+                                ) : null}
+                            </View>
+                            <TouchableOpacity
+                                style={styles.messageButton}
+                                onPress={() => navigation.navigate('Chat', { recipientId: follower.id, recipientName: follower.name })}
+                            >
+                                <Ionicons name="chatbubble-outline" size={20} color={COLORS.accent} />
+                            </TouchableOpacity>
+                        </NotionCard>
+                    </TouchableOpacity>
                 ))
+            ) : (
+                <View style={styles.emptyState}>
+                    <Ionicons name="person-outline" size={48} color={COLORS.border} />
+                    <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.m }}>
+                        No followers yet.
+                    </Typography>
+                </View>
             )}
         </View>
     );
@@ -383,32 +520,74 @@ const ProfileScreen = ({ navigation }) => {
 
                         {/* Stats */}
                         <View style={styles.statsContainer}>
-                            <View style={styles.statItem}>
+                            {/* Stat 1: Events / Bookings / Followers */}
+                            <TouchableOpacity
+                                style={styles.statItem}
+                                onPress={() => {
+                                    if (!isBusiness && !isProvider)
+                                        navigation.navigate('FriendsList', { userId: user.id, activeTab: 'followers' });
+                                }}
+                                activeOpacity={isBusiness || isProvider ? 1 : 0.7}
+                            >
                                 <Typography variant="h2" style={{ color: COLORS.accent }}>
-                                    {isBusiness ? (user.stats?.totalEvents || 0) : (isProvider ? (user.stats?.bookings || 0) : user.stats?.eventsAttended)}
+                                    {isBusiness
+                                        ? (user.stats?.totalEvents || 0)
+                                        : isProvider
+                                            ? (user.stats?.bookings || 0)
+                                            : (followerCount ?? user.followersCount ?? 0)}
                                 </Typography>
                                 <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                                    {isBusiness ? 'Events' : (isProvider ? 'Bookings' : 'Attended')}
+                                    {isBusiness ? 'Events' : (isProvider ? 'Bookings' : 'Followers')}
                                 </Typography>
-                            </View>
+                            </TouchableOpacity>
+
                             <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
+
+                            {/* Stat 2: Followers / Rating / Following */}
+                            <TouchableOpacity
+                                style={styles.statItem}
+                                onPress={() => {
+                                    if (isBusiness)
+                                        navigation.navigate('FriendsList', { userId: user.id, activeTab: 'followers' });
+                                    else if (!isProvider)
+                                        navigation.navigate('FriendsList', { userId: user.id, activeTab: 'following' });
+                                }}
+                                activeOpacity={isProvider ? 1 : 0.7}
+                            >
                                 <Typography variant="h2" style={{ color: COLORS.accent }}>
-                                    {isBusiness ? (user.stats?.followers || 0) : (isProvider ? (user.stats?.rating || '5.0') : user.stats?.friends)}
+                                    {isBusiness
+                                        ? (followerCount ?? user.followersCount ?? user.stats?.followers ?? 0)
+                                        : isProvider
+                                            ? (user.rating ? Number(user.rating).toFixed(1) : 'New')
+                                            : (followingCount ?? 0)}
                                 </Typography>
                                 <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                                    {isBusiness ? 'Followers' : (isProvider ? 'Rating' : 'Friends')}
+                                    {isBusiness ? 'Followers' : (isProvider ? 'Rating' : 'Following')}
                                 </Typography>
-                            </View>
+                            </TouchableOpacity>
+
                             <View style={styles.statDivider} />
-                            <View style={styles.statItem}>
+
+                            {/* Stat 3: Rating / Exp / Buddies */}
+                            <TouchableOpacity
+                                style={styles.statItem}
+                                onPress={() => {
+                                    if (!isBusiness && !isProvider)
+                                        navigation.navigate('FriendsList', { userId: user.id, activeTab: 'buddies' });
+                                }}
+                                activeOpacity={isBusiness || isProvider ? 1 : 0.7}
+                            >
                                 <Typography variant="h2" style={{ color: COLORS.accent }}>
-                                    {isBusiness ? (user.stats?.avgRating || '4.8') : (isProvider ? (user.stats?.experience || '2y') : user.stats?.buddyConnections)}
+                                    {isBusiness
+                                        ? (user.rating ? Number(user.rating).toFixed(1) : 'New')
+                                        : isProvider
+                                            ? (user.stats?.experience || user.experience || '—')
+                                            : (buddyCount ?? 0)}
                                 </Typography>
                                 <Typography variant="caption" style={{ color: COLORS.secondary }}>
                                     {isBusiness ? 'Rating' : (isProvider ? 'Exp' : 'Buddies')}
                                 </Typography>
-                            </View>
+                            </TouchableOpacity>
                         </View>
 
                         {/* Action Buttons */}
@@ -481,7 +660,7 @@ const ProfileScreen = ({ navigation }) => {
                                     activeTab === 'friends' && styles.tabTextActive
                                 ]}
                             >
-                                {isProvider ? "Reviews" : "Friends"}
+                                {isProvider ? "Reviews" : "Followers"}
                             </Typography>
                         </TouchableOpacity>
                         <TouchableOpacity
@@ -734,6 +913,56 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         padding: SPACING.xl,
         marginTop: SPACING.l,
+    },
+    segmentedControl: {
+        flexDirection: 'row',
+        backgroundColor: COLORS.surfaceHighlight + '40',
+        borderRadius: BORDER_RADIUS.m,
+        padding: 4,
+        marginBottom: SPACING.m,
+    },
+    segmentButton: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: BORDER_RADIUS.s,
+    },
+    segmentButtonActive: {
+        backgroundColor: COLORS.surface,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.1,
+        shadowRadius: 2,
+        elevation: 2,
+    },
+    statusBadgeInline: {
+        marginTop: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        alignSelf: 'flex-start',
+    },
+    socialLinksRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.s,
+        marginBottom: SPACING.m,
+        paddingHorizontal: SPACING.m,
+    },
+    socialLinkButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    socialLinkText: {
+        color: COLORS.primary,
+        fontWeight: '500',
     },
 });
 

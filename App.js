@@ -11,6 +11,7 @@ Sentry.init({
 
 import { AuthProvider } from './src/context/AuthContext';
 import { HelmetProvider } from 'react-helmet-async';
+import AppDownloadPopup from './src/components/AppDownloadPopup';
 
 function App() {
     return (
@@ -18,6 +19,7 @@ function App() {
             <SafeAreaProvider>
                 <AuthProvider>
                     <AppNavigator />
+                    <AppDownloadPopup />
                 </AuthProvider>
             </SafeAreaProvider>
         </HelmetProvider>

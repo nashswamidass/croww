@@ -13,6 +13,8 @@ export const COLORS = {
   accent: '#C1FF72',           // Logo Green (Primary CTA)
   accentDark: '#A3E635',       // Darker lime/green for pressed states
   success: '#00FF88',          // Green for success/verified
+  error: '#FF4444',            // Red for errors/destructive actions
+  warning: '#FFB800',          // Yellow/Orange for warnings
 
   // Event Category Colors
   accents: {

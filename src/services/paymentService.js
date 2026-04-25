@@ -1,6 +1,7 @@
 import { Platform } from 'react-native';
 import { CFPaymentGatewayService } from 'react-native-cashfree-pg-sdk';
 import { CFSession, CFThemeBuilder, CFDropCheckoutPayment, CFPaymentComponentBuilder } from 'cashfree-pg-api-contract';
+import API_ENDPOINTS from '../constants/apiConfig';
 
 class PaymentService {
     constructor() {
@@ -104,7 +105,7 @@ class PaymentService {
      */
     async createOrder(amount, customerId, customerPhone, customerName, customerEmail) {
         try {
-            const API_URL = 'https://createcashfreeorder-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.CREATE_CASHFREE_ORDER;
 
             if (!customerId) {
                 throw new Error('Customer ID is required');
@@ -150,7 +151,7 @@ class PaymentService {
      */
     async verifyPayment(orderId) {
         try {
-            const API_URL = 'https://verifycashfreepayment-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.VERIFY_CASHFREE_PAYMENT;
 
             const response = await fetch(API_URL, {
                 method: 'POST',

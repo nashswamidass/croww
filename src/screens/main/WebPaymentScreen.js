@@ -68,7 +68,19 @@ const WebPaymentScreen = ({ navigation, route }) => {
         return () => clearInterval(interval);
     }, [paymentSessionId, orderId, loading, sdkError]);
 
-    const handlePaymentSuccess = () => {
+    const handlePaymentSuccess = async () => {
+        console.log("WebPayment: Finalizing tickets/bookings for order:", orderId);
+        try {
+            // Proactively finalize in background
+            await Promise.all([
+                paymentService.verifyPayment(orderId), // Also triggers backend check
+                ticketService.finalizePendingTickets(orderId),
+                bookingService.finalizePendingBooking(orderId)
+            ]);
+        } catch (e) {
+            console.error("WebPayment: Proactive finalization failed:", e);
+        }
+
         navigation.navigate('Tabs', {
             screen: 'Tickets',
             params: { order_id: orderId }

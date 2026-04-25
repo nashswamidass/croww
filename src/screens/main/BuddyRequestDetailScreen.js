@@ -127,7 +127,16 @@ const BuddyRequestDetailScreen = ({ route, navigation }) => {
         <ScreenWrapper edges={['top', 'bottom']}>
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.replace('Tabs');
+                        }
+                    }} 
+                    style={styles.backButton}
+                >
                     <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <Typography variant="h2" style={{ marginLeft: SPACING.s }}>Buddy Group</Typography>

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from 'react';
-import { View, ActivityIndicator, Image, StyleSheet } from 'react-native';
+import React, { useState, useEffect, useRef, createRef } from 'react';
+import { View, ActivityIndicator, Image, StyleSheet, AppState } from 'react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SplashScreen from 'expo-splash-screen';
 import { LinearGradient } from 'expo-linear-gradient';
 
-import { NavigationContainer } from '@react-navigation/native';
+import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { COLORS, SHADOWS } from '../constants/theme';
@@ -15,6 +17,10 @@ import SignupScreen from '../screens/auth/SignupScreen';
 import BlockedScreen from '../screens/auth/BlockedScreen';
 import LegalPolicyScreen from '../screens/auth/LegalPolicyScreen';
 import linking from './linking';
+import { navigateFromNotification } from '../utils/notificationNavigation';
+import { showAlert } from '../utils/showAlert';
+
+export const navigationRef = createNavigationContainerRef();
 
 // Main Screens
 import HomeScreen from '../screens/main/HomeScreen';
@@ -52,10 +58,11 @@ import ChatListScreen from '../screens/main/ChatListScreen';
 import EventListScreen from '../screens/main/EventListScreen';
 import ProviderBookingsScreen from '../screens/main/ProviderBookingsScreen';
 import BookingDetailScreen from '../screens/main/BookingDetailScreen';
+import BuddyRequestDetailScreen from '../screens/main/BuddyRequestDetailScreen';
 import ReviewListScreen from '../screens/main/ReviewListScreen';
 
 // Verification Screens
-import AadhaarVerificationScreen from '../screens/verification/AadhaarVerificationScreen';
+import VerifyIdentityScreen from '../screens/verification/VerifyIdentityScreen';
 import BusinessVerificationScreen from '../screens/verification/BusinessVerificationScreen';
 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -70,8 +77,17 @@ const MainTabNavigator = () => {
 
     useEffect(() => {
         const checkUser = async () => {
-            const user = await userService.getUser();
-            setIsBusiness(user?.userType === 'business' || user?.userType === 'provider');
+            try {
+                // Timeout guard: if AsyncStorage is slow on cold boot, don't stall tab rendering
+                const userWithTimeout = await Promise.race([
+                    userService.getUser(),
+                    new Promise(resolve => setTimeout(() => resolve(null), 3000))
+                ]);
+                setIsBusiness(userWithTimeout?.userType === 'business' || userWithTimeout?.userType === 'provider');
+            } catch (e) {
+                // Non-critical — tab bar falls back to individual layout
+                setIsBusiness(false);
+            }
         };
         checkUser();
     }, []);
@@ -143,7 +159,7 @@ const MainNavigator = () => {
             <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <Stack.Screen name="EventDetail" component={EventDetailScreen} />
             <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
-            <Stack.Screen name="AadhaarVerification" component={AadhaarVerificationScreen} />
+            <Stack.Screen name="VerifyIdentity" component={VerifyIdentityScreen} />
             <Stack.Screen name="BusinessVerification" component={BusinessVerificationScreen} />
             <Stack.Screen name="EventBuddy" component={EventBuddyScreen} />
             <Stack.Screen name="CreateBuddyRequest" component={CreateBuddyRequestScreen} />
@@ -170,6 +186,7 @@ const MainNavigator = () => {
             <Stack.Screen name="ChatList" component={ChatListScreen} />
             <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
             <Stack.Screen name="EventList" component={EventListScreen} />
+            <Stack.Screen name="BuddyRequestDetail" component={BuddyRequestDetailScreen} />
             <Stack.Screen name="ReviewList" component={ReviewListScreen} />
             <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
         </Stack.Navigator>
@@ -178,13 +195,84 @@ const MainNavigator = () => {
 
 import { pushNotificationService } from '../services/pushNotificationService';
 
+const SETTINGS_KEY = '@croww_user_settings';
+const LAST_ASK_KEY = '@croww_last_notification_ask';
+
 const AppNavigator = () => {
     const { user, loading, isBlocked, isAuthenticated } = useAuth();
+    const appState = useRef(AppState.currentState);
+
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            if (
+                appState.current.match(/inactive|background/) &&
+                nextAppState === 'active'
+            ) {
+                // Forcefully clear the splash screen when app comes back to foreground
+                // This prevents the iOS bug where a black splash screen persists after minimizing
+                SplashScreen.hideAsync().catch(() => { });
+            }
+            appState.current = nextAppState;
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, []);
 
     useEffect(() => {
         if (isAuthenticated && user) {
-            // Register for push notifications
-            pushNotificationService.registerForPushNotificationsAsync();
+            // CRITICAL FIX FOR iPADOS: Defer push notification registration by 3 seconds.
+            // Calling registerForPushNotificationsAsync() immediately on auth fires the
+            // iOS permission sheet during the navigation transition render window, which
+            // can block ALL touch input on iPad even after JS-side has moved on.
+            const pushDelay = setTimeout(async () => {
+                try {
+                    // REQUIRE CONSENT: Check if user has explicitly enabled push notifications
+                    const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+                    const parsed = stored ? JSON.parse(stored) : {};
+
+                    if (parsed.pushNotifications === true) {
+                        console.log('[AppNavigator] Push notifications enabled in settings, registering...');
+                        pushNotificationService.registerForPushNotificationsAsync();
+                    } else {
+                        console.log('[AppNavigator] Push notifications disabled in settings, checking for daily prompt...');
+                        
+                        // DAILY PROMPT LOGIC
+                        const lastAsk = await AsyncStorage.getItem(LAST_ASK_KEY);
+                        const today = new Date().toISOString().split('T')[0];
+
+                        if (lastAsk !== today) {
+                            showAlert(
+                                'Enable Notifications',
+                                'Stay updated! Switch on notifications to get your messages and booking updates faster.',
+                                [
+                                    { text: 'Later', style: 'cancel' },
+                                    { 
+                                        text: 'Turn On', 
+                                        onPress: async () => {
+                                            const token = await pushNotificationService.registerForPushNotificationsAsync();
+                                            if (token) {
+                                                // Update settings so we don't ask again and start registering tokens
+                                                await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({
+                                                    ...parsed,
+                                                    pushNotifications: true
+                                                }));
+                                                showAlert('Success', 'Push notifications have been enabled.');
+                                            } else {
+                                                showAlert('Permission Required', 'To enable notifications, please allow them in your device settings.');
+                                            }
+                                        }
+                                    }
+                                ]
+                            );
+                            await AsyncStorage.setItem(LAST_ASK_KEY, today);
+                        }
+                    }
+                } catch (e) {
+                    console.error('[AppNavigator] Error in notification logic:', e);
+                }
+            }, 3000);
 
             // Add listener for when user interacts with notification
             const cleanup = pushNotificationService.addNotificationListeners(
@@ -192,12 +280,17 @@ const AppNavigator = () => {
                     console.log('Notification Received in Foreground:', notification);
                 },
                 (response) => {
-                    console.log('User Interacted with Notification:', response);
-                    // Navigation logic could go here based on response.notification.request.content.data
+                    // User tapped a push notification — deep link to the relevant screen
+                    const data = response?.notification?.request?.content?.data || {};
+                    console.log('Push notification tapped, navigating with data:', data);
+                    if (navigationRef.isReady()) {
+                        navigateFromNotification(navigationRef, data);
+                    }
                 }
             );
 
             return () => {
+                clearTimeout(pushDelay);
                 if (cleanup) cleanup();
             };
         }
@@ -218,7 +311,7 @@ const AppNavigator = () => {
     }
 
     return (
-        <NavigationContainer linking={linking}>
+        <NavigationContainer linking={linking} ref={navigationRef}>
             <Stack.Navigator screenOptions={{ headerShown: false }}>
                 {isBlocked ? (
                     <Stack.Screen name="Blocked" component={BlockedScreen} />

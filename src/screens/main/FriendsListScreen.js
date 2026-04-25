@@ -1,137 +1,181 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, FlatList, Image, RefreshControl, Alert, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import {
+    View, StyleSheet, FlatList, Image,
+    RefreshControl, TouchableOpacity, ActivityIndicator
+} from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
-import { SPACING, COLORS } from '../../constants/theme';
+import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
-import { friendService } from '../../services/friendService';
+import { userService } from '../../services/userService';
+import { buddyService } from '../../services/buddyService';
 import { getAvatarSource } from '../../utils/avatarHelper';
 import { auth } from '../../services/firebaseConfig';
+import { useAuth } from '../../context/AuthContext';
+
+const TABS = [
+    { id: 'followers', label: 'Followers' },
+    { id: 'following', label: 'Following' },
+    { id: 'buddies', label: 'Buddies' }
+];
 
 const FriendsListScreen = ({ navigation, route }) => {
-    // If userId is passed, we view that user's friends (if public - for now assume yes or own)
-    // Default to current user
-    const targetUserId = route.params?.userId || auth.currentUser?.uid;
+    const { user: authUser } = useAuth();
+    // Support viewing another user's profile's followers/following
+    const targetUserId = route.params?.userId || authUser?.id || authUser?.uid || auth.currentUser?.uid;
+    const isOwnProfile = targetUserId === (authUser?.id || authUser?.uid || auth.currentUser?.uid);
 
-    const [friends, setFriends] = useState([]);
+    const defaultTab = route.params?.activeTab || 'followers';
+    const [activeTab, setActiveTab] = useState(defaultTab);
+    const [data, setData] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
-    const isOwnProfile = targetUserId === auth.currentUser?.uid;
 
-    useEffect(() => {
-        loadFriends();
-    }, []);
-
-    const loadFriends = async () => {
+    const loadData = useCallback(async () => {
+        if (!targetUserId) return;
+        setLoading(true);
         try {
-            const data = await friendService.getFriends(targetUserId);
-            setFriends(data);
-        } catch (error) {
-            console.error("Error loading friends:", error);
+            if (activeTab === 'followers') {
+                const ids = await userService.getFollowerIds(targetUserId);
+                const profiles = await Promise.all(
+                    ids.map(id => userService.getUserById(id).catch(() => null))
+                );
+                setData(profiles.filter(Boolean));
+            } else if (activeTab === 'following') {
+                const ids = await userService.getFollowingIds(targetUserId);
+                const profiles = await Promise.all(
+                    ids.map(id => userService.getUserById(id).catch(() => null))
+                );
+                setData(profiles.filter(Boolean));
+            } else {
+                // Buddies = co-members of any buddy group
+                const buddies = await buddyService.getMyBuddies(targetUserId);
+                setData(buddies);
+            }
+        } catch (e) {
+            console.error('FriendsListScreen load error:', e);
+            setData([]);
         } finally {
             setLoading(false);
             setRefreshing(false);
         }
+    }, [activeTab, targetUserId]);
+
+    useEffect(() => {
+        loadData();
+    }, [loadData]);
+
+    const handlePress = (userId) => {
+        navigation.push('ServiceDetail', { serviceId: userId });
     };
 
-    const handleUnfriend = (friend) => {
-        Alert.alert(
-            "Unfriend",
-            `Are you sure you want to remove ${friend.name} as a friend?`,
-            [
-                { text: "Cancel", style: "cancel" },
-                {
-                    text: "Unfriend",
-                    style: 'destructive',
-                    onPress: async () => {
-                        const result = await friendService.removeFriend(friend.friendId);
-                        if (result.success) {
-                            setFriends(prev => prev.filter(f => f.id !== friend.id));
-                        }
-                    }
-                }
-            ]
+    const emptyMessages = {
+        followers: 'No followers yet.',
+        following: 'Not following anyone yet.',
+        buddies: 'No buddies yet. Join a buddy group at an event!'
+    };
+
+    const renderItem = ({ item }) => {
+        const userId = item.id || item.uid;
+        const name = item.name || 'User';
+        const avatar = item.avatar || item.userAvatar || null;
+
+        return (
+            <TouchableOpacity onPress={() => handlePress(userId)} activeOpacity={0.75}>
+                <NotionCard style={styles.card}>
+                    <Image
+                        source={getAvatarSource(avatar, item.userType || 'individual')}
+                        style={styles.avatar}
+                    />
+                    <View style={styles.info}>
+                        <Typography variant="body" style={{ fontWeight: '600' }}>
+                            {name}
+                        </Typography>
+                        {item.bio ? (
+                            <Typography variant="caption" style={{ color: COLORS.secondary }} numberOfLines={1}>
+                                {item.bio}
+                            </Typography>
+                        ) : activeTab === 'buddies' && item.eventId ? (
+                            <Typography variant="caption" style={{ color: COLORS.accent }}>
+                                Event buddy
+                            </Typography>
+                        ) : null}
+                    </View>
+                    <TouchableOpacity
+                        style={styles.iconBtn}
+                        onPress={() => navigation.navigate('Chat', {
+                            recipientId: userId,
+                            recipientName: name
+                        })}
+                    >
+                        <Ionicons name="chatbubble-outline" size={20} color={COLORS.accent} />
+                    </TouchableOpacity>
+                </NotionCard>
+            </TouchableOpacity>
         );
     };
 
-    const handlePressFriend = (friendId) => {
-        navigation.push('Profile', { userId: friendId });
-    };
-
-    const renderItem = ({ item }) => (
-        <TouchableOpacity onPress={() => handlePressFriend(item.friendId)} activeOpacity={0.7}>
-            <NotionCard style={styles.card}>
-                <Image
-                    source={getAvatarSource(item.avatar, 'individual')}
-                    style={styles.avatar}
-                />
-                <View style={styles.info}>
-                    <Typography variant="body" style={{ fontWeight: '600' }}>
-                        {item.name}
-                    </Typography>
-                    {/* Could show mutual friends count here if we calculate it */}
-                </View>
-
-                {isOwnProfile && (
-                    <TouchableOpacity style={styles.iconBtn} onPress={() => handleUnfriend(item)}>
-                        <Ionicons name="person-remove-outline" size={20} color={COLORS.secondary} />
-                    </TouchableOpacity>
-                )}
-
-                {/* Message Button - always useful */}
-                <TouchableOpacity
-                    style={[styles.iconBtn, { marginRight: isOwnProfile ? SPACING.s : 0 }]}
-                    onPress={() => navigation.navigate('Chat', { recipientId: item.friendId, recipientName: item.name })}
-                >
-                    <Ionicons name="chatbubble-outline" size={20} color={COLORS.accent} />
-                </TouchableOpacity>
-
-            </NotionCard>
-        </TouchableOpacity>
-    );
-
     return (
         <ScreenWrapper edges={['top']}>
+            {/* Header */}
             <View style={styles.header}>
-                <View style={styles.headerTop}>
-                    <Ionicons
-                        name="arrow-back"
-                        size={24}
-                        color={COLORS.primary}
-                        onPress={() => navigation.goBack()}
-                    />
-                    <Typography variant="h3" style={{ marginLeft: SPACING.m }}>
-                        {isOwnProfile ? "My Friends" : "Friends"}
-                    </Typography>
-                </View>
-                {isOwnProfile && (
-                    <TouchableOpacity onPress={() => navigation.navigate('FriendRequests')}>
-                        <Typography variant="body" style={{ color: COLORS.accent, fontWeight: '600' }}>
-                            Requests
-                        </Typography>
-                    </TouchableOpacity>
-                )}
+                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+                    <Ionicons name="arrow-back" size={24} color={COLORS.primary} />
+                </TouchableOpacity>
+                <Typography variant="h3">
+                    {isOwnProfile ? 'My Network' : 'Profile'}
+                </Typography>
             </View>
 
-            <FlatList
-                data={friends}
-                keyExtractor={item => item.id}
-                renderItem={renderItem}
-                contentContainerStyle={styles.content}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); loadFriends(); }} />
-                }
-                ListEmptyComponent={
-                    !loading && (
-                        <View style={styles.emptyState}>
-                            <Typography variant="body" style={{ color: COLORS.secondary }}>
-                                No friends yet. Go verify out some events!
+            {/* Tabs */}
+            <View style={styles.tabBar}>
+                {TABS.map(tab => (
+                    <TouchableOpacity
+                        key={tab.id}
+                        style={[styles.tab, activeTab === tab.id && styles.activeTab]}
+                        onPress={() => setActiveTab(tab.id)}
+                    >
+                        <Typography
+                            variant="body"
+                            style={[styles.tabLabel, activeTab === tab.id && styles.activeTabLabel]}
+                        >
+                            {tab.label}
+                        </Typography>
+                    </TouchableOpacity>
+                ))}
+            </View>
+
+            {loading ? (
+                <View style={styles.center}>
+                    <ActivityIndicator size="large" color={COLORS.accent} />
+                </View>
+            ) : (
+                <FlatList
+                    data={data}
+                    keyExtractor={(item, i) => item?.id || item?.uid || String(i)}
+                    renderItem={renderItem}
+                    contentContainerStyle={styles.list}
+                    refreshControl={
+                        <RefreshControl
+                            refreshing={refreshing}
+                            onRefresh={() => { setRefreshing(true); loadData(); }}
+                        />
+                    }
+                    ListEmptyComponent={
+                        <View style={styles.empty}>
+                            <Ionicons
+                                name={activeTab === 'buddies' ? 'people-circle-outline' : 'person-outline'}
+                                size={56}
+                                color={COLORS.border}
+                            />
+                            <Typography variant="body" style={styles.emptyText}>
+                                {emptyMessages[activeTab]}
                             </Typography>
                         </View>
-                    )
-                }
-            />
+                    }
+                />
+            )}
         </ScreenWrapper>
     );
 };
@@ -139,17 +183,41 @@ const FriendsListScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     header: {
         flexDirection: 'row',
-        justifyContent: 'space-between',
         alignItems: 'center',
         padding: SPACING.m,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
+        gap: SPACING.m,
     },
-    headerTop: {
+    backBtn: {
+        padding: 4,
+    },
+    tabBar: {
         flexDirection: 'row',
-        alignItems: 'center',
+        marginHorizontal: SPACING.m,
+        marginTop: SPACING.m,
+        backgroundColor: COLORS.surfaceHighlight + '40',
+        borderRadius: BORDER_RADIUS.m,
+        padding: 4,
     },
-    content: {
+    tab: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        borderRadius: BORDER_RADIUS.s,
+    },
+    activeTab: {
+        backgroundColor: COLORS.surfaceHighlight,
+    },
+    tabLabel: {
+        color: COLORS.secondary,
+        fontWeight: '600',
+        fontSize: 13,
+    },
+    activeTabLabel: {
+        color: COLORS.accent,
+    },
+    list: {
         padding: SPACING.m,
     },
     card: {
@@ -159,9 +227,9 @@ const styles = StyleSheet.create({
         marginBottom: SPACING.m,
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         marginRight: SPACING.m,
         backgroundColor: COLORS.surfaceHighlight,
     },
@@ -171,9 +239,21 @@ const styles = StyleSheet.create({
     iconBtn: {
         padding: SPACING.s,
     },
-    emptyState: {
+    center: {
+        flex: 1,
         alignItems: 'center',
-        padding: SPACING.xl,
+        justifyContent: 'center',
+        marginTop: 80,
+    },
+    empty: {
+        alignItems: 'center',
+        marginTop: 80,
+        paddingHorizontal: SPACING.xl,
+    },
+    emptyText: {
+        color: COLORS.secondary,
+        marginTop: SPACING.m,
+        textAlign: 'center',
     }
 });
 

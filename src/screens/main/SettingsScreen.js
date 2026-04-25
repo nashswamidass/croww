@@ -10,12 +10,13 @@ import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
+import { pushNotificationService } from '../../services/pushNotificationService';
 
 const SETTINGS_KEY = '@croww_user_settings';
 
 const SettingsScreen = ({ navigation }) => {
     const { user: currentUser } = useAuth();
-    const [pushNotifications, setPushNotifications] = useState(true);
+    const [pushNotifications, setPushNotifications] = useState(false);
     const [emailNotifications, setEmailNotifications] = useState(false);
     const [locationServices, setLocationServices] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
@@ -37,7 +38,7 @@ const SettingsScreen = ({ navigation }) => {
             const stored = await AsyncStorage.getItem(SETTINGS_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                setPushNotifications(parsed.pushNotifications ?? true);
+                setPushNotifications(parsed.pushNotifications ?? false);
                 setEmailNotifications(parsed.emailNotifications ?? false);
                 setLocationServices(parsed.locationServices ?? true);
             }
@@ -60,11 +61,23 @@ const SettingsScreen = ({ navigation }) => {
         }
     };
 
-    const handleTogglePushNotifications = (value) => {
-        setPushNotifications(value);
+    const handleTogglePushNotifications = async (value) => {
         if (value) {
-            showAlert('Push Notifications', 'Push notifications have been enabled.');
+            // Requesting consent/registration when toggled on
+            const token = await pushNotificationService.registerForPushNotificationsAsync();
+            if (token) {
+                setPushNotifications(true);
+                showAlert('Push Notifications', 'Push notifications have been enabled.');
+            } else {
+                // If user denies or it fails, keep it off
+                setPushNotifications(false);
+                showAlert(
+                    'Notifications Disabled', 
+                    'To receive push notifications, please enable them in your device settings.'
+                );
+            }
         } else {
+            setPushNotifications(false);
             showAlert('Push Notifications', 'Push notifications have been disabled. You can re-enable them anytime.');
         }
     };
@@ -203,7 +216,7 @@ const SettingsScreen = ({ navigation }) => {
                                 if (currentUser?.userType === 'business') {
                                     navigation.navigate('BusinessVerification');
                                 } else {
-                                    navigation.navigate('AadhaarVerification');
+                                    navigation.navigate('VerifyIdentity');
                                 }
                             }}
                         />

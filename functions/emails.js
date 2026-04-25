@@ -111,56 +111,73 @@ const getPasswordResetTemplate = (name, resetLink) => getBaseHtml(`
  * Generic Email Sending Utility
  */
 const sendEmail = async ({ to, subject, html, text }) => {
-    const fromEmail = process.env.SMTP_USER || 'support@croww.ai';
-    const pass = process.env.SMTP_PASS || '44342a1d35fc27b39434a4020157f912-58d4d6a2-213f82c8';
+    const apiKey = process.env.MAILGUN_API_KEY;
+    const fromAddress = process.env.SMTP_FROM || 'support@croww.ai';
+    const domain = fromAddress.split('@')[1] || 'croww.ai';
 
-    logger.info(`[EmailService] Preparing email to: ${to} | Subject: ${subject}`);
-    logger.info(`[EmailService] Payload size - HTML: ${html?.length || 0}, Text: ${text?.length || 0}`);
+    logger.info(`[EmailService-V2-HTTP] Preparing email to: ${to} | Subject: ${subject}`);
 
     try {
-        if (!fromEmail || !pass) {
-            logger.warn("[EmailService] No SMTP credentials available.");
-            return { success: false, error: "Missing SMTP credentials" };
+        if (!apiKey) {
+            logger.error("[EmailService] MAILGUN_API_KEY is missing in env.");
+            return { success: false, error: "Missing API Key" };
         }
 
-        const transporter = nodemailer.createTransport({
-            host: process.env.SMTP_HOST || 'smtp.mailgun.org',
-            port: parseInt(process.env.SMTP_PORT || '587'),
-            secure: false,
-            auth: {
-                user: fromEmail,
-                pass: pass,
+        // Mailgun API uses Basic Auth with 'api:API_KEY'
+        const auth = Buffer.from(`api:${apiKey}`).toString('base64');
+        const endpoint = `https://api.mailgun.net/v3/${domain}/messages`;
+
+        // We use URLSearchParams for the form-data body required by Mailgun
+        const params = new URLSearchParams();
+        params.append('from', `"${APP_NAME}" <${fromAddress}>`);
+        params.append('to', to);
+        params.append('subject', subject);
+        params.append('html', html);
+        if (text) params.append('text', text);
+
+        const response = await fetch(endpoint, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Basic ${auth}`,
+                'Content-Type': 'application/x-www-form-urlencoded'
             },
+            body: params.toString()
         });
 
-        // 1. Verify connection
-        try {
-            await transporter.verify();
-        } catch (verifyError) {
-            logger.error("[EmailService] SMTP verification failed:", verifyError.message);
-            throw verifyError;
+        const data = await response.json().catch(() => ({}));
+
+        if (response.ok) {
+            logger.info(`[EmailService] Sent! ID: ${data.id}. Message: ${data.message}`);
+            return { success: true };
+        } else {
+            logger.error(`[EmailService] Mailgun API Error: ${response.status}`, data);
+            return { success: false, error: data.message || "Mailgun API Error" };
         }
-
-        const senderAddress = process.env.SMTP_FROM || `support@mg.croww.ai`;
-
-        const info = await transporter.sendMail({
-            from: `"${APP_NAME}" <${senderAddress}>`,
-            to,
-            subject,
-            html,
-            text: text || "This email requires HTML support to view properly.",
-        });
-
-        logger.info(`[EmailService] Sent! MessageId: ${info.messageId}`);
-        return { success: true };
     } catch (error) {
-        logger.error("[EmailService] Error:", error);
-        return { success: false, error: error.message || "Unknown SMTP Error" };
+        logger.error("[EmailService] Fetch Error:", error);
+        return { success: false, error: error.message || "Unknown error" };
     }
 };
+
+/**
+ * Event Cancellation Email Template
+ */
+const getCancellationTemplate = (attendeeName, eventTitle, eventDate) => getBaseHtml(`
+    <h1>Event Cancelled: ${eventTitle}</h1>
+    <p>Hi ${attendeeName},</p>
+    <p>We're sorry to let you know that the following event has been <strong style="color: #cc3333;">cancelled</strong> by the organizer:</p>
+    <p style="font-size: 20px; font-weight: bold; color: #fff; padding: 16px; background: #1a1a1a; border-radius: 8px; border-left: 4px solid #800080;">
+        ${eventTitle}
+    </p>
+    <p style="color: #888;">Originally scheduled for: ${eventDate}</p>
+    <p>If you purchased a paid ticket, please contact the organizer or our support team at <a href="mailto:support@croww.ai" style="color: #800080;">support@croww.ai</a> for a refund.</p>
+    <p style="margin-top: 30px; font-size: 14px;">We're sorry for the inconvenience. The Croww team will do our best to keep you informed of new events in your area.</p>
+    <a href="https://croww.ai" class="button">Browse Other Events</a>
+`);
 
 module.exports = {
     sendEmail,
     getWelcomeTemplate,
     getPasswordResetTemplate,
+    getCancellationTemplate,
 };

@@ -1,6 +1,15 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, Component } from 'react';
 import { View, StyleSheet, TouchableOpacity, TextInput, Platform, ActivityIndicator } from 'react-native';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
+
+class MapErrorBoundary extends Component {
+  constructor(props) { super(props); this.state = { hasError: false, error: null }; }
+  static getDerivedStateFromError(error) { return { hasError: true, error }; }
+  render() {
+    if (this.state.hasError) return <View style={{flex:1, padding: 50, backgroundColor: 'red'}}><Typography variant="body" style={{color:'white'}}>{this.state.error?.toString()}\n\n{this.state.error?.stack}</Typography></View>;
+    return this.props.children;
+  }
+}
+import { GoogleMap, useJsApiLoader, MarkerF, InfoWindowF } from '@react-google-maps/api';
 import { Ionicons } from '@expo/vector-icons';
 import { locationService } from '../../services/locationService';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -9,8 +18,11 @@ import Typography from '../../components/Typography';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, BORDER_RADIUS, SPACING } from '../../constants/theme';
 import { eventService } from '../../services/eventService';
+import { buddyService } from '../../services/buddyService';
 import { DARK_MAP_STYLE } from '../../constants/mapStyle';
 import { CITY_COORDINATES } from '../../constants/location';
+import { useFocusEffect } from '@react-navigation/native';
+import { useAuth } from '../../context/AuthContext';
 import EventSummaryCard from '../../components/EventSummaryCard';
 import AntigravityButton from '../../components/AntigravityButton';
 
@@ -19,23 +31,29 @@ const mapContainerStyle = {
     height: '100%',
 };
 
-const center = {
+const defaultCenter = {
     lat: 19.0760,
     lng: 72.8777,
 };
+
+const libraries = ['places'];
 
 const MapScreenWeb = ({ navigation }) => {
     const insets = useSafeAreaInsets();
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [allEvents, setAllEvents] = useState([]);
     const [displayedEvents, setDisplayedEvents] = useState([]);
-    const [timeFilter, setTimeFilter] = useState('ALL');
-    const [currentPosition, setCurrentPosition] = useState(center);
+    const [timeFilter, setTimeFilter] = useState('1M');
+    const [currentPosition, setCurrentPosition] = useState(defaultCenter);
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
     const [searchingPlace, setSearchingPlace] = useState(false);
     const [map, setMap] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [showBuddyRequests, setShowBuddyRequests] = useState(false);
+    const [activeBuddyEventIds, setActiveBuddyEventIds] = useState(new Set());
+    const [isLocationSearch, setIsLocationSearch] = useState(false);
+    const { user: authUser, loading: authLoading } = useAuth();
     const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
     const goToUserLocation = async () => {
@@ -53,13 +71,13 @@ const MapScreenWeb = ({ navigation }) => {
                     map.setZoom(14);
                 }
             } else if (map) {
-                map.panTo(center);
+                map.panTo(defaultCenter);
                 map.setZoom(12);
             }
         } catch (error) {
             console.log("Map location detection failed:", error);
             if (map) {
-                map.panTo(center);
+                map.panTo(defaultCenter);
                 map.setZoom(12);
             }
         }
@@ -68,7 +86,7 @@ const MapScreenWeb = ({ navigation }) => {
     const { isLoaded, loadError } = useJsApiLoader({
         id: 'google-map-script',
         googleMapsApiKey: API_KEY,
-        libraries: ['places']
+        libraries,
     });
 
     useEffect(() => {
@@ -79,7 +97,19 @@ const MapScreenWeb = ({ navigation }) => {
     }, [loadError]);
 
     useEffect(() => {
-        const checkManualCity = async () => {
+        const initLocation = async () => {
+            // 1. Try cached location first
+            const cached = await locationService.getCachedLocation();
+            if (cached.coords) {
+                const pos = { lat: cached.coords.latitude, lng: cached.coords.longitude };
+                setCurrentPosition(pos);
+                if (map) {
+                    map.panTo(pos);
+                    map.setZoom(12);
+                }
+            }
+
+            // 2. Check for manual city choice
             const manualCity = await AsyncStorage.getItem('manualCity');
             if (manualCity && CITY_COORDINATES[manualCity]) {
                 const coords = {
@@ -91,49 +121,103 @@ const MapScreenWeb = ({ navigation }) => {
                     map.panTo(coords);
                     map.setZoom(12);
                 }
+            } else {
+                // 3. Try real location refresh
+                goToUserLocation();
             }
         };
-        checkManualCity();
+        initLocation();
     }, [map]);
 
-    useEffect(() => {
-        const fetchEvents = async () => {
-            try {
-                const events = await eventService.getEvents();
-                setAllEvents(events);
-                setDisplayedEvents(events);
-            } catch (error) {
-                console.log("Error fetching events for web:", error);
-            }
-        };
-        fetchEvents();
+    const fetchData = useCallback(async () => {
+        try {
+            const [events, buddyRequests] = await Promise.all([
+                eventService.getEvents(),
+                buddyService.getAllBuddyRequestsGlobally()
+            ]);
+
+            console.log(`[Map.web] Fetched ${events.length} events and ${buddyRequests.length} buddy requests`);
+            setAllEvents(events);
+
+            // Extract unique event IDs that have active buddy requests
+            const buddyIds = new Set(
+                buddyRequests
+                    .filter(req => (req.spotsRemaining || 0) > 0)
+                    .map(req => req.eventId)
+            );
+            setActiveBuddyEventIds(buddyIds);
+        } catch (error) {
+            console.error("[Map.web] Fetch error:", error, error.stack);
+        }
     }, []);
+
+    // Fetch on focus
+    useFocusEffect(
+        useCallback(() => {
+            fetchData();
+        }, [fetchData])
+    );
+
+    // Fetch on mount
+    useEffect(() => {
+        fetchData();
+    }, [fetchData]);
 
     useEffect(() => {
         const now = new Date();
         const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
         const filtered = allEvents.filter(event => {
-            if (searchQuery) {
+            // Apply Buddy Request Filter
+            if (showBuddyRequests) {
+                // Must have an active buddy request
+                if (!activeBuddyEventIds.has(event.id)) return false;
+            } else {
+                // Broadened isBusiness check to capture 'verified' status too
+                const isBusiness = event.isOfficial ||
+                    event.verificationType === 'business' ||
+                    (event.verificationStatus === 'verified' && event.verificationType === 'business');
+
+                // Check for BOTH id and uid for robustness
+                const currentUserId = authUser?.id || authUser?.uid;
+                const isOrganizer = currentUserId && (event.organizerId === currentUserId);
+                const isPublic = event.isPublic !== false; // Default to true if missing
+
+
+                // Show if it's public, or a business event, OR if the current user is the owner
+                if (!isPublic && !isBusiness && !isOrganizer) {
+                    return false;
+                }
+            }
+
+            if (searchQuery && !showSuggestions && !isLocationSearch) {
                 const query = searchQuery.toLowerCase();
                 const titleMatch = event.title?.toLowerCase().includes(query);
                 const categoryMatch = event.category?.toLowerCase().includes(query);
                 if (!titleMatch && !categoryMatch) return false;
             }
 
-            if (!event.timestamp) return true;
-            const eventDate = new Date(event.timestamp);
-            const diffDays = Math.ceil((eventDate - startOfToday) / (1000 * 60 * 60 * 24));
+            if (!event.date) return timeFilter === 'ALL';
 
-            if (timeFilter === '1D') return diffDays >= 0 && diffDays <= 1;
-            if (timeFilter === '1W') return diffDays >= 0 && diffDays <= 7;
-            if (timeFilter === '1M') return diffDays >= 0 && diffDays <= 30;
+            try {
+                const eventDate = event.date?.toDate ? event.date.toDate() : new Date(event.date);
+                if (isNaN(eventDate.getTime())) return timeFilter === 'ALL';
 
-            return true;
+                const diffDays = Math.ceil((eventDate - startOfToday) / (1000 * 60 * 60 * 24));
+
+                if (timeFilter === '1D') return diffDays >= 0 && diffDays <= 1;
+                if (timeFilter === '1W') return diffDays >= 0 && diffDays <= 7;
+                if (timeFilter === '1M') return diffDays >= 0 && diffDays <= 30;
+
+                return true;
+            } catch (e) {
+                console.warn(`[Map.web] Invalid date on event ${event.id}:`, event.date);
+                return timeFilter === 'ALL';
+            }
         });
 
         setDisplayedEvents(filtered);
-    }, [timeFilter, searchQuery, allEvents]);
+    }, [timeFilter, searchQuery, allEvents, showBuddyRequests, activeBuddyEventIds, authLoading, authUser, isLocationSearch, showSuggestions]);
 
     const onLoad = useCallback(function callback(map) {
         setMap(map);
@@ -176,6 +260,7 @@ const MapScreenWeb = ({ navigation }) => {
         setSearchQuery(description);
         setSuggestions([]);
         setShowSuggestions(false);
+        setIsLocationSearch(true);
 
         if (!map || !window.google?.maps?.places) return;
 
@@ -190,6 +275,7 @@ const MapScreenWeb = ({ navigation }) => {
                         lat: place.geometry.location.lat(),
                         lng: place.geometry.location.lng(),
                     };
+                    setCurrentPosition(newPos); // SYNC STATE
                     map.panTo(newPos);
                     map.setZoom(14);
                 }
@@ -201,14 +287,17 @@ const MapScreenWeb = ({ navigation }) => {
 
     const handleSearch = async () => {
         if (!searchQuery.trim() || !map) return;
+        setIsLocationSearch(true);
 
         // 1. Try to find local event matches
         const firstMatch = displayedEvents[0];
         if (firstMatch) {
-            map.panTo({
+            const newPos = {
                 lat: firstMatch.coordinate.latitude,
                 lng: firstMatch.coordinate.longitude
-            });
+            };
+            setCurrentPosition(newPos); // SYNC STATE
+            map.panTo(newPos);
             map.setZoom(14);
             return;
         }
@@ -219,14 +308,95 @@ const MapScreenWeb = ({ navigation }) => {
             geocoder.geocode({ address: searchQuery, componentRestrictions: { country: 'in' } }, (results, status) => {
                 if (status === 'OK' && results[0]) {
                     const { lat, lng } = results[0].geometry.location;
-                    map.panTo({ lat: lat(), lng: lng() });
+                    const newPos = { lat: lat(), lng: lng() };
+                    setCurrentPosition(newPos); // SYNC STATE
+                    map.panTo(newPos);
                     map.setZoom(12);
                 }
             });
         }
     };
 
-    const handleDetails = (event) => navigation.navigate('EventDetail', { id: event.id, event });
+    const handleDetails = (event) => {
+        if (event && event.id) {
+            navigation.navigate('EventDetail', { id: event.id, event });
+        }
+    };
+
+    const getCategoryLabel = (category) => {
+        const cat = category?.toLowerCase();
+        switch (cat) {
+            case 'party': return '🍷';
+            case 'dinner': return '🍽️';
+            case 'movie': return '🎬';
+            case 'concert': return '🎵';
+            case 'workshop': return '🛠️';
+            case 'sports': return '⚽';
+            case 'networking': return '💼';
+            case 'art': return '🎨';
+            case 'nightlife': return '🌙';
+            default: return '✨'; // Star instead of pin to avoid confusion
+        }
+    };
+
+    const getCategoryColor = (category) => {
+        const cat = category?.toLowerCase();
+        switch (cat) {
+            case 'party': return COLORS.accents.pink;
+            case 'dinner': return COLORS.accents.orange;
+            case 'movie': return COLORS.accents.blue;
+            case 'concert': return COLORS.accents.purple;
+            case 'workshop': return COLORS.accents.yellow;
+            case 'sports': return COLORS.accents.blue;
+            case 'networking': return COLORS.accents.purple;
+            case 'art': return COLORS.accents.pink;
+            case 'nightlife': return COLORS.accents.purple;
+            default: return COLORS.accent; // Brand Green for others
+        }
+    };
+
+    const createMarkerIcon = (emoji, color, isBuddy) => {
+        const mainColor = isBuddy ? '#9C27B0' : color;
+        const isDark = isBuddy;
+        const glowOpacity = isBuddy ? '0.4' : '0.2';
+        const svgString = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="52" height="62" viewBox="0 0 52 62">
+                <defs>
+                    <radialGradient id="pinGrad" cx="35%" cy="30%">
+                        <stop offset="0%" stop-color="${isBuddy ? '#CE93D8' : lightenColor(mainColor)}" stop-opacity="1"/>
+                        <stop offset="100%" stop-color="${mainColor}" stop-opacity="1"/>
+                    </radialGradient>
+                    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+                        <feDropShadow dx="0" dy="3" stdDeviation="3" flood-color="${mainColor}" flood-opacity="${glowOpacity}"/>
+                    </filter>
+                </defs>
+                <!-- Pin body -->
+                <path d="M26 2 C14 2, 4 12, 4 24 C4 38, 26 58, 26 58 C26 58, 48 38, 48 24 C48 12, 38 2, 26 2 Z"
+                    fill="url(#pinGrad)" filter="url(#shadow)"/>
+                <!-- Inner white circle -->
+                <circle cx="26" cy="24" r="14" fill="white" opacity="0.95"/>
+                <!-- Emoji text -->
+                <text x="26" y="30" text-anchor="middle" font-size="16" font-family="Apple Color Emoji, Segoe UI Emoji, sans-serif">${emoji}</text>
+            </svg>
+        `;
+        const encoded = encodeURIComponent(svgString.trim());
+        return {
+            url: `data:image/svg+xml,${encoded}`,
+            scaledSize: new window.google.maps.Size(52, 62),
+            anchor: new window.google.maps.Point(26, 58),
+        };
+    };
+
+    // Simple color lightener for gradient
+    const lightenColor = (hex) => {
+        try {
+            const num = parseInt(hex.replace('#', ''), 16);
+            const r = Math.min(255, ((num >> 16) & 0xff) + 60);
+            const g = Math.min(255, ((num >> 8) & 0xff) + 60);
+            const b = Math.min(255, (num & 0xff) + 60);
+            return `rgb(${r},${g},${b})`;
+        } catch { return hex; }
+    };
 
     if (!isLoaded) {
         return (
@@ -243,7 +413,7 @@ const MapScreenWeb = ({ navigation }) => {
         <View style={styles.container}>
             <GoogleMap
                 mapContainerStyle={mapContainerStyle}
-                center={center}
+                center={currentPosition}
                 zoom={12}
                 onLoad={onLoad}
                 onUnmount={onUnmount}
@@ -254,24 +424,49 @@ const MapScreenWeb = ({ navigation }) => {
                 }}
                 onClick={() => setSelectedEvent(null)}
             >
-                {displayedEvents.map(event => (
-                    <Marker
-                        key={event.id}
-                        position={{
-                            lat: event.coordinate.latitude,
-                            lng: event.coordinate.longitude
-                        }}
-                        onClick={() => setSelectedEvent(event)}
-                        icon={{
-                            path: window.google && window.google.maps ? window.google.maps.SymbolPath.CIRCLE : 0,
-                            fillColor: event.color || COLORS.accent,
-                            fillOpacity: 1,
-                            strokeWeight: 2,
-                            strokeColor: '#FFFFFF',
-                            scale: 8,
-                        }}
-                    />
-                ))}
+                {displayedEvents.map(event => {
+                    const hasActiveBuddyRequest = activeBuddyEventIds.has(event.id);
+                    const isBusinessEvent = event.isOfficial || event.verificationStatus === 'business' || event.verificationType === 'business';
+
+                    // Resolve coordinates — use event coords, fallback to Mumbai for official events
+                    // Ensure they are strictly Numbers
+                    let lat = parseFloat(event.coordinate?.latitude || event.latitude || event.lat);
+                    let lng = parseFloat(event.coordinate?.longitude || event.longitude || event.lng);
+
+                    if (isNaN(lat) || isNaN(lng)) {
+                        if (isBusinessEvent) {
+                            // Fallback to Bengaluru instead of Mumbai for better relevance
+                            lat = 12.9716;
+                            lng = 77.5946;
+                        } else {
+                            if (event.title?.toLowerCase().includes('tu')) {
+                                console.log(`[Render DEBUG] Skipping 'Tu' - No Coords:`, {
+                                    id: event.id,
+                                    coordField: event.coordinate,
+                                    latField: event.latitude,
+                                    topLatField: event.lat
+                                });
+                            }
+                            return null;
+                        }
+                    }                    let labelText = getCategoryLabel(event.category);
+                    let categoryColor = getCategoryColor(event.category);
+
+                    return (
+                        <MarkerF
+                            key={event.id}
+                            position={{ lat, lng }}
+                            onClick={() => setSelectedEvent(event)}
+                            icon={createMarkerIcon(
+                                hasActiveBuddyRequest ? '👥' : labelText,
+                                categoryColor,
+                                hasActiveBuddyRequest
+                            )}
+                            zIndex={hasActiveBuddyRequest ? 1000 : (isBusinessEvent ? 500 : 1)}
+                            title={event.title}
+                        />
+                    );
+                })}
             </GoogleMap>
 
             {/* Floating UI Overlays - Matching Android Layout */}
@@ -288,6 +483,7 @@ const MapScreenWeb = ({ navigation }) => {
                         onChangeText={(text) => {
                             setSearchQuery(text);
                             setShowSuggestions(true);
+                            if (isLocationSearch) setIsLocationSearch(false);
                             fetchSuggestions(text);
                         }}
                         onSubmitEditing={handleSearch}
@@ -297,6 +493,7 @@ const MapScreenWeb = ({ navigation }) => {
                             setSearchQuery('');
                             setSuggestions([]);
                             setShowSuggestions(false);
+                            setIsLocationSearch(false);
                         }}>
                             {searchingPlace ? (
                                 <ActivityIndicator size="small" color={COLORS.accent} style={{ marginRight: 4 }} />
@@ -346,6 +543,32 @@ const MapScreenWeb = ({ navigation }) => {
                         </Typography>
                     </TouchableOpacity>
                 ))}
+
+                {/* Buddy Request Filter Toggle */}
+                <TouchableOpacity
+                    style={[
+                        styles.filterButton,
+                        { width: 'auto', paddingHorizontal: 10 },
+                        showBuddyRequests && { borderColor: '#9C27B0', backgroundColor: 'rgba(156, 39, 176, 0.1)' }
+                    ]}
+                    onPress={() => setShowBuddyRequests(!showBuddyRequests)}
+                >
+                    <Ionicons
+                        name="people"
+                        size={16}
+                        color={showBuddyRequests ? '#9C27B0' : COLORS.secondary}
+                        style={{ marginRight: 4 }}
+                    />
+                    <Typography
+                        variant="caption"
+                        style={{
+                            color: showBuddyRequests ? '#9C27B0' : COLORS.secondary,
+                            fontWeight: 'bold'
+                        }}
+                    >
+                        Buddies
+                    </Typography>
+                </TouchableOpacity>
             </View>
 
             {/* Event Summary Card Integration */}
@@ -355,6 +578,7 @@ const MapScreenWeb = ({ navigation }) => {
                 onClose={() => setSelectedEvent(null)}
                 onDetails={handleDetails}
                 isWeb={true}
+                hasActiveBuddyRequest={selectedEvent && activeBuddyEventIds.has(selectedEvent.id)}
             />
 
             {/* FAB and Action Buttons */}
@@ -478,4 +702,10 @@ const styles = StyleSheet.create({
     }
 });
 
-export default MapScreenWeb;
+export default function MapScreenWebWrapper(props) {
+  return (
+    <MapErrorBoundary>
+      <MapScreenWeb {...props} />
+    </MapErrorBoundary>
+  );
+}

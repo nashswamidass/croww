@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ImageBackground } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
@@ -92,12 +93,17 @@ const HomeScreen = ({ navigation }) => {
         };
 
         init();
-        fetchEvents();
 
         return () => {
             if (unsubscribeChats) unsubscribeChats();
         };
     }, [authUser?.id, authUser?.policyAccepted]); // Re-run when user or policy status changes
+
+    useFocusEffect(
+        useCallback(() => {
+            fetchEvents();
+        }, [])
+    );
 
     const handleCitySelect = async (city) => {
         if (!city) {
@@ -117,12 +123,20 @@ const HomeScreen = ({ navigation }) => {
     };
 
     const fetchEvents = async () => {
+        // Hard timeout: 8s max — ensures HomeScreen never gets stuck loading
+        const fetchTimeout = setTimeout(() => {
+            console.warn('[HomeScreen] fetchEvents timed out — clearing loading state');
+            setLoading(false);
+            setRefreshing(false);
+        }, 8000);
+
         try {
             const data = await eventService.getEvents();
             setEvents(data);
         } catch (error) {
             console.error("Failed to fetch events", error);
         } finally {
+            clearTimeout(fetchTimeout);
             setLoading(false);
             setRefreshing(false);
         }
@@ -147,11 +161,24 @@ const HomeScreen = ({ navigation }) => {
         return `${formatDistance(dist)} away`;
     };
 
-    // Get featured events (strictly those marked by admin)
-    const featuredEvents = events.filter(event => event.isFeatured === true);
+    // Get featured events (strictly those marked by admin AND posted by business)
+    const featuredEvents = events.filter(event => {
+        const isBusiness = event.isOfficial ||
+            event.verificationType === 'business' ||
+            (event.verificationStatus === 'verified' && event.verificationType === 'business');
+        return event.isFeatured === true && isBusiness;
+    });
 
-    // Fallback: If no featured events, show random events with images to avoid empty space
-    const displayFeatured = featuredEvents.length > 0 ? featuredEvents : events.filter(e => e.imageUri).slice(0, 5);
+    // Fallback: If no featured business events, show all upcoming public events
+    const hasFeatured = featuredEvents.length > 0;
+    const displayFeatured = hasFeatured
+        ? featuredEvents
+        : [...events]
+            .filter(e => new Date(e.date) >= new Date().setHours(0, 0, 0, 0))
+            .sort((a, b) => new Date(a.date) - new Date(b.date))
+            .slice(0, 5);
+    
+    const featuredSectionTitle = hasFeatured ? "Featured Events" : "Upcoming Events";
 
     // Sort upcoming events by proximity if location is available
     const upcomingEvents = [...events]
@@ -265,8 +292,11 @@ const HomeScreen = ({ navigation }) => {
                 {/* Featured Events - Large Image Cards */}
                 <View style={styles.section}>
                     <View style={styles.sectionHeader}>
-                        <Typography variant="h3">Featured Events</Typography>
-                        <TouchableOpacity onPress={() => navigation.navigate('EventList', { title: 'Featured Events', filter: 'featured' })}>
+                        <Typography variant="h3">{featuredSectionTitle}</Typography>
+                        <TouchableOpacity onPress={() => navigation.navigate('EventList', { 
+                            title: featuredSectionTitle, 
+                            filter: hasFeatured ? 'featured' : 'upcoming' 
+                        })}>
                             <Typography variant="small" style={{ color: COLORS.accent }}>
                                 See All
                             </Typography>

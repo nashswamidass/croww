@@ -1,5 +1,6 @@
 {
   "projects": {
-    "default": "croww-live-2026"
+    "production": "croww-live-2026",
+    "staging": "croww-staging-2026"
   }
 }

@@ -97,7 +97,7 @@ Users may:
 • Request account closure
 
 Requests can be sent to:
-📧 info@pixwik.com
+📧 support@croww.ai
 
 6. Children's Privacy
 
@@ -118,7 +118,7 @@ We may update this policy periodically. Updates will be published within the app
 For privacy concerns or requests:
 
 Pixwik Technologies Private Limited
-Email: info@pixwik.com
+Email: support@croww.ai
 `
                 };
             case 'business_commission':
@@ -247,7 +247,7 @@ Users are responsible for:
 4. Security Incident Reporting
 
 If users discover vulnerabilities or suspicious activities, they should report immediately to:
-📧 info@pixwik.com
+📧 support@croww.ai
 
 5. Limitation of Liability
 
@@ -304,7 +304,7 @@ Approved refunds are typically processed within 5–15 business days, depending 
 
 7. Contact for Refund Support
 
-📧 info@pixwik.com
+📧 support@croww.ai
 `
                 };
             case 'terms':
@@ -395,7 +395,7 @@ We may update these Terms periodically. Continued use after changes constitutes 
 For questions about these Terms:
 
 Pixwik Technologies Private Limited
-Email: info@pixwik.com
+Email: support@croww.ai
 `
                 };
             default:
@@ -444,7 +444,7 @@ const styles = StyleSheet.create({
     },
     text: {
         lineHeight: 24,
-        color: COLORS.text,
+        color: COLORS.primary,
     },
     footer: {
         marginTop: SPACING.xl,

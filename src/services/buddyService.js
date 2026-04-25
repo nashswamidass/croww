@@ -45,6 +45,31 @@ export const getBuddyRequests = async (eventId, filters = {}) => {
     }
 };
 
+/**
+ * Fetch all active buddy requests globally across all events
+ * Primarily used by MapScreen to toggle event pin visibility
+ */
+export const getAllBuddyRequestsGlobally = async (filters = {}) => {
+    try {
+        let q = query(
+            collection(db, BUDDY_COLLECTION),
+            where('status', '==', 'active')
+        );
+
+        const snapshot = await getDocs(q);
+        let requests = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        if (filters.hasSpots) {
+            requests = requests.filter(req => req.spotsRemaining > 0);
+        }
+
+        return requests;
+    } catch (error) {
+        console.error("Error fetching global buddy requests:", error);
+        return [];
+    }
+};
+
 export const createBuddyRequest = async (eventId, data) => {
     try {
         const user = auth.currentUser;
@@ -208,14 +233,31 @@ export const requestToJoinBuddy = async (requestId, ownerId) => {
             createdAt: serverTimestamp()
         };
 
-        await addDoc(collection(db, JOIN_REQUESTS_COLLECTION), joinRequestData);
+        const docRef = await addDoc(collection(db, JOIN_REQUESTS_COLLECTION), joinRequestData);
+        const joinRequestId = docRef.id;
+
+        // Fetch the buddy request to get the associated eventId for deep linking
+        let eventId = null;
+        try {
+            const buddyRequestSnap = await getDoc(doc(db, BUDDY_COLLECTION, requestId));
+            if (buddyRequestSnap.exists()) {
+                eventId = buddyRequestSnap.data().eventId || null;
+            }
+        } catch (e) {
+            console.warn('Could not fetch eventId for notification:', e);
+        }
 
         // Notify owner
         await notificationService.sendNotification(
             ownerId,
             "New Buddy Request",
             `${joinRequestData.requesterName} wants to join your buddy group!`,
-            { type: 'buddy_request_join', requestId: requestId }
+            { 
+                type: 'buddy_request_join', 
+                requestId: requestId, 
+                joinRequestId: joinRequestId,
+                eventId 
+            }
         );
 
         return { success: true, message: "Request sent!" };
@@ -244,12 +286,27 @@ export const approveJoinRequest = async (joinRequestId) => {
             // Update join request status
             await updateDoc(joinRequestRef, { status: 'approved' });
 
+            // Fetch buddy request to get eventId for deep linking
+            let eventId = null;
+            try {
+                const buddyReqSnap = await getDoc(doc(db, BUDDY_COLLECTION, joinData.buddyRequestId));
+                if (buddyReqSnap.exists()) {
+                    eventId = buddyReqSnap.data().eventId;
+                }
+            } catch (err) {
+                console.warn("Could not fetch eventId for approval notification:", err);
+            }
+
             // Notify seeker
             await notificationService.sendNotification(
                 joinData.requesterId,
                 "Request Approved! 🎊",
                 "Your request to join the buddy group was approved!",
-                { type: 'buddy_request_approved', requestId: joinData.buddyRequestId }
+                { 
+                    type: 'buddy_request_approved', 
+                    requestId: joinData.buddyRequestId,
+                    eventId: eventId 
+                }
             );
         }
 
@@ -309,4 +366,58 @@ export const getJoinRequests = async (buddyRequestId = null, status = 'pending',
         console.error("Error fetching join requests:", error);
         return [];
     }
+};
+
+/**
+ * Get all users who are "buddies" with the current user.
+ * A buddy is someone who is in the same accepted buddy group (joinedUsers).
+ */
+export const getMyBuddies = async (userId) => {
+    const uid = userId || auth.currentUser?.uid;
+    if (!uid) return [];
+
+    try {
+        // Find all buddy groups the user is a member of
+        const q = query(
+            collection(db, BUDDY_COLLECTION),
+            where('joinedUsers', 'array-contains', uid)
+        );
+        const snapshot = await getDocs(q);
+        const groups = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // Collect all co-members (everyone in the group except self)
+        const buddyMap = {};
+        for (const group of groups) {
+            const members = group.memberSnapshots || [];
+            for (const member of members) {
+                if (member.uid && member.uid !== uid) {
+                    buddyMap[member.uid] = {
+                        uid: member.uid,
+                        name: member.name || 'User',
+                        avatar: member.avatar || null,
+                        eventId: group.eventId
+                    };
+                }
+            }
+        }
+
+        return Object.values(buddyMap);
+    } catch (error) {
+        console.error('Error fetching buddies:', error);
+        return [];
+    }
+};
+
+export const buddyService = {
+    getBuddyRequests,
+    getAllBuddyRequestsGlobally,
+    createBuddyRequest,
+    joinBuddyRequest,
+    leaveBuddyRequest,
+    getUserBuddyRequests,
+    requestToJoinBuddy,
+    approveJoinRequest,
+    ignoreJoinRequest,
+    getJoinRequests,
+    getMyBuddies
 };

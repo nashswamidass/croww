@@ -9,12 +9,15 @@ import AntigravityButton from '../../components/AntigravityButton';
 import NotionCard from '../../components/NotionCard';
 import ImagePickerButton from '../../components/ImagePickerButton';
 import GooglePlacesInput from '../../components/GooglePlacesInput';
-import { SPACING, COLORS } from '../../constants/theme';
+import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
+import { auth } from '../../services/firebaseConfig';
 import { getVerificationStatus } from '../../services/verificationService';
 import { userService } from '../../services/userService';
 import { eventService } from '../../services/eventService';
 import { storageService } from '../../services/storageService';
 import { locationService } from '../../services/locationService';
+import GenderPreferenceSelector from '../../components/GenderPreferenceSelector';
+import { createBuddyRequest } from '../../services/buddyService';
 const VERSION_HASH = "FIX_VER_999";
 
 const CreateEventScreen = ({ navigation, route }) => {
@@ -40,7 +43,10 @@ const CreateEventScreen = ({ navigation, route }) => {
     const [maxTickets, setMaxTickets] = useState(editEvent?.maxTickets?.toString() || '');
     const [movieName, setMovieName] = useState(editEvent?.movieName || '');
     const [screenName, setScreenName] = useState(editEvent?.screenName || '');
+    const [spotsAvailable, setSpotsAvailable] = useState(editEvent?.spotsAvailable || 2);
+    const [genderPreference, setGenderPreference] = useState(editEvent?.genderPreference || 'any');
 
+    const spotOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     const eventCategories = ['Party', 'Dinner', 'Movie', 'Concert', 'Workshop', 'Sports', 'Networking', 'Art', 'Nightlife', 'Other'];
 
     useEffect(() => {
@@ -86,7 +92,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         }
 
         // Providers and Individuals use Aadhaar verification
-        navigation.navigate('AadhaarVerification', {
+        navigation.navigate('VerifyIdentity', {
             onVerified: (type) => {
                 checkVerification();
             }
@@ -96,7 +102,11 @@ const CreateEventScreen = ({ navigation, route }) => {
     const handlePublicToggle = (value) => {
         if (value) {
             // Switching to public — require actual verification approval
-            const isVerified = verificationStatus?.aadhaarVerified || verificationStatus?.businessVerified;
+            const isAadhaarVerified = verificationStatus?.aadhaarVerified;
+            const isBusinessVerified = verificationStatus?.businessVerified;
+            const isProviderVerified = (currentUser?.userType === 'provider' && currentUser?.isApproved);
+            
+            const isVerified = isAadhaarVerified || isBusinessVerified || isProviderVerified;
             const isPending = verificationStatus?.businessPending;
 
             if (isVerified) {
@@ -110,7 +120,7 @@ const CreateEventScreen = ({ navigation, route }) => {
             } else {
                 Alert.alert(
                     'Verification Required',
-                    'Public events require verification. Would you like to verify now?',
+                    'Public events require verification. Would you like to verify your profile now?',
                     [
                         { text: 'Later', style: 'cancel' },
                         { text: 'Verify Now', onPress: handleVerificationChoice }
@@ -123,15 +133,46 @@ const CreateEventScreen = ({ navigation, route }) => {
     };
 
     const onDateChange = (event, selectedDate) => {
-        const currentDate = selectedDate || date;
-        setShowDatePicker(Platform.OS === 'ios');
-        setDate(currentDate);
+        if (Platform.OS === 'web') {
+            const val = event.target.value; // YYYY-MM-DD
+            if (!val) return;
+            const [y, m, d] = val.split('-').map(Number);
+            const newDate = new Date(date);
+            newDate.setFullYear(y);
+            newDate.setMonth(m - 1);
+            newDate.setDate(d);
+            setDate(newDate);
+        } else {
+            // Android hides it automatically upon selection, but we must update state
+            if (Platform.OS === 'android') {
+                setShowDatePicker(false);
+            }
+            // Update value if 'OK' was pressed
+            if (event.type !== 'dismissed' && selectedDate) {
+                setDate(selectedDate);
+            }
+        }
     };
 
     const onTimeChange = (event, selectedTime) => {
-        const currentTime = selectedTime || date;
-        setShowTimePicker(Platform.OS === 'ios');
-        setDate(currentTime);
+        if (Platform.OS === 'web') {
+            const val = event.target.value; // HH:MM
+            if (!val) return;
+            const [h, m] = val.split(':').map(Number);
+            const newDate = new Date(date);
+            newDate.setHours(h);
+            newDate.setMinutes(m);
+            setDate(newDate);
+        } else {
+             // Android hides it automatically upon selection, but we must update state
+             if (Platform.OS === 'android') {
+                 setShowTimePicker(false);
+             }
+             // Update value if 'OK' was pressed
+             if (event.type !== 'dismissed' && selectedTime) {
+                 setDate(selectedTime);
+             }
+        }
     };
 
     const formatDateDisplay = (date) => {
@@ -145,6 +186,7 @@ const CreateEventScreen = ({ navigation, route }) => {
     };
 
     const handleSave = async () => {
+        console.log("[CreateEvent] handleSave triggered", { title, date, isPublic, isPaid });
         // Validate
         if (!title || !date) {
             Alert.alert('Missing Information', 'Please fill in the event title and date');
@@ -181,6 +223,7 @@ const CreateEventScreen = ({ navigation, route }) => {
         }
 
         setSaving(true);
+        console.log("[CreateEvent] Starting submission...");
         try {
             let uploadedUri = eventImage;
 
@@ -200,17 +243,21 @@ const CreateEventScreen = ({ navigation, route }) => {
                 }
             }
 
+            // Provider verification check
+            const isProviderVerified = (currentUser?.userType === 'provider' && currentUser?.isApproved);
+            const isOfficialAccount = isBusinessVerified || isProviderVerified;
+
             // Create Event Object with robust fallbacks
             const eventData = {
                 title,
                 category: category || (isEditMode ? editEvent.category : 'Party'),
                 date: date.toISOString(),
                 locationName: locationName || 'Nearby',
-                coordinate: eventCoords || { latitude: 37.78825, longitude: -122.4324 },
+                coordinate: eventCoords || { latitude: 19.0760, longitude: 72.8777 }, // Mumbai Fallback
                 description: description || "",
                 imageUri: uploadedUri || null,
-                isPublic: isPublic || false,
-                isOfficial: isEditMode ? (editEvent.isOfficial || false) : (isBusinessVerified || false),
+                isPublic: isOfficialAccount ? true : (isPublic || false), // Force public for business & providers
+                isOfficial: isEditMode ? (editEvent.isOfficial || false) : (isOfficialAccount || false),
                 organizerId: currentUser?.id || auth.currentUser?.uid,
                 organizerName: currentUser?.name || auth.currentUser?.displayName || "Organizer",
                 isPaid: isPaid || false,
@@ -218,8 +265,8 @@ const CreateEventScreen = ({ navigation, route }) => {
                 maxTickets: parseInt(maxTickets) || 0,
                 movieName: category === 'Movie' ? (movieName || "") : null,
                 screenName: category === 'Movie' ? (screenName || "") : null,
-                verificationStatus: (isPublic && (isAadhaarVerified || isBusinessVerified)) ? 'verified' : 'none',
-                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isAadhaarVerified ? 'aadhaar' : "none")) : "none"
+                verificationStatus: (isPublic && (isAadhaarVerified || isOfficialAccount)) ? 'verified' : 'none',
+                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isProviderVerified ? 'provider' : (isAadhaarVerified ? 'aadhaar' : "none"))) : "none"
             };
 
             if (isEditMode) {
@@ -231,8 +278,20 @@ const CreateEventScreen = ({ navigation, route }) => {
                 const createdEvent = {
                     ...eventData,
                     attendees: 1,
+                    isBuddyEvent: currentUser?.userType !== 'business',
+                    spotsAvailable: spotsAvailable,
+                    genderPreference: genderPreference
                 };
                 const result = await eventService.createEvent(createdEvent);
+
+                if (currentUser?.userType !== 'business') {
+                    await createBuddyRequest(result.id, {
+                        spotsAvailable,
+                        genderPreference,
+                        message: description || `Join me for ${title}!`
+                    });
+                }
+
                 navigation.replace('EventDetail', { event: result });
             }
 
@@ -313,41 +372,91 @@ const CreateEventScreen = ({ navigation, route }) => {
                     <View style={styles.dateTimeRow}>
                         <TouchableOpacity
                             style={styles.pickerButton}
-                            onPress={() => setShowDatePicker(true)}
+                            onPress={() => {
+                                if (Platform.OS === 'web') {
+                                    document.getElementById('web-date-picker')?.showPicker();
+                                } else {
+                                    setShowDatePicker(true);
+                                }
+                            }}
                         >
                             <Ionicons name="calendar-outline" size={20} color={COLORS.accent} />
                             <Typography variant="body" style={styles.pickerButtonText}>
                                 {date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}
                             </Typography>
+                            {Platform.OS === 'web' && (
+                                <input
+                                    id="web-date-picker"
+                                    type="date"
+                                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                                    value={date.toISOString().split('T')[0]}
+                                    onChange={onDateChange}
+                                />
+                            )}
                         </TouchableOpacity>
 
                         <TouchableOpacity
                             style={styles.pickerButton}
-                            onPress={() => setShowTimePicker(true)}
+                            onPress={() => {
+                                if (Platform.OS === 'web') {
+                                    document.getElementById('web-time-picker')?.showPicker();
+                                } else {
+                                    setShowTimePicker(true);
+                                }
+                            }}
                         >
                             <Ionicons name="time-outline" size={20} color={COLORS.accent} />
                             <Typography variant="body" style={styles.pickerButtonText}>
                                 {date.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}
                             </Typography>
+                            {Platform.OS === 'web' && (
+                                <input
+                                    id="web-time-picker"
+                                    type="time"
+                                    style={{ position: 'absolute', opacity: 0, width: 0, height: 0 }}
+                                    value={`${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`}
+                                    onChange={onTimeChange}
+                                />
+                            )}
                         </TouchableOpacity>
                     </View>
 
                     {showDatePicker && (
-                        <DateTimePicker
-                            value={date}
-                            mode="date"
-                            display="default"
-                            onChange={onDateChange}
-                        />
+                        <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : null}>
+                            <DateTimePicker
+                                value={date}
+                                mode="date"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={onDateChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity
+                                    style={styles.doneButton}
+                                    onPress={() => setShowDatePicker(false)}
+                                >
+                                    <Typography variant="body" color={COLORS.accent} style={{ fontWeight: '600' }}>Done</Typography>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
 
                     {showTimePicker && (
-                        <DateTimePicker
-                            value={date}
-                            mode="time"
-                            display="default"
-                            onChange={onTimeChange}
-                        />
+                        <View style={Platform.OS === 'ios' ? styles.iosPickerContainer : null}>
+                            <DateTimePicker
+                                value={date}
+                                mode="time"
+                                display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                                onChange={onTimeChange}
+                            />
+                            {Platform.OS === 'ios' && (
+                                <TouchableOpacity
+                                    style={styles.doneButton}
+                                    onPress={() => setShowTimePicker(false)}
+                                >
+                                    <Typography variant="body" color={COLORS.accent} style={{ fontWeight: '600' }}>Done</Typography>
+                                </TouchableOpacity>
+                            )}
+                        </View>
                     )}
                 </View>
 
@@ -442,26 +551,92 @@ const CreateEventScreen = ({ navigation, route }) => {
                     </NotionCard>
                 )}
 
-                {/* Public/Private Toggle */}
+                {/* Buddy Request Section (For Individuals/Providers) */}
+                {currentUser?.userType !== 'business' && (
+                    <NotionCard style={styles.ticketingCard}>
+                        <Typography variant="h3" style={{ marginBottom: SPACING.m }}>Find Buddies</Typography>
+                        <View style={{ marginBottom: SPACING.l }}>
+                            <Typography variant="body" style={styles.label}>
+                                How many people can join?
+                            </Typography>
+                            <Typography variant="caption" style={{ color: COLORS.secondary, marginBottom: SPACING.m }}>
+                                Choose the number of spots available
+                            </Typography>
+                            <View style={styles.spotsContainer}>
+                                {spotOptions.map((num) => (
+                                    <TouchableOpacity
+                                        key={num}
+                                        style={[
+                                            styles.spotOption,
+                                            spotsAvailable === num && styles.spotOptionSelected
+                                        ]}
+                                        onPress={() => setSpotsAvailable(num)}
+                                    >
+                                        <Typography
+                                            variant="body"
+                                            style={[
+                                                styles.spotText,
+                                                spotsAvailable === num && styles.spotTextSelected
+                                            ]}
+                                        >
+                                            {num}
+                                        </Typography>
+                                    </TouchableOpacity>
+                                ))}
+                            </View>
+                        </View>
+                        <GenderPreferenceSelector
+                            value={genderPreference}
+                            onChange={setGenderPreference}
+                        />
+                    </NotionCard>
+                )}
+
+                {/* Public/Private Radio Buttons */}
                 <NotionCard style={styles.toggleCard}>
-                    <View style={styles.toggleRow}>
+                    <Typography variant="h3" style={{ marginBottom: SPACING.m }}>Event Privacy</Typography>
+                    
+                    <TouchableOpacity 
+                        style={[styles.radioOption, isPublic && styles.radioOptionSelected]} 
+                        onPress={() => handlePublicToggle(true)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons 
+                            name={isPublic ? "radio-button-on" : "radio-button-off"} 
+                            size={24} 
+                            color={isPublic ? COLORS.primary : COLORS.secondary} 
+                            style={{ marginRight: SPACING.m }}
+                        />
                         <View style={{ flex: 1 }}>
-                            <Typography variant="body" style={{ fontWeight: '600' }}>
-                                {isPublic ? '🌍 Public Event' : '🔒 Private Event'}
+                            <Typography variant="body" style={{ fontWeight: '600', color: isPublic ? COLORS.text : COLORS.secondary }}>
+                                🌍 Public Event
                             </Typography>
                             <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: 4 }}>
-                                {isPublic
-                                    ? 'Visible to everyone on the map'
-                                    : 'Only visible to invited friends'}
+                                Visible to everyone on the global map
                             </Typography>
                         </View>
-                        <Switch
-                            value={isPublic}
-                            onValueChange={handlePublicToggle}
-                            trackColor={{ false: COLORS.border, true: COLORS.accent }}
-                            thumbColor={COLORS.primary}
+                    </TouchableOpacity>
+
+                    <TouchableOpacity 
+                        style={[styles.radioOption, !isPublic && styles.radioOptionSelected]} 
+                        onPress={() => handlePublicToggle(false)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons 
+                            name={!isPublic ? "radio-button-on" : "radio-button-off"} 
+                            size={24} 
+                            color={!isPublic ? COLORS.primary : COLORS.secondary} 
+                            style={{ marginRight: SPACING.m }}
                         />
-                    </View>
+                        <View style={{ flex: 1 }}>
+                            <Typography variant="body" style={{ fontWeight: '600', color: !isPublic ? COLORS.text : COLORS.secondary }}>
+                                🔒 Private Event
+                            </Typography>
+                            <Typography variant="caption" style={{ color: COLORS.secondary, marginTop: 4 }}>
+                                Only visible to invited friends
+                            </Typography>
+                        </View>
+                    </TouchableOpacity>
                 </NotionCard>
 
                 {/* Verification Status */}
@@ -518,6 +693,20 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
     },
+    radioOption: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: SPACING.m,
+        borderRadius: BORDER_RADIUS.m,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        marginBottom: SPACING.s,
+        backgroundColor: COLORS.surfaceHighlight,
+    },
+    radioOptionSelected: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.surfaceHighlight, // optional: subtle tint
+    },
     verificationCard: {
         marginBottom: SPACING.l,
         padding: SPACING.m,
@@ -559,6 +748,34 @@ const styles = StyleSheet.create({
     },
     chipTextActive: {
         color: COLORS.accent,
+        fontWeight: 'bold',
+    },
+    spotsContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.s,
+        justifyContent: 'space-between',
+    },
+    spotOption: {
+        width: '18%', 
+        aspectRatio: 1,
+        borderRadius: 8,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SPACING.s,
+    },
+    spotOptionSelected: {
+        borderColor: COLORS.accent,
+        backgroundColor: COLORS.accent,
+    },
+    spotText: {
+        color: COLORS.primary,
+    },
+    spotTextSelected: {
+        color: '#FFFFFF',
         fontWeight: 'bold',
     },
     dateTimeRow: {
@@ -609,6 +826,18 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.surfaceHighlight,
         borderColor: COLORS.accent,
         borderWidth: 1,
+    },
+    iosPickerContainer: {
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: 12,
+        marginTop: SPACING.s,
+        paddingBottom: SPACING.s,
+        overflow: 'hidden',
+    },
+    doneButton: {
+        alignSelf: 'flex-end',
+        paddingVertical: SPACING.s,
+        paddingHorizontal: SPACING.l,
     },
 });
 

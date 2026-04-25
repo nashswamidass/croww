@@ -9,8 +9,16 @@ import {
 import { doc, setDoc, getDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 import { userService } from './userService';
+import API_ENDPOINTS from '../constants/apiConfig';
 
 const USERS_COLLECTION = 'users';
+
+const withTimeout = (promise, ms, errorMessage) => {
+    return Promise.race([
+        promise,
+        new Promise((_, reject) => setTimeout(() => reject(new Error(errorMessage)), ms))
+    ]);
+};
 
 export const authService = {
     /**
@@ -22,7 +30,11 @@ export const authService = {
     signup: async (email, password, userData) => {
         try {
             // 1. Create Auth User
-            const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+            const userCredential = await withTimeout(
+                createUserWithEmailAndPassword(auth, email, password),
+                15000,
+                'Signup network timeout. Please check your connection and try again.'
+            );
             const user = userCredential.user;
 
             // 2. Prepare user document
@@ -60,12 +72,20 @@ export const authService = {
             delete UserProfile.password;
 
             // 3. Save to Firestore
-            await setDoc(doc(db, USERS_COLLECTION, user.uid), UserProfile);
+            await withTimeout(
+                setDoc(doc(db, USERS_COLLECTION, user.uid), UserProfile),
+                10000,
+                'Profile creation timeout. Please try logging in if account was created.'
+            );
 
             // 4. Update Auth Profile (Display Name)
-            await updateProfile(user, {
-                displayName: userData.name
-            });
+            await withTimeout(
+                updateProfile(user, {
+                    displayName: userData.name
+                }),
+                5000,
+                'Profile update timeout.'
+            );
 
             // 4.5 Send Verification Email
             // Disabled: We now use a Cloud Function (sendWelcomeEmail) for branded HTML emails
@@ -96,11 +116,19 @@ export const authService = {
     login: async (email, password) => {
         try {
             // 1. Auth Login
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            const userCredential = await withTimeout(
+                signInWithEmailAndPassword(auth, email, password),
+                15000,
+                'Login network timeout. Please check your connection and try again.'
+            );
             const user = userCredential.user;
 
             // 2. Fetch User Profile from Firestore
-            const userDoc = await getDoc(doc(db, USERS_COLLECTION, user.uid));
+            const userDoc = await withTimeout(
+                getDoc(doc(db, USERS_COLLECTION, user.uid)),
+                10000,
+                'Profile fetch timeout. Please check your connection and try again.'
+            );
 
             if (!userDoc.exists()) {
                 throw new Error('User profile not found');
@@ -123,6 +151,16 @@ export const authService = {
      */
     logout: async () => {
         try {
+            const user = auth.currentUser;
+            if (user) {
+                try {
+                    await updateDoc(doc(db, USERS_COLLECTION, user.uid), {
+                        pushToken: null
+                    });
+                } catch (err) {
+                    console.log('Non-critical: Failed to remove push token during logout', err);
+                }
+            }
             await signOut(auth);
             await userService.logout();
             return true;
@@ -143,7 +181,7 @@ export const authService = {
             const uid = user.uid;
 
             // Call custom Cloud Function for secure account deletion
-            const API_URL = 'https://deleteuseraccount-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.DELETE_USER_ACCOUNT;
 
             console.log(`[AuthService] Calling deleteAccount function for UID: ${uid}`);
 
@@ -179,7 +217,7 @@ export const authService = {
     resetPassword: async (email) => {
         try {
             // Call custom Cloud Function for branded email
-            const API_URL = 'https://sendcustompasswordreset-6vktyfoeaa-uc.a.run.app';
+            const API_URL = API_ENDPOINTS.SEND_CUSTOM_PASSWORD_RESET;
 
             console.log(`[AuthService] Calling reset function at: ${API_URL}`);
 

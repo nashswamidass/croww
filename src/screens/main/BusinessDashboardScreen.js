@@ -33,6 +33,20 @@ const MetricCard = ({ title, value, change, icon, color }) => (
     </NotionCard>
 );
 
+const formatRelativeTime = (timestamp) => {
+    if (!timestamp) return '';
+    const date = timestamp.seconds ? new Date(timestamp.seconds * 1000) : new Date(timestamp);
+    const now = new Date();
+    const diffInSeconds = Math.floor((now - date) / 1000);
+
+    if (diffInSeconds < 60) return 'Just now';
+    if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m ago`;
+    if (diffInSeconds < 86400) return `${Math.floor(diffInSeconds / 3600)}h ago`;
+    if (diffInSeconds < 604800) return `${Math.floor(diffInSeconds / 86400)}d ago`;
+
+    return date.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+};
+
 const BusinessDashboardScreen = ({ navigation }) => {
     const [userData, setUserData] = useState(null);
     const [stats, setStats] = useState({
@@ -109,8 +123,19 @@ const BusinessDashboardScreen = ({ navigation }) => {
                     completedBookings: bookingStats.completed,
                     bookingEarnings: bookingStats.earnings,
                     totalEarnings: bookingStats.earnings, // For provider, earnings come from bookings
-                    recentActivity: [],
                 }));
+
+                // Fetch Recent Activity for Provider
+                const bookings = await bookingService.getBookingsForProvider(user.id);
+                const activities = bookings.slice(0, 10).map(b => ({
+                    id: b.id,
+                    user: b.customerName || 'Customer',
+                    type: 'booking',
+                    serviceName: b.serviceName,
+                    time: formatRelativeTime(b.createdAt),
+                    status: b.status,
+                }));
+                setStats(prev => ({ ...prev, recentActivity: activities }));
             } else {
                 // Fetch Business/Venue Specific Stats (Tickets)
                 const events = await eventService.getEventsByOrganizer(user.id);
@@ -158,8 +183,19 @@ const BusinessDashboardScreen = ({ navigation }) => {
                     totalCommissionGST,
                     totalTicketsSold,
                     eventBreakdowns: allStats,
-                    recentActivity: [],
                 }));
+
+                // Fetch Recent Activity for Business
+                const tickets = await ticketService.getTicketsByOrganizer(user.id);
+                const activities = tickets.slice(0, 10).map(t => ({
+                    id: t.id,
+                    user: t.userName || 'Customer',
+                    type: 'ticket',
+                    eventTitle: t.eventTitle,
+                    time: formatRelativeTime(t.issuedAt),
+                    status: t.status,
+                }));
+                setStats(prev => ({ ...prev, recentActivity: activities }));
             }
         } catch (error) {
             console.error("Failed to load dashboard data:", error);
@@ -235,7 +271,7 @@ const BusinessDashboardScreen = ({ navigation }) => {
                                             </Typography>
                                         </View>
                                         <TouchableOpacity
-                                            onPress={() => navigation.navigate('AadhaarVerification', { onVerified: () => loadDashboardData() })}
+                                            onPress={() => navigation.navigate('VerifyIdentity', { onVerified: () => loadDashboardData() })}
                                             style={{ backgroundColor: COLORS.accent, paddingHorizontal: SPACING.m, paddingVertical: SPACING.s, borderRadius: 8 }}
                                         >
                                             <Typography variant="small" style={{ color: '#FFF', fontWeight: '700' }}>Verify</Typography>
@@ -486,31 +522,42 @@ const BusinessDashboardScreen = ({ navigation }) => {
                                     </Typography>
                                 </NotionCard>
                             ) : (
-                                stats.recentActivity.map((activity) => (
-                                    <View key={activity.id} style={styles.activityItem}>
-                                        <View style={styles.activityIcon}>
-                                            <Ionicons
-                                                name={activity.type === 'booking' ? 'calendar' : (activity.type === 'review' ? 'star' : 'eye')}
-                                                size={16}
-                                                color={COLORS.secondary}
-                                            />
-                                        </View>
-                                        <View style={styles.activityContent}>
-                                            <Typography variant="body">
-                                                <Typography variant="body" style={{ fontWeight: '600' }}>{activity.user}</Typography>
-                                                {activity.type === 'booking' ? ' requested a booking' : (activity.type === 'review' ? ` left a ${activity.rating}★ review` : ' viewed your profile')}
-                                            </Typography>
-                                            <Typography variant="caption" color={COLORS.secondary}>{activity.time}</Typography>
-                                        </View>
-                                        {activity.status && (
-                                            <View style={[styles.statusBadge, { backgroundColor: activity.status === 'pending' ? COLORS.accent + '20' : COLORS.success + '20' }]}>
-                                                <Typography variant="small" style={{ color: activity.status === 'pending' ? COLORS.accent : COLORS.success }}>
-                                                    {activity.status}
-                                                </Typography>
+                                    stats.recentActivity.map((activity) => (
+                                        <View key={activity.id} style={styles.activityItem}>
+                                            <View style={styles.activityIcon}>
+                                                <Ionicons
+                                                    name={activity.type === 'booking' ? 'calendar' : (activity.type === 'ticket' ? 'ticket' : (activity.type === 'review' ? 'star' : 'notifications'))}
+                                                    size={16}
+                                                    color={COLORS.secondary}
+                                                />
                                             </View>
-                                        )}
-                                    </View>
-                                ))
+                                            <View style={styles.activityContent}>
+                                                <Typography variant="body">
+                                                    <Typography variant="body" style={{ fontWeight: '600' }}>{activity.user}</Typography>
+                                                    {activity.type === 'booking' && ` requested a booking for ${activity.serviceName}`}
+                                                    {activity.type === 'ticket' && ` purchased a ticket for ${activity.eventTitle}`}
+                                                    {activity.type === 'review' && ` left a ${activity.rating}★ review`}
+                                                </Typography>
+                                                <Typography variant="caption" color={COLORS.secondary}>{activity.time}</Typography>
+                                            </View>
+                                            {activity.status && (
+                                                <View style={[styles.statusBadge, {
+                                                    backgroundColor:
+                                                        activity.status === 'pending' || activity.status === 'PENDING_PAYMENT' ? COLORS.accent + '20' :
+                                                            (activity.status === 'completed' || activity.status === 'valid' ? COLORS.success + '20' : COLORS.secondary + '20')
+                                                }]}>
+                                                    <Typography variant="small" style={{
+                                                        color:
+                                                            activity.status === 'pending' || activity.status === 'PENDING_PAYMENT' ? COLORS.accent :
+                                                                (activity.status === 'completed' || activity.status === 'valid' ? COLORS.success : COLORS.secondary),
+                                                        textTransform: 'capitalize'
+                                                    }}>
+                                                        {activity.status === 'PENDING_PAYMENT' ? 'Pending Pay' : activity.status}
+                                                    </Typography>
+                                                </View>
+                                            )}
+                                        </View>
+                                    ))
                             )}
                         </View>
 

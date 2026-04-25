@@ -22,12 +22,29 @@ const BookingDetailScreen = ({ route, navigation }) => {
 
     useEffect(() => {
         const init = async () => {
-            const user = await userService.getUser();
-            setCurrentUser(user);
-            setLoading(false);
+            try {
+                const user = await userService.getUser();
+                setCurrentUser(user);
+
+                // If we only have an ID (e.g. from notification), fetch the full booking
+                if (initialBooking?.id && Object.keys(initialBooking).length === 1) {
+                    setLoading(true);
+                    const fullBooking = await bookingService.getBookingById(initialBooking.id);
+                    if (fullBooking) {
+                        setBooking(fullBooking);
+                    } else {
+                        showAlert("Error", "Booking not found.");
+                        navigation.goBack();
+                    }
+                }
+            } catch (err) {
+                console.error("Initialization error:", err);
+            } finally {
+                setLoading(false);
+            }
         };
         init();
-    }, []);
+    }, [initialBooking?.id]);
 
     const handleShare = async () => {
         try {
@@ -71,7 +88,7 @@ const BookingDetailScreen = ({ route, navigation }) => {
             setShowMsgInput(false);
             setPendingStatus(null);
 
-            Alert.alert(
+            showAlert(
                 "Booking Updated",
                 `The request has been ${pendingStatus} and a message sent to the customer.`,
                 [{ text: "OK" }]
@@ -82,6 +99,35 @@ const BookingDetailScreen = ({ route, navigation }) => {
         } finally {
             setActionLoading(false);
         }
+    };
+
+    const handleCancelBooking = async () => {
+        showAlert(
+            "Cancel Booking",
+            "Are you sure you want to cancel this booking? This action cannot be undone.",
+            [
+                { text: "No", style: "cancel" },
+                {
+                    text: "Yes, Cancel",
+                    style: "destructive",
+                    onPress: async () => {
+                        setActionLoading(true);
+                        try {
+                            const success = await bookingService.cancelBooking(booking.id, currentUser.id, currentUser.name);
+                            if (success) {
+                                setBooking(prev => ({ ...prev, status: 'cancelled' }));
+                                showAlert("Success", "Booking cancelled successfully.");
+                            }
+                        } catch (error) {
+                            console.error("Cancellation error:", error);
+                            showAlert("Error", "Failed to cancel booking.");
+                        } finally {
+                            setActionLoading(false);
+                        }
+                    }
+                }
+            ]
+        );
     };
 
     if (loading) {
@@ -99,10 +145,20 @@ const BookingDetailScreen = ({ route, navigation }) => {
     return (
         <ScreenWrapper edges={['top', 'bottom']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={(e) => {
+                        if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.replace('Tabs');
+                        }
+                    }} 
+                    style={styles.backButton}
+                >
                     <Ionicons name="chevron-back" size={28} color={COLORS.primary} />
                 </TouchableOpacity>
-                <Typography variant="h2">Booking Details v1.2-ui-fix</Typography>
+                <Typography variant="h2">Booking Details</Typography>
                 <TouchableOpacity onPress={handleShare}>
                     <Ionicons name="share-outline" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
@@ -251,9 +307,23 @@ const BookingDetailScreen = ({ route, navigation }) => {
                 <AntigravityButton
                     title={`Message ${isProvider ? 'Customer' : 'Provider'}`}
                     variant="outline"
-                    onPress={() => navigation.navigate('Chat', { recipientId, recipientName })}
+                    onPress={(e) => {
+                        if (Platform.OS === 'web' && e?.target?.blur) e.target.blur();
+                        navigation.navigate('Chat', { recipientId, recipientName });
+                    }}
                     style={{ marginTop: SPACING.l }}
                 />
+
+                {isSender && (isPending || isAccepted) && (
+                    <AntigravityButton
+                        title={actionLoading ? "Cancelling..." : "Cancel Booking"}
+                        variant="secondary"
+                        onPress={handleCancelBooking}
+                        disabled={actionLoading}
+                        style={{ marginTop: SPACING.m, backgroundColor: COLORS.error + '20' }}
+                        textStyle={{ color: COLORS.error }}
+                    />
+                )}
             </ScrollView>
         </ScreenWrapper>
     );

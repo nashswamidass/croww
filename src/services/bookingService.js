@@ -18,6 +18,68 @@ const BOOKINGS_COLLECTION = 'bookings';
 
 export const bookingService = {
     /**
+     * Get a single booking by ID
+     */
+    getBookingById: async (bookingId) => {
+        try {
+            const docRef = doc(db, BOOKINGS_COLLECTION, bookingId);
+            const docSnap = await getDoc(docRef);
+            if (docSnap.exists()) {
+                return { id: docSnap.id, ...docSnap.data() };
+            }
+            return null;
+        } catch (error) {
+            console.error("Error getting booking by ID:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Cancel a booking (by customer)
+     */
+    cancelBooking: async (bookingId, senderId, senderName) => {
+        try {
+            const bookingRef = doc(db, BOOKINGS_COLLECTION, bookingId);
+            const bookingSnap = await getDoc(bookingRef);
+            if (!bookingSnap.exists()) throw new Error("Booking not found");
+            
+            const bookingData = bookingSnap.data();
+            
+            await updateDoc(bookingRef, {
+                status: 'cancelled',
+                updatedAt: serverTimestamp()
+            });
+
+            // Notify provider
+            try {
+                await notificationService.sendNotification(
+                    bookingData.providerId,
+                    "Booking Cancelled",
+                    `${senderName} has cancelled their booking for ${bookingData.serviceName}.`,
+                    { bookingId, type: 'BOOKING_UPDATE', status: 'cancelled' }
+                );
+
+                // Send chat message
+                const participantIds = [senderId, bookingData.providerId];
+                const participantNames = {
+                    [senderId]: senderName,
+                    [bookingData.providerId]: bookingData.providerName || 'Provider'
+                };
+                const chatId = await chatService.createChat(participantIds, participantNames);
+                if (chatId) {
+                    await chatService.sendMessage(chatId, `⚠️ I have cancelled my booking for ${bookingData.serviceName}.`, senderId, senderName);
+                }
+            } catch (notifyErr) {
+                console.warn("[bookingService] Notification/Chat failed during cancellation:", notifyErr);
+            }
+
+            return true;
+        } catch (error) {
+            console.error("Error cancelling booking:", error);
+            throw error;
+        }
+    },
+    /**
      * Create a new booking request
      */
     createBooking: async (senderId, providerId, bookingDetails) => {

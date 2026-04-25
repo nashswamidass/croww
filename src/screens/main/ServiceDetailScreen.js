@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking, Modal, TextInput, Dimensions, Platform, Share } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ActivityIndicator, Linking, Modal, TextInput, Dimensions, Platform, Share, KeyboardAvoidingView } from 'react-native';
 import { showAlert } from '../../utils/showAlert';
 import { normalizeUrl } from '../../utils/normalizeUrl';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -54,7 +54,6 @@ const ServiceDetailScreen = ({ route, navigation }) => {
     const [reviewComment, setReviewComment] = React.useState('');
     const [submittingReview, setSubmittingReview] = React.useState(false);
     const [userReview, setUserReview] = React.useState(null);
-    const [activePhotoIndex, setActivePhotoIndex] = React.useState(0);
     const [isFollowing, setIsFollowing] = React.useState(false);
     const [followLoading, setFollowLoading] = React.useState(false);
     const insets = useSafeAreaInsets();
@@ -324,7 +323,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                             <Ionicons name="star" size={16} color="#FFD700" />
                             <Typography variant="h3" style={styles.statValue}>
-                                {service.rating ? service.rating : 'New'}
+                                {service.rating ? Number(service.rating).toFixed(1) : 'New'}
                             </Typography>
                         </View>
                         <Typography variant="small" color={COLORS.secondary}>Rating</Typography>
@@ -378,7 +377,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             icon={isFollowing ? "checkmark-circle" : "add-circle-outline"}
                             onPress={handleFollow}
                             loading={followLoading}
-                            style={{ flex: 1.2 }}
+                            style={{ flex: 1.1, minWidth: 80, paddingHorizontal: 4 }}
                         />
                         <AntigravityButton
                             title="Message"
@@ -389,7 +388,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                 recipientName: service.name,
                                 recipientRole: service.category || service.role || 'Service'
                             })}
-                            style={{ flex: 1 }}
+                            style={{ flex: 1, minWidth: 80, paddingHorizontal: 4 }}
                         />
                         {isProfessional && (
                             <AntigravityButton
@@ -401,7 +400,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                                     providerName: service.name,
                                     serviceName: service.category || service.role || 'Service'
                                 })}
-                                style={{ flex: 0.8 }}
+                                style={{ flex: 1, minWidth: 80, paddingHorizontal: 4 }}
                             />
                         )}
                     </View>
@@ -413,38 +412,54 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                         <Typography variant="h3" style={styles.sectionTitle}>
                             {isProfessional ? 'Portfolio' : 'Photos'}
                         </Typography>
-                        <ScrollView
-                            horizontal
-                            pagingEnabled
-                            showsHorizontalScrollIndicator={false}
-                            style={styles.photoGallery}
-                            onMomentumScrollEnd={(e) => {
-                                const index = Math.round(e.nativeEvent.contentOffset.x / (SCREEN_WIDTH - SPACING.m * 2));
-                                setActivePhotoIndex(index);
-                            }}
-                        >
+                        <View style={styles.portfolioGrid}>
                             {profilePhotos.map((photoUrl, index) => (
-                                <Image
-                                    key={index}
-                                    source={{ uri: photoUrl }}
-                                    style={styles.galleryPhoto}
-                                    resizeMode="cover"
-                                />
-                            ))}
-                        </ScrollView>
-                        {profilePhotos.length > 1 && (
-                            <View style={styles.photoDots}>
-                                {profilePhotos.map((_, index) => (
-                                    <View
-                                        key={index}
-                                        style={[
-                                            styles.photoDot,
-                                            index === activePhotoIndex && styles.photoDotActive,
-                                        ]}
+                                <View key={index} style={styles.portfolioItem}>
+                                    <Image
+                                        source={{ uri: photoUrl }}
+                                        style={styles.portfolioImage}
                                     />
-                                ))}
-                            </View>
-                        )}
+                                </View>
+                            ))}
+                        </View>
+                    </View>
+                )}
+                {/* Social & External Portfolio Links */}
+                {service.socialLinks && Object.values(service.socialLinks).some(link => link) && (
+                    <View style={styles.section}>
+                        <Typography variant="h3" style={styles.sectionTitle}>Portfolio & Socials</Typography>
+                        <View style={styles.socialLinksRow}>
+                            {service.socialLinks.instagram ? (
+                                <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(service.socialLinks.instagram)}>
+                                    <Ionicons name="logo-instagram" size={20} color="#E1306C" />
+                                    <Typography variant="small" style={styles.socialLinkText}>Instagram</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+                            {service.socialLinks.soundcloud ? (
+                                <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(service.socialLinks.soundcloud)}>
+                                    <Ionicons name="musical-notes" size={20} color="#FF5500" />
+                                    <Typography variant="small" style={styles.socialLinkText}>SoundCloud</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+                            {service.socialLinks.behance ? (
+                                <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(service.socialLinks.behance)}>
+                                    <Ionicons name="color-palette" size={20} color="#1769FF" />
+                                    <Typography variant="small" style={styles.socialLinkText}>Behance</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+                            {service.socialLinks.youtube ? (
+                                <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(service.socialLinks.youtube)}>
+                                    <Ionicons name="logo-youtube" size={20} color="#FF0000" />
+                                    <Typography variant="small" style={styles.socialLinkText}>YouTube</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+                            {service.socialLinks.googleDrive ? (
+                                <TouchableOpacity style={styles.socialLinkButton} onPress={() => Linking.openURL(service.socialLinks.googleDrive)}>
+                                    <Ionicons name="cloud-outline" size={20} color="#4285F4" />
+                                    <Typography variant="small" style={styles.socialLinkText}>External Link</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+                        </View>
                     </View>
                 )}
 
@@ -686,7 +701,10 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 animationType="slide"
                 onRequestClose={() => setShowReviewModal(false)}
             >
-                <View style={styles.modalOverlay}>
+                <KeyboardAvoidingView
+                    behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+                    style={styles.modalOverlay}
+                >
                     <View style={[styles.modalContent, { paddingBottom: Math.max(insets.bottom, SPACING.l) }]}>
                         <View style={styles.modalHandle} />
                         <Typography variant="h2" style={{ textAlign: 'center', marginBottom: SPACING.l }}>
@@ -729,7 +747,7 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                             />
                         </View>
                     </View>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
         </ScreenWrapper>
     );
@@ -863,30 +881,22 @@ const styles = StyleSheet.create({
     },
 
     // Photos Gallery
-    photoGallery: {
-        borderRadius: BORDER_RADIUS.l,
+    portfolioGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.m,
+        marginTop: SPACING.s,
+    },
+    portfolioItem: {
+        width: '48%',
+        aspectRatio: 1,
+        borderRadius: BORDER_RADIUS.m,
         overflow: 'hidden',
     },
-    galleryPhoto: {
-        width: SCREEN_WIDTH - SPACING.m * 2,
-        height: 250,
-        borderRadius: BORDER_RADIUS.l,
-    },
-    photoDots: {
-        flexDirection: 'row',
-        justifyContent: 'center',
-        marginTop: SPACING.s,
-        gap: 6,
-    },
-    photoDot: {
-        width: 6,
-        height: 6,
-        borderRadius: 3,
-        backgroundColor: COLORS.border,
-    },
-    photoDotActive: {
-        backgroundColor: COLORS.accent,
-        width: 18,
+    portfolioImage: {
+        width: '100%',
+        height: '100%',
+        resizeMode: 'cover',
     },
 
     // Sections
@@ -1081,6 +1091,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         borderWidth: 1,
         borderColor: COLORS.border,
+    },
+    socialLinksRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.s,
+        marginTop: SPACING.s,
+    },
+    socialLinkButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 8,
+        borderRadius: 20,
+        gap: 6,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    socialLinkText: {
+        color: COLORS.primary,
+        fontWeight: '500',
     },
 });
 

@@ -1,93 +1,117 @@
 import React from 'react';
 import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from './Typography';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../constants/theme';
-import { getRandomAvatar, getAvatarSource } from '../utils/avatarHelper';
+import { getAvatarSource } from '../utils/avatarHelper';
 
+/**
+ * A single clean "Find Buddies" teaser card for EventDetailScreen.
+ * Shows group leaders' avatars, group count, and a CTA to open the full buddy screen.
+ */
 const BuddyActionCard = ({ onPress, requestCount = 0, avatars = [] }) => {
-    // Generate some mock avatars if none provided, just for the visual stack
-    const displayAvatars = avatars.length > 0
-        ? avatars.slice(0, 3)
-        : [getRandomAvatar(), getRandomAvatar(), getRandomAvatar()];
+    const displayAvatars = avatars.slice(0, 4);
+    const hasGroups = requestCount > 0;
 
     return (
-        <TouchableOpacity activeOpacity={0.9} onPress={onPress}>
-            <LinearGradient
-                colors={['#4c669f', '#3b5998', '#192f6a']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={styles.card}
-            >
-                <View style={styles.content}>
-                    <View style={styles.leftSection}>
-                        <View style={styles.avatarStack}>
-                            {displayAvatars.map((avatar, index) => (
-                                <View
-                                    key={index}
-                                    style={[
-                                        styles.avatarContainer,
-                                        { zIndex: 3 - index, marginLeft: index === 0 ? 0 : -15 }
-                                    ]}
-                                >
-                                    <Image
-                                        source={avatar.url ? { uri: avatar.url } : getAvatarSource(null)}
-                                        style={styles.avatar}
-                                    />
-                                </View>
-                            ))}
-                        </View>
-                        <View style={styles.textContainer}>
-                            <Typography variant="h4" style={styles.title}>
-                                {requestCount > 0
-                                    ? `${requestCount} people looking`
-                                    : "Going solo?"}
-                            </Typography>
-                            <Typography variant="caption" style={styles.subtitle}>
-                                {requestCount > 0
-                                    ? "Find your event buddy"
-                                    : "Find a buddy!"}
-                            </Typography>
-                        </View>
-                    </View>
+        <TouchableOpacity
+            activeOpacity={0.88}
+            onPress={onPress}
+            style={styles.card}
+        >
+            {/* Left: icon badge */}
+            <View style={styles.iconBadge}>
+                <Ionicons name="people" size={22} color={COLORS.accent} />
+            </View>
 
-                    <View style={styles.iconContainer}>
-                        <Ionicons name="chevron-forward" size={24} color="#FFF" />
+            {/* Middle: text + avatar stack */}
+            <View style={styles.body}>
+                <Typography variant="body" style={styles.title}>
+                    {hasGroups ? `${requestCount} Buddy Group${requestCount > 1 ? 's' : ''}` : 'Find Event Buddies'}
+                </Typography>
+                <Typography variant="caption" style={styles.subtitle}>
+                    {hasGroups ? 'Tap to view and join groups' : 'Be the first to create a group!'}
+                </Typography>
+
+                {/* Avatar strip */}
+                {displayAvatars.length > 0 && (
+                    <View style={styles.avatarStrip}>
+                        {displayAvatars.map((av, i) => (
+                            <View
+                                key={i}
+                                style={[styles.avatarWrap, { marginLeft: i > 0 ? -10 : 0, zIndex: 10 - i }]}
+                            >
+                                <Image
+                                    source={av.url ? { uri: av.url } : getAvatarSource(null)}
+                                    style={styles.avatar}
+                                />
+                            </View>
+                        ))}
+                        {requestCount > 4 && (
+                            <View style={[styles.avatarWrap, styles.moreCount, { marginLeft: -10 }]}>
+                                <Typography style={styles.moreText}>+{requestCount - 4}</Typography>
+                            </View>
+                        )}
                     </View>
-                </View>
-            </LinearGradient>
+                )}
+            </View>
+
+            {/* Right: arrow */}
+            <View style={styles.arrowWrap}>
+                <Ionicons name="chevron-forward" size={18} color={COLORS.secondary} />
+            </View>
         </TouchableOpacity>
     );
 };
 
 const styles = StyleSheet.create({
     card: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
         borderRadius: BORDER_RADIUS.l,
+        borderWidth: 1,
+        borderColor: COLORS.accent + '30',
         padding: SPACING.m,
+        marginHorizontal: SPACING.l,
         marginVertical: SPACING.m,
-        ...SHADOWS.medium,
+        ...SHADOWS.soft,
     },
-    content: {
-        flexDirection: 'row',
+    iconBadge: {
+        width: 46,
+        height: 46,
+        borderRadius: BORDER_RADIUS.m,
+        backgroundColor: COLORS.accent + '15',
+        borderWidth: 1,
+        borderColor: COLORS.accent + '30',
+        justifyContent: 'center',
         alignItems: 'center',
-        justifyContent: 'space-between',
-    },
-    leftSection: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        flex: 1,
-    },
-    avatarStack: {
-        flexDirection: 'row',
         marginRight: SPACING.m,
     },
-    avatarContainer: {
-        width: 36,
-        height: 36,
-        borderRadius: 18,
+    body: {
+        flex: 1,
+    },
+    title: {
+        fontWeight: '700',
+        color: COLORS.primary,
+        fontSize: 14,
+        marginBottom: 2,
+    },
+    subtitle: {
+        color: COLORS.secondary,
+        fontSize: 12,
+        marginBottom: SPACING.s,
+    },
+    avatarStrip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    avatarWrap: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
         borderWidth: 2,
-        borderColor: '#4c669f', // Match start color for seamless blend or white for pop
+        borderColor: COLORS.surface,
         overflow: 'hidden',
         backgroundColor: COLORS.surfaceHighlight,
     },
@@ -95,21 +119,20 @@ const styles = StyleSheet.create({
         width: '100%',
         height: '100%',
     },
-    textContainer: {
+    moreCount: {
+        backgroundColor: COLORS.surfaceHighlight,
         justifyContent: 'center',
+        alignItems: 'center',
+        overflow: 'visible',
     },
-    title: {
-        color: '#FFF',
-        fontWeight: '700',
+    moreText: {
+        color: COLORS.secondary,
+        fontSize: 8,
+        fontWeight: '800',
     },
-    subtitle: {
-        color: 'rgba(255,255,255,0.8)',
+    arrowWrap: {
+        marginLeft: SPACING.s,
     },
-    iconContainer: {
-        backgroundColor: 'rgba(255,255,255,0.2)',
-        borderRadius: 20,
-        padding: 4,
-    }
 });
 
 export default BuddyActionCard;

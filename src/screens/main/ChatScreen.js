@@ -68,31 +68,47 @@ const ChatScreen = ({ route, navigation }) => {
                 } else if (recipientId) {
                     // One-on-one: Find or create chat with recipient
                     // Build participant names map for display
+                    const currentId = user?.id || user?.uid;
                     const participantNames = {};
-                    participantNames[user.id] = user.name || 'User';
+                    if (currentId) {
+                        participantNames[currentId] = user?.name || 'User';
+                    }
                     if (recipientId && recipientName) {
                         participantNames[recipientId] = recipientName;
                     }
 
-                    const id = await chatService.createChat([user.id, recipientId], participantNames);
+                    if (!currentId) {
+                        console.error("ChatScreen Error: Current user has no id or uid!");
+                        alert("Authentication error. Please re-login.");
+                        setLoading(false);
+                        return;
+                    }
+
+                    const id = await chatService.createChat([currentId, recipientId], participantNames);
                     setChatId(id);
 
-                    // Subscribe to messages
-                    const unsubscribe = chatService.subscribeToChat(id, (newMessages) => {
-                        setMessages(newMessages);
+                    if (id) {
+                        // Subscribe to messages
+                        const unsubscribe = chatService.subscribeToChat(id, (newMessages) => {
+                            setMessages(newMessages);
+                            setLoading(false);
+                            // Mark as read
+                            if (currentId) {
+                                chatService.markChatAsRead(id, currentId);
+                            }
+                        });
+                        return () => unsubscribe();
+                    } else {
+                        console.error("ChatScreen Error: createChat returned null!");
+                        alert("Chat could not be created: Invalid participants.");
                         setLoading(false);
-                        // Mark as read
-                        if (user?.id) {
-                            chatService.markChatAsRead(id, user.id);
-                        }
-                    });
-
-                    return () => unsubscribe();
+                    }
                 } else {
                     setLoading(false);
                 }
             } catch (error) {
                 console.error("Error initializing chat:", error);
+                alert("Failed to initialize chat: " + error.message);
                 setLoading(false);
             }
         };
@@ -101,13 +117,33 @@ const ChatScreen = ({ route, navigation }) => {
     }, [recipientId]);
 
     const sendMessage = async () => {
-        if (!message.trim() || !chatId || !currentUser) return;
+        if (!message.trim()) return;
+        
+        if (!chatId) {
+            console.log("Send blocked: missing chatId. recipientId was:", recipientId);
+            alert("Cannot send message: Chat history could not be established. Please re-open the chat.");
+            return;
+        }
+        
+        if (!currentUser) {
+            alert("Cannot send message: User not logged in.");
+            return;
+        }
+
+        const currentUserId = currentUser.id || currentUser.uid;
+        const textToSend = message.trim();
+        
+        // Clear immediately for optimistic UI
+        setMessage('');
 
         try {
-            await chatService.sendMessage(chatId, message, currentUser.id, currentUser.name || 'User');
-            setMessage('');
+            console.log("Sending to chat:", chatId);
+            await chatService.sendMessage(chatId, textToSend, currentUserId, currentUser.name || 'User');
         } catch (error) {
+            // Restore message on failure
+            setMessage(textToSend);
             console.error("Error sending message:", error);
+            alert("Failed to send: " + error.message);
         }
     };
 
@@ -207,7 +243,7 @@ const ChatScreen = ({ route, navigation }) => {
                     renderItem={renderMessage}
                     keyExtractor={item => item.id}
                     contentContainerStyle={styles.messageList}
-                    onContentSizeChange={() => scrollRef.current?.scrollToEnd()}
+                    inverted
                 />
 
                 <View style={[styles.inputContainer, { paddingBottom: Math.max(SPACING.m, insets.bottom + SPACING.s) }]}>
@@ -218,6 +254,12 @@ const ChatScreen = ({ route, navigation }) => {
                         placeholder="Type a message..."
                         placeholderTextColor={COLORS.secondary}
                         multiline
+                        onKeyPress={(e) => {
+                            if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                                e.preventDefault();
+                                sendMessage();
+                            }
+                        }}
                     />
                     <TouchableOpacity
                         style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}

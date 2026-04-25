@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { db, storage, auth } from './firebaseConfig';
+import API_ENDPOINTS from '../constants/apiConfig';
 import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -11,20 +12,16 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 /**
  * Step 1: Get DigiLocker Session URL from Backend
  */
-export const getDigiLockerUrl = async (userFlow = 'signin') => {
+export const getDigiLockerUrl = async (userFlow = 'signin', redirectUrl = 'https://croww.ai/kyc-complete') => {
     try {
         const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
-        const clientId = process.env.EXPO_PUBLIC_CASHFREE_CLIENT_ID;
-        const clientSecret = process.env.EXPO_PUBLIC_CASHFREE_SECRET_KEY;
-
-        const response = await fetch('https://getdigilockerurl-6vktyfoeaa-uc.a.run.app', {
+        const response = await fetch(API_ENDPOINTS.GET_DIGILOCKER_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 userFlow,
                 environment,
-                clientId,
-                clientSecret
+                redirectUrl
             })
         });
 
@@ -51,135 +48,52 @@ export const finalizeAadhaarVerification = async (verificationId) => {
 
         // Fetch details from Cashfree to confirm success
         const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
-        const clientId = process.env.EXPO_PUBLIC_CASHFREE_CLIENT_ID;
-        const clientSecret = process.env.EXPO_PUBLIC_CASHFREE_SECRET_KEY;
 
-        const response = await fetch('https://getdigilockerstatus-6vktyfoeaa-uc.a.run.app', {
+        const response = await fetch(API_ENDPOINTS.GET_DIGILOCKER_STATUS, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 verificationId,
-                environment,
-                clientId,
-                clientSecret
+                userId: user.uid,
+                environment
             })
         });
         const data = await response.json();
 
-        if (data.status === 'SUCCESS') {
-            const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
-                isVerified: true,
-                verificationData: {
-                    ...data,
-                    aadhaarVerifiedAt: serverTimestamp(),
-                    verificationId: verificationId,
-                    type: 'digilocker'
-                }
-            });
-
+        if (data.status === 'SUCCESS' || data.status === 'AUTHENTICATED') {
             await AsyncStorage.setItem('aadhaar_verified', 'true');
-            return { success: true, message: 'Aadhaar verified via DigiLocker' };
+            
+            // Persist to Firestore so Admin Panel can see details
+            const userRef = doc(db, 'users', user.uid);
+            const verificationPayload = {
+                aadhaarVerified: true,
+                isVerified: true,
+                aadhaarVerifiedAt: serverTimestamp(),
+                verificationData: {
+                    type: data.type || 'aadhaar_otp',
+                    status: 'verified',
+                    aadhaarVerifiedAt: serverTimestamp(),
+                    data: data.data || data // Store the full result including full_name, dob, gender, address
+                }
+            };
+            
+            // Also update kycDetails for backward compatibility/redundancy if needed
+            if (data.data?.full_name || data.full_name) {
+                verificationPayload.kycDetails = {
+                    name: data.data?.full_name || data.full_name,
+                    verifiedAt: serverTimestamp()
+                };
+            }
+
+            await updateDoc(userRef, verificationPayload);
+
+            return { success: true, message: 'Aadhaar verified via DigiLocker', data: data };
         } else {
-            throw new Error(data.message || "Verification not successful yet");
+            throw new Error(data.message || "Verification not successful yet. Status: " + data.status);
         }
     } catch (error) {
         console.error("Error finalizing verification:", error);
         return { success: false, message: error.message };
-    }
-};
-
-/**
- * [NEW] Aadhaar Integrated: Step 1: Initiate OTP
- */
-export const initiateAadhaarOTP = async (aadhaarNumber) => {
-    try {
-        const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
-        const clientId = process.env.EXPO_PUBLIC_CASHFREE_CLIENT_ID;
-        const clientSecret = process.env.EXPO_PUBLIC_CASHFREE_SECRET_KEY;
-
-        const response = await fetch('https://initiateaadhaarotp-6vktyfoeaa-uc.a.run.app', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                aadhaarNumber,
-                environment,
-                clientId,
-                clientSecret
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Server error: ${response.status}`);
-        }
-
-        return await response.json(); // contains ref_id
-    } catch (error) {
-        console.error("Error initiating Aadhaar OTP:", error);
-        throw error;
-    }
-};
-
-/**
- * [NEW] Aadhaar Integrated: Step 2: Verify OTP
- */
-export const verifyAadhaarOTP = async (refId, otp) => {
-    try {
-        const user = auth.currentUser;
-        if (!user) throw new Error("User not authenticated");
-
-        const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
-        const clientId = process.env.EXPO_PUBLIC_CASHFREE_CLIENT_ID;
-        const clientSecret = process.env.EXPO_PUBLIC_CASHFREE_SECRET_KEY;
-
-        const response = await fetch('https://verifyaadhaarotp-6vktyfoeaa-uc.a.run.app', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                refId,
-                otp,
-                environment,
-                clientId,
-                clientSecret
-            })
-        });
-
-        if (!response.ok) {
-            const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `Server error: ${response.status}`);
-        }
-
-        const data = await response.json();
-
-        // If successful, update Firestore
-        if (data.status === 'SUCCESS' || data.status === 'VALID' || data.message === 'Aadhaar details fetched successfully' || data.message === 'Aadhaar Card Exists') {
-            const userRef = doc(db, 'users', user.uid);
-            await updateDoc(userRef, {
-                isVerified: true,
-                verificationData: {
-                    ...data,
-                    aadhaarVerifiedAt: serverTimestamp(),
-                    type: 'aadhaar_otp',
-                    refId: refId
-                }
-            });
-
-            await AsyncStorage.setItem('aadhaar_verified', 'true');
-            if (data.data?.full_name) {
-                await AsyncStorage.setItem('aadhaar_name', data.data.full_name);
-            }
-            return {
-                success: true,
-                message: 'Aadhaar verified successfully',
-                data: data.data
-            };
-        } else {
-            throw new Error(data.message || "OTP verification failed");
-        }
-    } catch (error) {
-        console.error("Error verifying Aadhaar OTP:", error);
-        throw error;
     }
 };
 
@@ -275,8 +189,9 @@ export const getVerificationStatus = async () => {
             const userData = docSnap.data();
             const isApproved = userData.isApproved === true;
             const status = userData.verificationData?.status || null;
-            const isVerified = userData.isVerified === true;
-            const fullName = userData.verificationData?.data?.full_name ||
+            const isVerified = userData.aadhaarVerified || userData.isVerified === true;
+            const fullName = userData.kycDetails?.name || 
+                userData.verificationData?.data?.full_name ||
                 userData.verificationData?.full_name || "";
 
             // Sync with local storage
@@ -289,7 +204,7 @@ export const getVerificationStatus = async () => {
             return {
                 aadhaarVerified: isVerified,
                 aadhaarName: fullName,
-                businessVerified: isApproved && userData.userType === 'business',
+                businessVerified: (isApproved || userData.kycStatus === 'VERIFIED') && userData.userType === 'business',
                 businessPending: status === 'pending' && userData.userType === 'business'
             };
         }

@@ -3,17 +3,17 @@ export default {
     "name": "Croww",
     "slug": "croww-app",
     "owner": "nashnewton",
-    "version": "1.0.1",
+    "version": "1.0.2",
     "orientation": "portrait",
-    "icon": "./assets/app-icon.jpg",
+    "icon": "./assets/app-icon.png",
     "scheme": "crowwapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
-      "buildNumber": "3",
-      "googleServicesFile": "./GoogleService-Info.plist",
+      "buildNumber": "21",
+      "googleServicesFile": process.env.APP_ENV === 'staging' ? "./GoogleService-Info.staging.plist" : "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
       },
@@ -33,15 +33,15 @@ export default {
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
-        "foregroundImage": "./assets/app-icon.jpg",
+        "backgroundColor": "#1A1A1A",
+        "foregroundImage": "./assets/app-icon.png",
         "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/app-icon.jpg"
+        "monochromeImage": "./assets/app-icon.png"
       },
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.croww.app",
-      "versionCode": 2,
+      "versionCode": 9,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -51,7 +51,7 @@ export default {
           "apiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
         }
       },
-      "googleServicesFile": "./google-services.json",
+      "googleServicesFile": process.env.APP_ENV === 'staging' ? "./google-services.staging.json" : "./google-services.json",
       "intentFilters": [
         {
           "action": "VIEW",
@@ -69,7 +69,7 @@ export default {
     },
     "web": {
       "output": "spa",
-      "favicon": "./assets/app-icon.jpg",
+      "favicon": "./assets/croww favicon.png",
       "config": {
         "googleMaps": {
           "apiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -101,10 +101,10 @@ export default {
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/splash-icon.png",
+          "image": "./assets/app-icon.png",
           "imageWidth": 200,
           "resizeMode": "contain",
-          "backgroundColor": "#ffffff",
+          "backgroundColor": "#000000",
           "dark": {
             "backgroundColor": "#000000"
           }
@@ -113,7 +113,7 @@ export default {
       [
         "expo-notifications",
         {
-          "icon": "./assets/app-icon.jpg",
+          "icon": "./assets/app-icon.png",
           "color": "#ffffff"
         }
       ],

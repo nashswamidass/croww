@@ -1,146 +1,140 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
-import { useIsFocused } from '@react-navigation/native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
+import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
 
 const ChatListScreen = ({ navigation }) => {
+    const { user: authUser } = useAuth();
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [currentUser, setCurrentUser] = useState(null);
-    const isFocused = useIsFocused();
+
+    // Cache avatars/names so we don't re-fetch on every snapshot
+    const profileCache = useRef({});
 
     useEffect(() => {
-        let unsubscribe;
-
-        const init = async () => {
-            try {
-                const user = await userService.getUser();
-                setCurrentUser(user);
-
-                if (user) {
-                    unsubscribe = chatService.subscribeToUserChats(user.id, async (chatData) => {
-                        // Enhance chats with recipient info
-                        const enhancedChats = [];
-                        for (const chat of chatData) {
-                            let recipient = { name: 'Chat', avatar: null };
-                            try {
-                                if (chat.type === 'group') {
-                                    recipient = {
-                                        name: chat.name || 'Group Chat',
-                                        avatar: chat.image || null,
-                                        isGroup: true
-                                    };
-                                } else {
-                                    const participantIds = chat.participantIds || [];
-                                    const myId = user?.id || user?.uid;
-                                    const recipientId = participantIds.find(id => id && id !== myId);
-
-                                    if (recipientId && typeof recipientId === 'string') {
-                                        // First try stored names (fast, no network call)
-                                        const storedNames = chat.participantNames || {};
-                                        const storedName = storedNames[recipientId];
-
-                                        if (storedName) {
-                                            recipient = {
-                                                name: storedName,
-                                                avatar: null
-                                            };
-                                        }
-
-                                        // Then try full user lookup for avatar and updated name
-                                        const userData = await userService.getUserById(recipientId);
-                                        if (userData) {
-                                            recipient = {
-                                                name: userData.name || storedName || 'User',
-                                                avatar: userData.avatar || userData.profileImage || null
-                                            };
-                                        }
-                                    }
-                                }
-                            } catch (err) {
-                                console.error('Error enhancing chat:', err);
-                            }
-                            enhancedChats.push({ ...chat, recipient });
-                        }
-                        setChats(enhancedChats);
-                        setLoading(false);
-                    });
-                } else {
-                    setLoading(false);
-                }
-            } catch (error) {
-                console.error("Error loading chats:", error);
-                setLoading(false);
-            }
-        };
-
-        if (isFocused) {
-            init();
+        const currentUserId = authUser?.id || authUser?.uid;
+        if (!currentUserId) {
+            setLoading(false);
+            return;
         }
 
-        return () => {
-            if (unsubscribe) unsubscribe();
-        };
-    }, [isFocused]);
+        const unsubscribe = chatService.subscribeToUserChats(currentUserId, async (chatData) => {
+            // STEP 1: Render immediately with whatever names we already know
+            // (stored in participantNames field on the chat doc, or cache)
+            const quickChats = chatData.map(chat => {
+                let recipient;
+                if (chat.type === 'group') {
+                    recipient = { name: chat.name || 'Group Chat', avatar: chat.image || null, isGroup: true };
+                } else {
+                    const recipientId = (chat.participantIds || []).find(id => id && id !== currentUserId);
+                    const cached = profileCache.current[recipientId];
+                    const storedName = chat.participantNames?.[recipientId];
+                    recipient = {
+                        id: recipientId,
+                        name: cached?.name || storedName || 'Loading...',
+                        avatar: cached?.avatar || null,
+                    };
+                }
+                return { ...chat, recipient };
+            });
+            setChats(quickChats);
+            setLoading(false);
+
+            // STEP 2: Hydrate missing avatars & names in parallel (background)
+            const missingIds = chatData
+                .filter(c => c.type !== 'group')
+                .map(c => (c.participantIds || []).find(id => id && id !== currentUserId))
+                .filter(id => id && !profileCache.current[id]);
+
+            if (missingIds.length === 0) return;
+
+            const uniqueIds = [...new Set(missingIds)];
+            const profiles = await Promise.all(
+                uniqueIds.map(id =>
+                    userService.getUserById(id)
+                        .then(u => ({ id, name: u?.name || 'User', avatar: u?.avatar || u?.profileImage || null }))
+                        .catch(() => ({ id, name: 'User', avatar: null }))
+                )
+            );
+
+            // Store in cache
+            profiles.forEach(p => { profileCache.current[p.id] = p; });
+
+            // Re-apply with full data
+            setChats(prev => prev.map(chat => {
+                if (chat.type === 'group' || !chat.recipient?.id) return chat;
+                const fresh = profileCache.current[chat.recipient.id];
+                if (!fresh) return chat;
+                return { ...chat, recipient: { ...chat.recipient, name: fresh.name, avatar: fresh.avatar } };
+            }));
+        });
+
+        return () => unsubscribe();
+    }, [authUser?.id, authUser?.uid]);
+
+    const currentUserId = authUser?.id || authUser?.uid;
 
     const renderItem = ({ item }) => {
-        const lastMessageTime = item.lastMessageTimestamp && typeof item.lastMessageTimestamp.toDate === 'function'
+        const lastMessageTime = item.lastMessageTimestamp?.toDate
             ? formatDistanceToNow(item.lastMessageTimestamp.toDate(), { addSuffix: true })
             : '';
 
-        return (
-            <View style={styles.chatItem}>
-                <TouchableOpacity
-                    onPress={() => {
-                        const recipientId = item.participantIds.find(id => id !== currentUser?.id);
-                        if (recipientId && !item.recipient?.isGroup) {
-                            navigation.navigate('ServiceDetail', { serviceId: recipientId });
-                        }
-                    }}
-                >
-                    {item.recipient?.isGroup ? (
-                        <View style={[styles.avatar, { alignItems: 'center', justifyContent: 'center', backgroundColor: COLORS.secondary }]}>
-                            <Ionicons name="people" size={24} color={COLORS.background} />
-                        </View>
-                    ) : (
-                        <Image
-                            source={item.recipient?.avatar ? { uri: item.recipient.avatar } : require('../../../assets/croww-logo.png')}
-                            style={styles.avatar}
-                        />
-                    )}
-                </TouchableOpacity>
+        const unreadCount = item.unreadCounts?.[currentUserId] || 0;
 
+        return (
+            <TouchableOpacity
+                style={styles.chatItem}
+                activeOpacity={0.75}
+                onPress={() => navigation.navigate('Chat', {
+                    recipientId: item.recipient?.isGroup ? 'GROUP' : item.recipient?.id,
+                    recipientName: item.recipient?.name,
+                    chatId: item.id
+                })}
+            >
+                {/* Avatar */}
+                {item.recipient?.isGroup ? (
+                    <View style={[styles.avatar, styles.groupAvatar]}>
+                        <Ionicons name="people" size={22} color="#fff" />
+                    </View>
+                ) : (
+                    <Image
+                        source={
+                            item.recipient?.avatar
+                                ? { uri: item.recipient.avatar }
+                                : require('../../../assets/croww-logo.png')
+                        }
+                        style={styles.avatar}
+                    />
+                )}
+
+                {/* Info */}
                 <View style={styles.chatInfo}>
-                    <TouchableOpacity
-                        style={styles.chatHeader}
-                        onPress={() => navigation.navigate('Chat', {
-                            recipientId: item.recipient?.isGroup ? 'GROUP' : item.participantIds.find(id => id !== currentUser?.id),
-                            recipientName: item.recipient?.name,
-                            chatId: item.id
-                        })}
-                    >
-                        <Typography variant="body" style={styles.name}>{item.recipient?.name}</Typography>
+                    <View style={styles.chatHeader}>
+                        <Typography variant="body" style={styles.name} numberOfLines={1}>
+                            {item.recipient?.name}
+                        </Typography>
                         <Typography variant="caption" style={styles.time}>{lastMessageTime}</Typography>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                        onPress={() => navigation.navigate('Chat', {
-                            recipientId: item.recipient?.isGroup ? 'GROUP' : item.participantIds.find(id => id !== currentUser?.id),
-                            recipientName: item.recipient?.name,
-                            chatId: item.id
-                        })}
-                    >
-                        <Typography variant="caption" numberOfLines={1} style={styles.lastMessage}>
+                    </View>
+                    <View style={styles.chatFooter}>
+                        <Typography variant="caption" numberOfLines={1} style={[styles.lastMessage, unreadCount > 0 && styles.unreadMessage]}>
                             {item.lastMessage || 'Start a conversation'}
                         </Typography>
-                    </TouchableOpacity>
+                        {unreadCount > 0 && (
+                            <View style={styles.badge}>
+                                <Typography variant="caption" style={styles.badgeText}>
+                                    {unreadCount > 9 ? '9+' : unreadCount}
+                                </Typography>
+                            </View>
+                        )}
+                    </View>
                 </View>
-            </View>
+            </TouchableOpacity>
         );
     };
 
@@ -161,7 +155,7 @@ const ChatListScreen = ({ navigation }) => {
                     data={chats}
                     renderItem={renderItem}
                     keyExtractor={item => item.id}
-                    contentContainerStyle={styles.list}
+                    contentContainerStyle={chats.length === 0 ? styles.emptyContainer : styles.list}
                     ListEmptyComponent={
                         <View style={styles.emptyState}>
                             <Ionicons name="chatbubbles-outline" size={64} color={COLORS.secondary} />
@@ -185,13 +179,20 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
     },
+    backButton: {
+        width: 40,
+    },
     list: {
-        padding: SPACING.m,
+        paddingVertical: SPACING.s,
+    },
+    emptyContainer: {
+        flex: 1,
     },
     chatItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: SPACING.m,
+        paddingHorizontal: SPACING.m,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.surfaceHighlight,
     },
@@ -202,23 +203,57 @@ const styles = StyleSheet.create({
         marginRight: SPACING.m,
         backgroundColor: COLORS.surfaceHighlight,
     },
+    groupAvatar: {
+        backgroundColor: COLORS.accent,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
     chatInfo: {
         flex: 1,
+        minWidth: 0,
     },
     chatHeader: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        marginBottom: 4,
+        alignItems: 'center',
+        marginBottom: 3,
     },
     name: {
         fontWeight: '600',
+        flex: 1,
+        marginRight: SPACING.s,
     },
     time: {
         color: COLORS.secondary,
+        flexShrink: 0,
+    },
+    chatFooter: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
     },
     lastMessage: {
         color: COLORS.secondary,
-        marginRight: SPACING.xl,
+        flex: 1,
+        marginRight: SPACING.s,
+    },
+    unreadMessage: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    badge: {
+        backgroundColor: COLORS.accent,
+        borderRadius: 10,
+        minWidth: 20,
+        height: 20,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: 5,
+    },
+    badgeText: {
+        color: '#fff',
+        fontWeight: '700',
+        fontSize: 11,
     },
     emptyState: {
         alignItems: 'center',

@@ -51,7 +51,22 @@ const linking = {
                     Settings: 'settings',
                     HelpCenter: 'help',
                     Chat: 'messages/:chatId',
+                    VerifyIdentity: 'kyc-complete',
                     WebPayment: 'payment-return',
+                    Notifications: 'notifications',
+                    FriendRequests: 'friend-requests',
+                    EventBuddy: {
+                        path: 'buddies/:eventId',
+                        parse: {
+                            eventId: (eventId) => eventId,
+                        },
+                    },
+                    BuddyRequestDetail: {
+                        path: 'buddy-request/:requestId',
+                        parse: {
+                            requestId: (requestId) => requestId,
+                        },
+                    },
                 },
             },
             Blocked: 'blocked',
