@@ -12,7 +12,7 @@ export default {
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
-      "buildNumber": "21",
+      "buildNumber": "25",
       "googleServicesFile": process.env.APP_ENV === 'staging' ? "./GoogleService-Info.staging.plist" : "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
