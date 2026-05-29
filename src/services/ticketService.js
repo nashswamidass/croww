@@ -8,7 +8,8 @@ import {
     where,
     updateDoc,
     serverTimestamp,
-    increment
+    increment,
+    orderBy
 } from 'firebase/firestore';
 import { db } from './firebaseConfig';
 
@@ -25,8 +26,9 @@ export const ticketService = {
      * @param {string|null} cashfreeOrderId
      * @param {Object|null} feeBreakdown - Result from calculateFees()
      * @param {string} attendeeName - Name of the attendee
+     * @param {number} quantity - Number of passes bought (e.g. 5 tickets, 2 tables)
      */
-    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null, feeBreakdown = null, attendeeName = 'Attendee') => {
+    issueTicket: async (userId, eventId, eventData, status = 'valid', cashfreeOrderId = null, feeBreakdown = null, attendeeName = 'Attendee', quantity = 1) => {
         try {
             // 1. Create the ticket document
             const ticketData = {
@@ -40,6 +42,12 @@ export const ticketService = {
                 type: eventData.isPaid ? 'Paid' : 'Free',
                 price: eventData.price || 0,
                 organizerId: eventData.organizerId || null,
+                eventType: eventData.eventType || 'event',
+                ticketType: eventData.ticketType || 'Individual',
+                paxPerTicket: eventData.paxPerTicket || 1,
+                quantity: quantity,
+                totalAdmits: quantity * (eventData.paxPerTicket || 1),
+                scannedAdmits: 0,
                 cashfreeOrderId: cashfreeOrderId,
                 attendeeName: attendeeName,
                 issuedAt: serverTimestamp(),
@@ -66,8 +74,8 @@ export const ticketService = {
             if (status === 'valid') {
                 const eventRef = doc(db, EVENTS_COLLECTION, eventId);
                 await updateDoc(eventRef, {
-                    remainingTickets: increment(-1),
-                    attendeesCount: increment(1)
+                    remainingTickets: increment(-quantity),
+                    attendeesCount: increment(ticketData.totalAdmits)
                 });
             }
 
@@ -110,8 +118,8 @@ export const ticketService = {
                 // Update event counts
                 const eventRef = doc(db, EVENTS_COLLECTION, ticketData.eventId);
                 await updateDoc(eventRef, {
-                    remainingTickets: increment(-1),
-                    attendeesCount: increment(1)
+                    remainingTickets: increment(-(ticketData.quantity || 1)),
+                    attendeesCount: increment(ticketData.totalAdmits || 1)
                 });
             }
             return true;
@@ -149,29 +157,67 @@ export const ticketService = {
      */
     validateTicket: async (ticketId) => {
         try {
+            if (!ticketId || typeof ticketId !== 'string' || ticketId.includes('/')) {
+                return { success: false, message: "Invalid QR Code format" };
+            }
+
             const ticketRef = doc(db, TICKETS_COLLECTION, ticketId);
             const ticketSnap = await getDoc(ticketRef);
 
             if (!ticketSnap.exists()) {
-                throw new Error("Ticket not found");
+                return { success: false, message: "Ticket not found in database" };
             }
 
             const ticketData = ticketSnap.data();
             if (ticketData.status === 'scanned') {
-                return { success: false, message: "Ticket already scanned" };
+                return { success: false, message: "Ticket already fully scanned" };
             }
 
             if (ticketData.status !== 'valid') {
                 return { success: false, message: "Ticket is invalid" };
             }
 
-            // Mark as scanned
-            await updateDoc(ticketRef, {
-                status: 'scanned',
-                scannedAt: serverTimestamp()
-            });
+            const totalAdmits = ticketData.totalAdmits || 1;
+            const scannedAdmits = ticketData.scannedAdmits || 0;
+            
+            if (scannedAdmits >= totalAdmits) {
+                return { success: false, message: "Ticket already fully scanned" };
+            }
 
-            return { success: true, message: "Ticket validated successfully", ticket: ticketData };
+            // Return ticket for consume selection, DO NOT mark as scanned yet
+            return { success: true, message: "Ticket is valid", ticket: { id: ticketSnap.id, ...ticketData } };
+        } catch (error) {
+            console.error("Error validating ticket:", error);
+            throw error;
+        }
+    },
+
+    /**
+     * Consume a specific number of admits on a valid ticket
+     */
+    consumeTicket: async (ticketId, consumeCount) => {
+        try {
+            const ticketRef = doc(db, TICKETS_COLLECTION, ticketId);
+            const ticketSnap = await getDoc(ticketRef);
+            if (!ticketSnap.exists()) throw new Error("Ticket not found");
+
+            const ticketData = ticketSnap.data();
+            const totalAdmits = ticketData.totalAdmits || 1;
+            const currentScanned = ticketData.scannedAdmits || 0;
+            const newScanned = currentScanned + consumeCount;
+
+            const updateData = {
+                scannedAdmits: newScanned,
+                lastScannedAt: serverTimestamp()
+            };
+
+            if (newScanned >= totalAdmits) {
+                updateData.status = 'scanned';
+                updateData.scannedAt = serverTimestamp();
+            }
+
+            await updateDoc(ticketRef, updateData);
+            return { success: true, updatedScanned: newScanned };
         } catch (error) {
             console.error("Error validating ticket:", error);
             throw error;
@@ -222,10 +268,11 @@ export const ticketService = {
 
             querySnapshot.forEach((doc) => {
                 const data = doc.data();
-                sold++;
-                if (data.status === 'scanned') {
-                    scanned++;
-                }
+                const admits = data.totalAdmits || 1;
+                const used = data.scannedAdmits || (data.status === 'scanned' ? admits : 0);
+                
+                sold += admits;
+                scanned += used;
                 attendees.push({ id: doc.id, ...data });
             });
 
@@ -248,7 +295,7 @@ export const ticketService = {
                 collection(db, TICKETS_COLLECTION),
                 where('userId', '==', userId),
                 where('eventId', '==', eventId),
-                where('status', '==', 'valid')
+                where('status', 'in', ['valid', 'scanned'])
             );
             const querySnapshot = await getDocs(q);
             return !querySnapshot.empty;

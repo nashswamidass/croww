@@ -1,18 +1,25 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Modal } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';
+import AntigravityButton from '../../components/AntigravityButton';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { ticketService } from '../../services/ticketService';
+import { eventService } from '../../services/eventService';
+import { notificationService } from '../../services/notificationService';
 
 const TicketScannerScreen = ({ navigation }) => {
     const [permission, requestPermission] = useCameraPermissions();
     const [scanned, setScanned] = useState(false);
     const [validating, setValidating] = useState(false);
+    const [validatingText, setValidatingText] = useState("Validating...");
     const [scanResult, setScanResult] = useState(null);
+    const [showConsumeModal, setShowConsumeModal] = useState(false);
+    const [consumeCount, setConsumeCount] = useState(1);
+    const [consuming, setConsuming] = useState(false);
 
     useEffect(() => {
         if (!permission) {
@@ -25,21 +32,116 @@ const TicketScannerScreen = ({ navigation }) => {
 
         setScanned(true);
         setValidating(true);
+        setValidatingText("Validating...");
 
         try {
             const result = await ticketService.validateTicket(data);
-            setScanResult(result);
 
             if (result.success) {
-                Alert.alert("Success", result.message, [
-                    {
-                        text: "OK", onPress: () => {
-                            setScanned(false);
-                            setValidating(false);
-                            setScanResult(null);
+                const total = result.ticket.totalAdmits || 1;
+                const scannedCount = result.ticket.scannedAdmits || 0;
+                const remaining = total - scannedCount;
+
+                if (remaining <= 0) {
+                    Alert.alert("Invalid Ticket", "Ticket already fully scanned", [
+                        {
+                            text: "OK", onPress: () => {
+                                setScanned(false);
+                                setValidating(false);
+                                setScanResult(null);
+                            }
                         }
+                    ], { cancelable: false });
+                    return;
+                }
+
+                setScanResult(result);
+
+                if (remaining === 1) {
+                    // Automatically consume the 1 remaining admit (single admit)
+                    setConsumeCount(1);
+                    setValidatingText("Checking in...");
+                    
+                    try {
+                        await ticketService.consumeTicket(result.ticket.id, 1);
+                        
+                        // Fetch event details safely without failing the scan if it's slow/fails
+                        let fullEvent = null;
+                        try {
+                            fullEvent = await eventService.getEventById(result.ticket.eventId);
+                        } catch (eventErr) {
+                            console.warn("Failed to fetch event details for stats:", eventErr);
+                            // Fallback minimal event object
+                            fullEvent = {
+                                id: result.ticket.eventId,
+                                organizerId: result.ticket.organizerId,
+                                title: result.ticket.eventTitle,
+                                status: 'valid'
+                            };
+                        }
+
+                        // Trigger review notification to the attendee safely
+                        try {
+                            if (result.ticket.userId && fullEvent && fullEvent.organizerId) {
+                                await notificationService.sendNotification(
+                                    result.ticket.userId,
+                                    "How was your experience?",
+                                    `You just checked in to ${result.ticket.eventTitle}. Tap here to review ${fullEvent.organizerName || 'the organizer'}!`,
+                                    {
+                                        type: 'review_prompt',
+                                        businessId: fullEvent.organizerId,
+                                        businessName: fullEvent.organizerName || 'the organizer'
+                                    }
+                                );
+                            }
+                        } catch (notifErr) {
+                            console.log("Failed to send review notification", notifErr);
+                        }
+
+                        setValidating(false);
+
+                        Alert.alert("Success", "Checked in 1 person!", [
+                            {
+                                text: "Scan Another",
+                                onPress: () => {
+                                    setScanResult(null);
+                                    setScanned(false);
+                                },
+                                style: 'default'
+                            },
+                            {
+                                text: "View Stats",
+                                onPress: () => {
+                                    setScanResult(null);
+                                    setScanned(false);
+                                    if (fullEvent) {
+                                        navigation.replace('EventStats', { event: fullEvent });
+                                    } else {
+                                        navigation.goBack();
+                                    }
+                                }
+                            }
+                        ], { cancelable: false });
+
+                    } catch (consumeErr) {
+                        console.error("Auto Check-in Error:", consumeErr);
+                        Alert.alert("Error", "Could not check in. Please try again.", [
+                            {
+                                text: "OK",
+                                onPress: () => {
+                                    setValidating(false);
+                                    setScanned(false);
+                                    setScanResult(null);
+                                }
+                            }
+                        ], { cancelable: false });
                     }
-                ]);
+                } else {
+                    // Multiple person admit: ask how many are entering
+                    setConsumeCount(1);
+                    setValidating(false); // Done validating, modal will be shown
+                    setShowConsumeModal(true);
+                }
             } else {
                 Alert.alert("Invalid Ticket", result.message, [
                     {
@@ -49,19 +151,93 @@ const TicketScannerScreen = ({ navigation }) => {
                             setScanResult(null);
                         }
                     }
-                ]);
+                ], { cancelable: false });
             }
         } catch (error) {
-            Alert.alert("Error", "Could not validate ticket. Please try again.", [
+            console.error("Scanner Error:", error);
+            Alert.alert("Error", error.message || "Could not validate ticket. Please try again.", [
                 {
                     text: "OK", onPress: () => {
                         setScanned(false);
                         setValidating(false);
+                        setScanResult(null);
                     }
                 }
-            ]);
-        } finally {
-            setValidating(false);
+            ], { cancelable: false });
+        }
+    };
+
+    const handleConsume = async () => {
+        setConsuming(true);
+        try {
+            await ticketService.consumeTicket(scanResult.ticket.id, consumeCount);
+            
+            // Fetch event for stats safely without failing the check-in if it's slow/fails
+            let fullEvent = null;
+            try {
+                fullEvent = await eventService.getEventById(scanResult.ticket.eventId);
+            } catch (eventErr) {
+                console.warn("Failed to fetch event details for stats:", eventErr);
+                // Fallback minimal event object
+                fullEvent = {
+                    id: scanResult.ticket.eventId,
+                    organizerId: scanResult.ticket.organizerId,
+                    title: scanResult.ticket.eventTitle,
+                    status: 'valid'
+                };
+            }
+            
+            setConsuming(false);
+            
+            // Trigger review notification to the attendee safely
+            try {
+                if (scanResult.ticket.userId && fullEvent && fullEvent.organizerId) {
+                    await notificationService.sendNotification(
+                        scanResult.ticket.userId,
+                        "How was your experience?",
+                        `You just checked in to ${scanResult.ticket.eventTitle}. Tap here to review ${fullEvent.organizerName || 'the organizer'}!`,
+                        {
+                            type: 'review_prompt',
+                            businessId: fullEvent.organizerId,
+                            businessName: fullEvent.organizerName || 'the organizer'
+                        }
+                    );
+                }
+            } catch (notifErr) {
+                console.log("Failed to send review notification", notifErr);
+            }
+            
+            Alert.alert("Success", `Checked in ${consumeCount} people!`, [
+                {
+                    text: "Scan Another", 
+                    onPress: () => {
+                        setShowConsumeModal(false);
+                        setScanResult(null);
+                        setValidating(false);
+                        setScanned(false); // Reset scanner last
+                    },
+                    style: 'default'
+                },
+                {
+                    text: "View Stats", 
+                    onPress: () => {
+                        setShowConsumeModal(false);
+                        setScanResult(null);
+                        setValidating(false);
+                        setScanned(false);
+                        if (fullEvent) {
+                            navigation.replace('EventStats', { event: fullEvent });
+                        } else {
+                            navigation.goBack();
+                        }
+                    }
+                }
+            ], { cancelable: false });
+            
+        } catch (error) {
+            console.error("Error consuming ticket:", error);
+            Alert.alert("Error", "Could not check in. Please try again.");
+            setConsuming(false);
         }
     };
 
@@ -132,13 +308,92 @@ const TicketScannerScreen = ({ navigation }) => {
                 <Typography variant="body" style={{ textAlign: 'center' }}>
                     Position the ticket QR code within the frame to scan.
                 </Typography>
-                {validating && (
+                {validating && !showConsumeModal && (
                     <View style={styles.loadingOverlay}>
                         <ActivityIndicator size="small" color={COLORS.accent} />
-                        <Typography variant="caption" style={{ marginLeft: SPACING.s }}>Validating...</Typography>
+                        <Typography variant="caption" style={{ marginLeft: SPACING.s }}>{validatingText}</Typography>
                     </View>
                 )}
             </View>
+
+            {/* Consume Modal */}
+            <Modal
+                visible={showConsumeModal}
+                transparent={true}
+                animationType="slide"
+                onRequestClose={() => {
+                    setShowConsumeModal(false);
+                    setScanned(false);
+                    setValidating(false);
+                }}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={styles.modalContent}>
+                        <View style={styles.modalHeader}>
+                            <Typography variant="h3">Check-in Attendees</Typography>
+                            <TouchableOpacity onPress={() => {
+                                setShowConsumeModal(false);
+                                setScanned(false);
+                                setValidating(false);
+                            }}>
+                                <Ionicons name="close" size={24} color={COLORS.text} />
+                            </TouchableOpacity>
+                        </View>
+                        
+                        {scanResult && scanResult.ticket && (() => {
+                            const total = scanResult.ticket.totalAdmits || 1;
+                            const scannedCount = scanResult.ticket.scannedAdmits || 0;
+                            const remaining = total - scannedCount;
+                            
+                            return (
+                                <>
+                                    <NotionCard style={{ marginBottom: SPACING.l }}>
+                                        <Typography variant="body" style={{ fontWeight: '600' }}>
+                                            {scanResult.ticket.attendeeName}
+                                        </Typography>
+                                        <Typography variant="caption" style={{ color: COLORS.secondary }}>
+                                            {scanResult.ticket.ticketType} • Total Admits: {total}
+                                        </Typography>
+                                        <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '700', marginTop: 4 }}>
+                                            {remaining} remaining
+                                        </Typography>
+                                    </NotionCard>
+
+                                    <Typography variant="body" style={{ textAlign: 'center', marginBottom: SPACING.s }}>
+                                        How many people are entering now?
+                                    </Typography>
+                                    
+                                    <View style={styles.counterRow}>
+                                        <TouchableOpacity 
+                                            style={styles.counterButton}
+                                            onPress={() => setConsumeCount(Math.max(1, consumeCount - 1))}
+                                            disabled={consumeCount <= 1}
+                                        >
+                                            <Ionicons name="remove" size={24} color={consumeCount <= 1 ? COLORS.border : COLORS.primary} />
+                                        </TouchableOpacity>
+                                        
+                                        <Typography variant="h1" style={styles.counterText}>{consumeCount}</Typography>
+                                        
+                                        <TouchableOpacity 
+                                            style={styles.counterButton}
+                                            onPress={() => setConsumeCount(Math.min(remaining, consumeCount + 1))}
+                                            disabled={consumeCount >= remaining}
+                                        >
+                                            <Ionicons name="add" size={24} color={consumeCount >= remaining ? COLORS.border : COLORS.primary} />
+                                        </TouchableOpacity>
+                                    </View>
+                                    
+                                    <AntigravityButton 
+                                        title={consuming ? "Processing..." : `Confirm ${consumeCount} Check-in${consumeCount > 1 ? 's' : ''}`}
+                                        onPress={handleConsume}
+                                        disabled={consuming}
+                                    />
+                                </>
+                            );
+                        })()}
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 };
@@ -230,6 +485,45 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         padding: SPACING.xl,
+    },
+    modalOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalContent: {
+        backgroundColor: COLORS.background,
+        borderTopLeftRadius: 24,
+        borderTopRightRadius: 24,
+        padding: SPACING.xl,
+        paddingBottom: 40,
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: SPACING.l,
+    },
+    counterRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.xl,
+    },
+    counterButton: {
+        width: 50,
+        height: 50,
+        borderRadius: 25,
+        backgroundColor: COLORS.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    counterText: {
+        marginHorizontal: SPACING.xl,
+        minWidth: 40,
+        textAlign: 'center',
     }
 });
 
