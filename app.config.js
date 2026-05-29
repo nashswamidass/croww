@@ -3,7 +3,7 @@ export default {
     "name": "Croww",
     "slug": "croww-app",
     "owner": "nashnewton",
-    "version": "1.0.2",
+    "version": "1.0.4",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "scheme": "crowwapp",
@@ -12,7 +12,7 @@ export default {
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
-      "buildNumber": "25",
+      "buildNumber": "26",
       "googleServicesFile": process.env.APP_ENV === 'staging' ? "./GoogleService-Info.staging.plist" : "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
