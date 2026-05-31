@@ -56,6 +56,14 @@ export const navigateFromNotification = (navigation, data = {}) => {
                 navigate('Notifications');
             }
             break;
+
+        case 'review_prompt':
+            if (data.businessId) {
+                navigate('ServiceDetail', { serviceId: data.businessId, openReview: true });
+            } else {
+                navigate('Notifications');
+            }
+            break;
             
         case 'chat_message':
         case 'chat':

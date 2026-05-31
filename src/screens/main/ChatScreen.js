@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, FlatList, ActivityIndicator, Keyboard, Animated } from 'react-native';
+import { Image } from 'expo-image';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
@@ -7,6 +8,39 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import StickerPicker from '../../components/StickerPicker';
+
+// ─── Emoji Data ───────────────────────────────────────────────────────────────
+const EMOJI_CATEGORIES = [
+    {
+        label: '🎉 Party',
+        emojis: ['🎉','🎊','🥳','🎈','🎆','🎇','✨','🪄','🎠','🎡','🎢','🎪','🎭','🎬','🎤','🎵','🎶','🕺','💃','🥂'],
+    },
+    {
+        label: '❤️ Love',
+        emojis: ['❤️','🧡','💛','💚','💙','💜','🖤','🤍','💗','💓','💞','💕','💟','❣️','💔','🫶','🤗','😍','🥰','😘'],
+    },
+    {
+        label: '✨ Vibes',
+        emojis: ['😎','🤩','🥶','🔥','💯','⚡','🌈','🌟','💫','⭐','🌙','☀️','🌊','🍀','🦋','🦄','🐉','🌸','🌺','🏆'],
+    },
+    {
+        label: '🍕 Food',
+        emojis: ['🍕','🍔','🍟','🌮','🌯','🥗','🍣','🍜','🍩','🎂','🍰','🧁','🍭','🍫','🍿','🥤','🧃','☕','🍵','🥂'],
+    },
+    {
+        label: '⚽ Sports',
+        emojis: ['⚽','🏀','🏈','⚾','🎾','🏐','🏉','🎱','🏓','🏸','🥊','🤸','🏋️','🤾','🏌️','🧗','🚴','🏊','🤽','🧘'],
+    },
+    {
+        label: '😂 React',
+        emojis: ['😂','🤣','😭','😅','🥹','😤','😡','🤯','😱','🤔','🙄','😏','🥴','🤢','👀','🫠','💀','🫡','🤌','👏'],
+    },
+];
+
+// Giphy sticker prefix — messages starting with this render as animated GIFs
+const STICKER_INDICATOR = '__STICKER__';
+const GIPHY_INDICATOR   = '__GIPHY__:';
 
 const ChatScreen = ({ route, navigation }) => {
     const { recipientId, recipientName, recipientRole } = route.params;
@@ -15,8 +49,36 @@ const ChatScreen = ({ route, navigation }) => {
     const [currentUser, setCurrentUser] = useState(null);
     const [chatId, setChatId] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [showEmojiPanel, setShowEmojiPanel] = useState(false);
+    const [activeCategoryIdx, setActiveCategoryIdx] = useState(0);
     const scrollRef = useRef();
-    const insets = useSafeAreaInsets(); // Use insets for safe area
+    const inputRef = useRef();
+    const insets = useSafeAreaInsets();
+
+    const toggleEmojiPanel = () => {
+        if (!showEmojiPanel) {
+            Keyboard.dismiss();
+        } else {
+            inputRef.current?.focus();
+        }
+        setShowEmojiPanel(prev => !prev);
+    };
+
+    const appendEmoji = (emoji) => {
+        setMessage(prev => prev + emoji);
+    };
+
+    const sendSticker = async (gifUrl) => {
+        setShowEmojiPanel(false);
+        if (!chatId || !currentUser) return;
+        const currentUserId = currentUser.id || currentUser.uid;
+        const text = GIPHY_INDICATOR + gifUrl;
+        try {
+            await chatService.sendMessage(chatId, text, currentUserId, currentUser.name || 'User');
+        } catch (e) {
+            console.error('Sticker send error:', e);
+        }
+    };
 
     useEffect(() => {
         const initChat = async () => {
@@ -149,8 +211,14 @@ const ChatScreen = ({ route, navigation }) => {
 
     const renderMessage = ({ item }) => {
         const isMe = currentUser && item.senderId === currentUser.id;
-        // Format timestamp
-        // Format timestamp safely
+        const isGiphy   = item.text?.startsWith(GIPHY_INDICATOR);
+        const isSticker = !isGiphy && item.text?.startsWith(STICKER_INDICATOR);
+        const displayText = isGiphy
+            ? item.text.slice(GIPHY_INDICATOR.length)
+            : isSticker
+                ? item.text.slice(STICKER_INDICATOR.length)
+                : item.text;
+
         let timeString = '';
         if (item.createdAt) {
             if (item.createdAt.toDate) {
@@ -160,6 +228,56 @@ const ChatScreen = ({ route, navigation }) => {
             }
         } else {
             timeString = 'Sending...';
+        }
+
+        // ── Animated GIF sticker (Giphy) ──
+        if (isGiphy) {
+            return (
+                <View style={[styles.messageWrapper, isMe ? styles.myMessageWrapper : styles.theirMessageWrapper]}>
+                    <View style={styles.gifBubble}>
+                        {!isMe && item.senderName ? (
+                            <Typography variant="small" style={{ fontWeight: '700', color: COLORS.accent, marginBottom: 4 }}>
+                                {item.senderName}
+                            </Typography>
+                        ) : null}
+                        <Image
+                            source={{ uri: displayText }}
+                            style={styles.gifImage}
+                            contentFit="contain"
+                            autoplay
+                            cachePolicy="memory-disk"
+                        />
+                        <Typography
+                            variant="caption"
+                            style={[styles.timestamp, { color: COLORS.secondary, marginTop: 4, alignSelf: 'flex-end' }]}
+                        >
+                            {timeString}
+                        </Typography>
+                    </View>
+                </View>
+            );
+        }
+
+        // ── Legacy emoji sticker ──
+        if (isSticker) {
+            return (
+                <View style={[styles.messageWrapper, isMe ? styles.myMessageWrapper : styles.theirMessageWrapper]}>
+                    <View style={[styles.stickerBubble, isMe ? styles.myStickerBubble : styles.theirStickerBubble]}>
+                        {!isMe && item.senderName ? (
+                            <Typography variant="small" style={{ fontWeight: '700', color: COLORS.accent, marginBottom: 4 }}>
+                                {item.senderName}
+                            </Typography>
+                        ) : null}
+                        <Typography style={styles.stickerText}>{displayText}</Typography>
+                        <Typography
+                            variant="caption"
+                            style={[styles.timestamp, { color: isMe ? COLORS.accent : COLORS.secondary, marginTop: 6 }]}
+                        >
+                            {timeString}
+                        </Typography>
+                    </View>
+                </View>
+            );
         }
 
         return (
@@ -179,7 +297,7 @@ const ChatScreen = ({ route, navigation }) => {
                         variant="body"
                         style={{ color: isMe ? COLORS.background : COLORS.primary }}
                     >
-                        {item.text}
+                        {displayText}
                     </Typography>
                     <Typography
                         variant="caption"
@@ -205,7 +323,16 @@ const ChatScreen = ({ route, navigation }) => {
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                <TouchableOpacity 
+                    onPress={() => {
+                        if (navigation.canGoBack()) {
+                            navigation.goBack();
+                        } else {
+                            navigation.navigate('Tabs');
+                        }
+                    }} 
+                    style={styles.backButton}
+                >
                     <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
                 </TouchableOpacity>
                 <TouchableOpacity
@@ -246,29 +373,101 @@ const ChatScreen = ({ route, navigation }) => {
                     inverted
                 />
 
-                <View style={[styles.inputContainer, { paddingBottom: Math.max(SPACING.m, insets.bottom + SPACING.s) }]}>
-                    <TextInput
-                        style={styles.input}
-                        value={message}
-                        onChangeText={setMessage}
-                        placeholder="Type a message..."
-                        placeholderTextColor={COLORS.secondary}
-                        multiline
-                        onKeyPress={(e) => {
-                            if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
-                                e.preventDefault();
-                                sendMessage();
-                            }
-                        }}
-                    />
+                <View style={[styles.inputContainer, { paddingBottom: showEmojiPanel ? SPACING.s : Math.max(SPACING.m, insets.bottom + SPACING.s) }]}>
+                    <View style={styles.inputWrapper}>
+                        {/* Emoji toggle button */}
+                        <TouchableOpacity style={styles.emojiToggleBtn} onPress={toggleEmojiPanel}>
+                            <Typography style={styles.emojiToggleIcon}>
+                                {showEmojiPanel ? '⌨️' : '😊'}
+                            </Typography>
+                        </TouchableOpacity>
+
+                        <TextInput
+                            ref={inputRef}
+                            style={styles.input}
+                            value={message}
+                            onChangeText={setMessage}
+                            placeholder="Type a message..."
+                            placeholderTextColor={COLORS.secondary}
+                            multiline
+                            onFocus={() => setShowEmojiPanel(false)}
+                            onKeyPress={(e) => {
+                                if (Platform.OS === 'web' && e.nativeEvent.key === 'Enter' && !e.nativeEvent.shiftKey) {
+                                    e.preventDefault();
+                                    sendMessage();
+                                }
+                            }}
+                        />
+                    </View>
                     <TouchableOpacity
                         style={[styles.sendButton, !message.trim() && styles.sendButtonDisabled]}
-                        onPress={sendMessage}
+                        onPress={() => { sendMessage(); setShowEmojiPanel(false); }}
                         disabled={!message.trim()}
                     >
                         <Ionicons name="send" size={20} color={COLORS.background} />
                     </TouchableOpacity>
                 </View>
+
+                {/* ── Emoji / Sticker Panel ── */}
+                {showEmojiPanel && (
+                    <View style={[styles.emojiPanel, { paddingBottom: Math.max(SPACING.m, insets.bottom) }]}>
+                        {/* Category tabs */}
+                        <ScrollView
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.categoryTabsRow}
+                            contentContainerStyle={{ paddingHorizontal: SPACING.s }}
+                        >
+                            {/* Sticker tab */}
+                            <TouchableOpacity
+                                style={[styles.categoryTab, activeCategoryIdx === -1 && styles.categoryTabActive]}
+                                onPress={() => setActiveCategoryIdx(-1)}
+                            >
+                                <Typography style={[styles.categoryTabText, activeCategoryIdx === -1 && styles.categoryTabTextActive]}>
+                                    🎁 Stickers
+                                </Typography>
+                            </TouchableOpacity>
+                            {EMOJI_CATEGORIES.map((cat, idx) => (
+                                <TouchableOpacity
+                                    key={idx}
+                                    style={[styles.categoryTab, activeCategoryIdx === idx && styles.categoryTabActive]}
+                                    onPress={() => setActiveCategoryIdx(idx)}
+                                >
+                                    <Typography style={[styles.categoryTabText, activeCategoryIdx === idx && styles.categoryTabTextActive]}>
+                                        {cat.label}
+                                    </Typography>
+                                </TouchableOpacity>
+                            ))}
+                        </ScrollView>
+
+                        {/* Giphy Sticker Picker */}
+                        {activeCategoryIdx === -1 ? (
+                            <StickerPicker
+                                style={{ flex: 1, borderTopWidth: 0 }}
+                                onSend={(gifUrl) => sendSticker(gifUrl)}
+                            />
+                        ) : (
+                            /* Emoji grid */
+                            <ScrollView
+                                showsVerticalScrollIndicator={false}
+                                style={styles.emojiGrid}
+                            >
+                                <View style={styles.emojiGridContent}>
+                                    {EMOJI_CATEGORIES[activeCategoryIdx].emojis.map((emoji, i) => (
+                                        <TouchableOpacity
+                                            key={i}
+                                            style={styles.emojiBtn}
+                                            onPress={() => appendEmoji(emoji)}
+                                            activeOpacity={0.6}
+                                        >
+                                            <Typography style={styles.emojiBtnText}>{emoji}</Typography>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            </ScrollView>
+                        )}
+                    </View>
+                )}
             </KeyboardAvoidingView>
         </ScreenWrapper>
     );
@@ -334,18 +533,23 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
     },
-    input: {
+    inputWrapper: {
         flex: 1,
+        flexDirection: 'row',
+        alignItems: 'flex-end',
         backgroundColor: COLORS.surfaceHighlight,
         borderRadius: 20,
-        paddingHorizontal: SPACING.m,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    input: {
+        flex: 1,
+        paddingHorizontal: SPACING.s,
         paddingVertical: 10,
         paddingTop: 10,
         color: COLORS.primary,
         fontSize: 14,
         maxHeight: 100,
-        borderWidth: 1,
-        borderColor: COLORS.border,
     },
     sendButton: {
         width: 40,
@@ -359,7 +563,109 @@ const styles = StyleSheet.create({
     sendButtonDisabled: {
         backgroundColor: COLORS.secondary,
         opacity: 0.5,
-    }
+    },
+    emojiToggleBtn: {
+        width: 36,
+        height: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 4,
+        marginBottom: 2,
+    },
+    emojiToggleIcon: {
+        fontSize: 24,
+    },
+    // ── Sticker message bubbles ──
+    stickerBubble: {
+        padding: SPACING.m,
+        borderRadius: 18,
+        alignItems: 'center',
+        minWidth: 120,
+    },
+    myStickerBubble: {
+        backgroundColor: COLORS.accent + '18',
+        borderWidth: 1.5,
+        borderColor: COLORS.accent + '60',
+        borderBottomRightRadius: 4,
+    },
+    theirStickerBubble: {
+        backgroundColor: COLORS.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderBottomLeftRadius: 4,
+    },
+    stickerText: {
+        fontSize: 28,
+        textAlign: 'center',
+        lineHeight: 36,
+    },
+    // ── Emoji panel ──
+    emojiPanel: {
+        backgroundColor: COLORS.surface,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        height: 360,
+    },
+    categoryTabsRow: {
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        maxHeight: 44,
+    },
+    categoryTab: {
+        paddingHorizontal: SPACING.m,
+        paddingVertical: SPACING.s,
+        marginRight: 2,
+    },
+    categoryTabActive: {
+        borderBottomWidth: 2,
+        borderBottomColor: COLORS.accent,
+    },
+    categoryTabText: {
+        fontSize: 12,
+        color: COLORS.secondary,
+        fontWeight: '600',
+    },
+    categoryTabTextActive: {
+        color: COLORS.primary,
+    },
+    emojiGrid: {
+        flex: 1,
+    },
+    emojiGridContent: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        padding: SPACING.s,
+    },
+    emojiBtn: {
+        width: '14.28%',
+        aspectRatio: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    emojiBtnText: {
+        fontSize: 26,
+    },
+    // ── Animated GIF bubble (Giphy) ──
+    gifBubble: {
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRadius: 16,
+        borderBottomRightRadius: 4,
+        padding: 4,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        maxWidth: 200,
+    },
+    gifImage: {
+        width: 180,
+        height: 160,
+        borderRadius: 12,
+    },
+    center: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
 
 export default ChatScreen;

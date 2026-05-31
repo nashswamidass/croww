@@ -183,7 +183,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
                                 <Typography variant="caption" style={styles.qrLabel}>
                                     Ticket ID: {ticket.id || 'N/A'}
                                 </Typography>
-                                {ticket.status === 'scanned' && (
+                                {(ticket.status === 'scanned' || (ticket.scannedAdmits >= (ticket.totalAdmits || 1))) && (
                                     <View style={styles.scannedOverlay}>
                                         <Typography variant="h3" style={{ color: COLORS.success }}>SCANNED</Typography>
                                     </View>
@@ -196,16 +196,23 @@ const TicketDetailScreen = ({ route, navigation }) => {
                                     <Typography variant="body" style={{ fontWeight: '600' }}>{ticket.attendeeName || 'Attendee'}</Typography>
                                 </View>
                                 <View style={{ alignItems: 'flex-end' }}>
-                                    <Typography variant="caption" color={COLORS.secondary}>Ticket Type</Typography>
-                                    <Typography variant="body" style={{ fontWeight: '600' }}>{ticket.type}</Typography>
+                                    <Typography variant="caption" color={COLORS.secondary}>Total Admits</Typography>
+                                    <Typography variant="body" style={{ fontWeight: '600' }}>{ticket.totalAdmits || 1}</Typography>
                                 </View>
+                            </View>
+
+                            <View style={{ marginTop: SPACING.m, flexDirection: 'row', justifyContent: 'space-between' }}>
+                                <Typography variant="caption" color={COLORS.secondary}>Checked In: {ticket.scannedAdmits || 0}</Typography>
+                                <Typography variant="caption" style={{ fontWeight: '700', color: (ticket.totalAdmits || 1) - (ticket.scannedAdmits || 0) === 0 ? COLORS.success : COLORS.accent }}>
+                                    {(ticket.totalAdmits || 1) - (ticket.scannedAdmits || 0)} Remaining
+                                </Typography>
                             </View>
                         </View>
                     </NotionCard>
                 </View>
 
                 <Typography variant="caption" style={styles.terms}>
-                    Please show this QR code at the entrance. Each ticket is valid for one-time entry only.
+                    Please show this QR code at the entrance. Valid for {(ticket.totalAdmits || 1)} person{((ticket.totalAdmits || 1) > 1) ? 's' : ''}.
                 </Typography>
 
             </ScrollView>

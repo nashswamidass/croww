@@ -1,5 +1,6 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Text } from 'react-native';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import { View, StyleSheet, TouchableOpacity, TextInput, Alert, Text, Platform } from 'react-native';
+import Constants, { ExecutionEnvironment } from 'expo-constants';
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import * as Location from 'expo-location';
 import { locationService } from '../../services/locationService';
@@ -27,7 +28,7 @@ const MapScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [allEvents, setAllEvents] = useState([]);
     const [displayedEvents, setDisplayedEvents] = useState([]);
-    const [timeFilter, setTimeFilter] = useState('1M');
+    const [timeFilter, setTimeFilter] = useState('ALL');
     const [searchQuery, setSearchQuery] = useState('');
     const [suggestions, setSuggestions] = useState([]);
     const [searchingCity, setSearchingCity] = useState(false);
@@ -375,13 +376,20 @@ const MapScreen = ({ navigation }) => {
     const BUSINESS_COLOR = COLORS.accent;
     const USER_COLOR = COLORS.accents.blue;
 
+    // Default to Google Maps on Android and iOS. 
+    // Fallback to Apple Maps (undefined) on iOS ONLY if running in Expo Go.
+    const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+    const mapProvider = Platform.OS === 'android' 
+        ? PROVIDER_GOOGLE 
+        : (isExpoGo ? undefined : PROVIDER_GOOGLE);
+
     return (
         <View style={styles.container}>
             <MapView
                 ref={mapRef}
                 style={styles.map}
                 initialRegion={initialRegion}
-                provider={PROVIDER_GOOGLE}
+                provider={mapProvider}
                 onPress={handleMapPress}
                 customMapStyle={DARK_MAP_STYLE}
                 userInterfaceStyle="dark"

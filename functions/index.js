@@ -149,13 +149,49 @@ DIGILOCKER - CREATE URL
 */
 
 exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+    if (request.method === "GET") {
+        const appScheme = request.query.app_scheme;
+        const verificationId = request.query.verification_id;
+        if (appScheme) {
+            const separator = appScheme.includes('?') ? '&' : '?';
+            const deepLink = `${appScheme}${separator}verification_id=${verificationId}`;
+            return response.status(200).send(`
+                <html>
+                    <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1">
+                        <title>Verification Complete</title>
+                        <style>
+                            body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #f9fafb; }
+                            h2 { color: #10b981; }
+                            p { color: #6b7280; text-align: center; padding: 0 20px; }
+                            a { display: inline-block; margin-top: 20px; padding: 12px 24px; background-color: #4f46e5; color: white; text-decoration: none; border-radius: 8px; font-weight: bold; }
+                        </style>
+                    </head>
+                    <body>
+                        <h2>✅ Verification Complete!</h2>
+                        <p>Your Aadhaar has been verified successfully.</p>
+                        <p>Redirecting you back to the app...</p>
+                        <a href="${deepLink}">Return to App</a>
+                        <script>
+                            setTimeout(function() {
+                                window.location.href = "${deepLink}";
+                            }, 500);
+                        </script>
+                    </body>
+                </html>
+            `);
+        }
+        return response.redirect(`https://croww.ai/kyc-complete?verification_id=${verificationId}`);
+    }
+
     try {
         const { userFlow, environment, redirectUrl } = request.body;
         const clientId = process.env.CASHFREE_VERIFY_CLIENT_ID;
         const clientSecret = process.env.CASHFREE_VERIFY_CLIENT_SECRET;
         const signature = generateCfSignature(clientId);
 
-        const baseUrl = environment === "PRODUCTION"
+        const isProdKey = clientSecret && clientSecret.includes('_prod_');
+        const baseUrl = (environment === "PRODUCTION" || isProdKey)
             ? "https://api.cashfree.com/verification/digilocker"
             : "https://sandbox.cashfree.com/verification/digilocker";
 
@@ -168,7 +204,12 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
         };
         if (signature) headers["x-cf-signature"] = signature;
 
-        const finalRedirectUrl = redirectUrl || "https://croww.ai/kyc-complete";
+        let finalRedirectUrl = redirectUrl || "https://croww.ai/kyc-complete";
+        if (!finalRedirectUrl.startsWith("https://")) {
+            // Proxy the deep link through this cloud function to bypass Cashfree's HTTPS requirement
+            finalRedirectUrl = `https://getdigilockerurl-6vktyfoeaa-uc.a.run.app?app_scheme=${encodeURIComponent(finalRedirectUrl)}`;
+        }
+        
         const redirectWithId = finalRedirectUrl.includes("?") 
             ? `${finalRedirectUrl}&verification_id=${verificationId}`
             : `${finalRedirectUrl}?verification_id=${verificationId}`;
@@ -219,7 +260,8 @@ exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public" }, async
             return;
         }
 
-        const baseUrl = environment === "PRODUCTION"
+        const isProdKey = clientSecret && clientSecret.includes('_prod_');
+        const baseUrl = (environment === "PRODUCTION" || isProdKey)
             ? "https://api.cashfree.com/verification/digilocker"
             : "https://sandbox.cashfree.com/verification/digilocker";
 
@@ -297,7 +339,14 @@ exports.sendPushNotification = onDocumentCreated("notifications/{notificationId}
         if (!userDoc.exists) return;
         const pushToken = userDoc.data().pushToken;
         if (!pushToken || !Expo.isExpoPushToken(pushToken)) return;
-        const messages = [{ to: pushToken, sound: 'default', title: title || 'New Notification', body: message || 'You have a new message from Croww', data: data || {} }];
+        const messages = [{ 
+            to: pushToken, 
+            sound: 'default', 
+            title: title || 'New Notification', 
+            body: message || 'You have a new message from Croww', 
+            data: data || {},
+            channelId: 'default'
+        }];
         const chunks = expo.chunkPushNotifications(messages);
         for (const chunk of chunks) {
             try { await expo.sendPushNotificationsAsync(chunk); } catch (error) { logger.error("Error sending push chunk:", error); }
@@ -490,16 +539,17 @@ exports.toggleFollow = onRequest({ cors: true, invoker: "public" }, async (reque
                 // Send push notification if the target user has an Expo push token
                 const targetSnap = await db.collection("users").doc(targetUserId).get();
                 const targetData = targetSnap.data() || {};
-                const expoPushToken = targetData.expoPushToken;
-                if (expoPushToken && expoPushToken.startsWith('ExponentPushToken')) {
+                const pushToken = targetData.pushToken;
+                if (pushToken && Expo.isExpoPushToken(pushToken)) {
                     const { Expo } = require('expo-server-sdk');
                     const expo = new Expo();
                     const messages = [{
-                        to: expoPushToken,
+                        to: pushToken,
                         sound: 'default',
                         title: 'New Follower! 🎉',
                         body: `${followerName} started following you.`,
-                        data: { type: 'NEW_FOLLOWER', followerId }
+                        data: { type: 'NEW_FOLLOWER', followerId },
+                        channelId: 'default'
                     }];
                     const chunks = expo.chunkPushNotifications(messages);
                     for (const chunk of chunks) {
@@ -530,29 +580,81 @@ exports.onEventCreated = onDocumentCreated("events/{eventId}", async (event) => 
     if (!snapshot) return;
     const eventData = snapshot.data();
     if (eventData.isPublic !== true) return;
+    
     const city = eventData.locationName;
-    if (!city) return;
+    const organizerId = eventData.organizerId;
+    const organizerName = eventData.organizerName || 'Someone';
+    const eventTitle = eventData.title || 'a new event';
+
     try {
         const db = admin.firestore();
-        const usersSnapshot = await db.collection("users").where("location", "==", city).limit(100).get();
-        if (usersSnapshot.empty) return;
         const batch = db.batch();
         let count = 0;
-        usersSnapshot.docs.forEach((userDoc) => {
-            if (userDoc.id === eventData.organizerId) return;
-            const notificationRef = db.collection("notifications").doc();
-            batch.set(notificationRef, {
-                toUserId: userDoc.id,
-                title: "New Event in Your Area! 🌍",
-                message: `${eventData.organizerName || 'Someone'} just hosted "${eventData.title}" in ${city}.`,
-                data: { type: "NEW_EVENT", eventId: event.params.eventId, location: city },
-                read: false,
-                createdAt: admin.firestore.FieldValue.serverTimestamp()
+        const notifiedUsers = new Set();
+        
+        // Don't notify the organizer themselves
+        if (organizerId) notifiedUsers.add(organizerId);
+
+        // 1. Notify past attendees
+        if (organizerId) {
+            const ticketsSnapshot = await db.collection("tickets")
+                .where("organizerId", "==", organizerId)
+                .limit(200)
+                .get();
+
+            ticketsSnapshot.docs.forEach((doc) => {
+                const userId = doc.data().userId;
+                if (!userId || notifiedUsers.has(userId)) return;
+
+                const notificationRef = db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    toUserId: userId,
+                    title: `New Event by ${organizerName}! 🎉`,
+                    message: `${organizerName} just posted "${eventTitle}". Check it out before tickets sell out!`,
+                    data: { type: "NEW_EVENT", eventId: event.params.eventId, source: "past_attendee" },
+                    read: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                
+                notifiedUsers.add(userId);
+                count++;
             });
-            count++;
-        });
-        if (count > 0) await batch.commit();
-    } catch (error) { logger.error("Error in onEventCreated trigger:", error); }
+        }
+
+        // 2. Notify nearby users
+        if (city) {
+            const usersSnapshot = await db.collection("users")
+                .where("location", "==", city)
+                .limit(100)
+                .get();
+
+            usersSnapshot.docs.forEach((userDoc) => {
+                const userId = userDoc.id;
+                if (notifiedUsers.has(userId)) return;
+
+                const notificationRef = db.collection("notifications").doc();
+                batch.set(notificationRef, {
+                    toUserId: userId,
+                    title: "New Event in Your Area! 🌍",
+                    message: `${organizerName} just hosted "${eventTitle}" in ${city}.`,
+                    data: { type: "NEW_EVENT", eventId: event.params.eventId, location: city, source: "nearby" },
+                    read: false,
+                    createdAt: admin.firestore.FieldValue.serverTimestamp()
+                });
+                
+                notifiedUsers.add(userId);
+                count++;
+            });
+        }
+
+        if (count > 0) {
+            // Firestore batches support up to 500 writes. Max here is 300 (200 past + 100 nearby)
+            await batch.commit();
+            logger.info(`[onEventCreated] Sent ${count} notifications for event ${event.params.eventId}`);
+        }
+    } catch (error) { 
+        logger.error("Error in onEventCreated trigger:", error); 
+    }
 });
 
 exports.onEventUpdated = onDocumentUpdated("events/{eventId}", async (event) => {

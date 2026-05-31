@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, Share, Image, TouchableOpacity, Platform, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, Share, Image, TouchableOpacity, Platform, ActivityIndicator, Linking } from 'react-native';
 import { showAlert } from '../../utils/showAlert';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -204,9 +204,7 @@ const EventDetailScreen = ({ route, navigation }) => {
             
             if (!finalized) {
                 // If no pending tickets found (e.g. native flow), issue them now
-                for (let i = 0; i < ticketCount; i++) {
-                    await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', orderId, null, userData?.name || 'Attendee');
-                }
+                await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', orderId, null, userData?.name || 'Attendee', ticketCount);
             }
             
             setIsGoing(true);
@@ -290,6 +288,28 @@ const EventDetailScreen = ({ route, navigation }) => {
         }
     };
 
+    const handleOpenMap = () => {
+        if (!eventData?.coordinate?.latitude || !eventData?.coordinate?.longitude) {
+            showAlert('Location Unavailable', 'No coordinates found for this event.');
+            return;
+        }
+        
+        const { latitude, longitude } = eventData.coordinate;
+        const scheme = Platform.select({ ios: 'maps://0,0?q=', android: 'geo:0,0?q=' });
+        const latLng = `${latitude},${longitude}`;
+        const label = eventData.title || 'Event Location';
+        const url = Platform.select({
+            ios: `${scheme}${label}@${latLng}`,
+            android: `${scheme}${latLng}(${label})`,
+            web: `https://www.google.com/maps/search/?api=1&query=${latLng}`
+        });
+
+        Linking.openURL(url).catch(err => {
+            console.error('Error opening maps:', err);
+            Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${latLng}`);
+        });
+    };
+
     const toggleRSVP = () => {
         setIsGoing(!isGoing);
     };
@@ -325,11 +345,8 @@ const EventDetailScreen = ({ route, navigation }) => {
 
                 // PART 2: Start SDK Checkout / Web Redirect
                 if (Platform.OS === 'web' || !paymentService.isNativeAvailable()) {
-                    // PRE-EMPTIVE: Create the tickets in PENDING_PAYMENT status first (with full fee breakdown)
-                    for (let i = 0; i < ticketCount; i++) {
-                        const singleTicketFees = calculateFees(eventData.price, 1);
-                        await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId, singleTicketFees, userData?.name || 'Attendee');
-                    }
+                    // PRE-EMPTIVE: Create the ticket in PENDING_PAYMENT status first (with full fee breakdown)
+                    await ticketService.issueTicket(userId, eventData.id, eventData, 'PENDING_PAYMENT', orderData.orderId, fees, userData?.name || 'Attendee', ticketCount);
 
                     navigation.navigate('WebPayment', {
                         paymentSessionId: orderData.sessionId,
@@ -348,16 +365,37 @@ const EventDetailScreen = ({ route, navigation }) => {
             }
         } else {
             try {
-                for (let i = 0; i < ticketCount; i++) {
-                    await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', null, null, userData?.name || 'Attendee');
-                }
+                await ticketService.issueTicket(userId, eventData.id, eventData, 'valid', null, null, userData?.name || 'Attendee', ticketCount);
                 setIsGoing(true);
-                showAlert('Success', `You've joined this event with ${ticketCount} ticket${ticketCount > 1 ? 's' : ''}!`);
+                showAlert('Success', `You've booked this with ${ticketCount} ${getTicketLabel().toLowerCase()}!`);
             } catch (error) {
                 console.error("Joining Error:", error);
                 showAlert('Error', `Failed to join event: ${error.message}`);
             }
         }
+    };
+
+    const getTicketLabel = () => {
+        if (eventData.eventType === 'table') return 'Tables';
+        if (eventData.ticketType === 'Couple') return 'Couples';
+        if (eventData.ticketType === 'Group') return 'Groups';
+        return 'Tickets';
+    };
+
+    const getPriceSuffix = () => {
+        if (eventData.ticketType === 'Couple') return ' / Couple';
+        if (eventData.eventType === 'table' || eventData.ticketType === 'Group') {
+            const pax = eventData.paxPerTicket || 1;
+            return ` / ${eventData.eventType === 'table' ? 'Table' : 'Group'} of ${pax}`;
+        }
+        return '';
+    };
+
+    const getUnitLabelSingular = () => {
+        if (eventData.eventType === 'table') return 'Table';
+        if (eventData.ticketType === 'Couple') return 'Couple';
+        if (eventData.ticketType === 'Group') return 'Group';
+        return 'Ticket';
     };
 
     return (
@@ -390,15 +428,6 @@ const EventDetailScreen = ({ route, navigation }) => {
                     </View>
                 )}
 
-                {/* Floating Share Button */}
-                <TouchableOpacity 
-                    style={styles.floatingShareButton} 
-                    onPress={handleShare}
-                    accessibilityLabel="Share Event"
-                >
-                    <Ionicons name="share-social" size={20} color={'#FFF'} />
-                </TouchableOpacity>
-
                 <View style={styles.header}>
                     <View style={styles.tagRow}>
                         {eventData.isOfficial && (
@@ -407,7 +436,9 @@ const EventDetailScreen = ({ route, navigation }) => {
                             </View>
                         )}
                         <View style={[styles.tag, { backgroundColor: COLORS.surfaceHighlight }]}>
-                            <Typography variant="small" style={{ color: COLORS.primary }}>{eventData.category}</Typography>
+                            <Typography variant="small" style={{ color: COLORS.primary }}>
+                                {eventData.eventType === 'table' ? 'Table Booking' : eventData.category}
+                            </Typography>
                         </View>
                         <Typography variant="caption" style={{ color: COLORS.secondary, marginLeft: SPACING.s }}>
                             {eventData.isPublic ? '🌍 Public' : '🔒 Private'}
@@ -473,30 +504,46 @@ const EventDetailScreen = ({ route, navigation }) => {
                     {eventData.isPaid && (
                         <View style={[styles.priceTag, { marginTop: SPACING.s }]}>
                             <Typography variant="h3" style={{ color: COLORS.accent }}>
-                                ₹{eventData.price}
+                                ₹{eventData.price}{getPriceSuffix()}
                             </Typography>
                             <Typography variant="caption" style={{ color: COLORS.secondary, marginLeft: SPACING.s }}>
                                 {eventData.remainingTickets > 0
-                                    ? `${eventData.remainingTickets} tickets left`
+                                    ? `${eventData.remainingTickets} ${getTicketLabel().toLowerCase()} left`
                                     : 'Sold Out'}
                             </Typography>
                         </View>
                     )}
 
                     <View style={styles.row}>
+                        <Ionicons name="ticket-outline" size={20} color={COLORS.secondary} />
+                        <Typography variant="body" style={styles.metaText}>
+                            {eventData.eventType === 'table' ? 'Table Booking' : 'Event Entry'} • Admits {eventData.paxPerTicket || (eventData.ticketType === 'Couple' ? 2 : 1)} per {getUnitLabelSingular().toLowerCase()}
+                        </Typography>
+                    </View>
+                    <View style={styles.row}>
                         <Ionicons name="time-outline" size={20} color={COLORS.secondary} />
                         <Typography variant="body" style={styles.metaText}>{formatIndianDate(eventData.date)}</Typography>
                     </View>
-                    <View style={styles.row}>
-                        <Ionicons name="location-outline" size={20} color={COLORS.secondary} />
-                        <Typography variant="body" style={styles.metaText}>{getDistanceText()}</Typography>
-                    </View>
+                    <TouchableOpacity 
+                        style={[styles.row, { justifyContent: 'space-between', alignItems: 'center' }]}
+                        onPress={handleOpenMap}
+                        activeOpacity={0.7}
+                    >
+                        <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
+                            <Ionicons name="location-outline" size={20} color={COLORS.secondary} />
+                            <Typography variant="body" style={styles.metaText}>{getDistanceText()}</Typography>
+                        </View>
+                        <View style={styles.mapButton}>
+                            <Typography variant="caption" style={{ color: COLORS.primary, marginRight: 4, fontWeight: '600' }}>View Map</Typography>
+                            <Ionicons name="chevron-forward" size={14} color={COLORS.primary} />
+                        </View>
+                    </TouchableOpacity>
                 </View>
 
                 {/* Ticket Quantity Selector */}
                 {!isGoing && !isOrganizer && !eventData.isBuddyEvent && (
                     <View style={styles.quantitySection}>
-                        <Typography variant="body" style={{ fontWeight: '600' }}>Tickets</Typography>
+                        <Typography variant="body" style={{ fontWeight: '600' }}>{getTicketLabel()}</Typography>
                         <View style={styles.quantitySelector}>
                             <TouchableOpacity
                                 style={styles.quantityButton}
@@ -532,7 +579,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                         <NotionCard style={styles.breakdownCard}>
                             <Typography variant="body" style={styles.breakdownTitle}>Price Breakdown</Typography>
                             <View style={styles.breakdownRow}>
-                                <Typography variant="body" style={styles.breakdownLabel}>Ticket Subtotal ({ticketCount}x)</Typography>
+                                <Typography variant="body" style={styles.breakdownLabel}>{getUnitLabelSingular()} Subtotal ({ticketCount}x)</Typography>
                                 <Typography variant="body" style={styles.breakdownValue}>{formatINR(fees.subtotal)}</Typography>
                             </View>
                             <View style={styles.breakdownRow}>
@@ -567,7 +614,7 @@ const EventDetailScreen = ({ route, navigation }) => {
                                     ? "Going ✓"
                                     : (eventData.isPaid
                                         ? `Pay ${formatINR(calculateFees(eventData.price, ticketCount).totalPayable)}`
-                                        : "Join Event"))
+                                        : (eventData.eventType === 'table' ? "Book Table" : "Join Event")))
                                 }
                                 variant={isGoing ? "secondary" : "primary"}
                                 style={{ flex: 1, marginRight: SPACING.s }}
@@ -690,13 +737,27 @@ const EventDetailScreen = ({ route, navigation }) => {
                 })()}
 
             </ScrollView>
-            {/* Close Button Overlay */}
-            <AntigravityButton
-                title="✕"
-                variant="secondary"
-                style={styles.closeButton}
-                onPress={() => navigation.goBack()}
-            />
+
+            {/* Top Overlay Buttons */}
+            <View style={[styles.topOverlayContainer, { top: SPACING.m }]}>
+                {/* Close Button (Left) */}
+                <TouchableOpacity 
+                    style={styles.actionButton} 
+                    onPress={() => navigation.goBack()}
+                    accessibilityLabel="Close Event"
+                >
+                    <Ionicons name="close" size={22} color={'#FFF'} />
+                </TouchableOpacity>
+                
+                {/* Share Button (Right) */}
+                <TouchableOpacity 
+                    style={styles.actionButton} 
+                    onPress={handleShare}
+                    accessibilityLabel="Share Event"
+                >
+                    <Ionicons name="share-social" size={20} color={'#FFF'} />
+                </TouchableOpacity>
+            </View>
         </ScreenWrapper>
     );
 };
@@ -717,17 +778,23 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
     },
-    floatingShareButton: {
+    topOverlayContainer: {
         position: 'absolute',
-        top: SPACING.m,
-        right: SPACING.m,
-        width: 40,
-        height: 40,
-        borderRadius: 20,
-        backgroundColor: 'rgba(0,0,0,0.5)',
-        justifyContent: 'center',
+        left: 0,
+        right: 0,
+        paddingHorizontal: SPACING.m,
+        flexDirection: 'row',
+        justifyContent: 'space-between',
         alignItems: 'center',
         zIndex: 10,
+    },
+    actionButton: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: 'rgba(0,0,0,0.6)',
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     header: {
         padding: SPACING.l,
@@ -805,6 +872,14 @@ const styles = StyleSheet.create({
         borderTopColor: COLORS.border,
         marginTop: SPACING.s,
         paddingTop: SPACING.s,
+    },
+    mapButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: SPACING.s,
+        paddingVertical: 4,
+        borderRadius: BORDER_RADIUS.s,
     },
     quantitySection: {
         flexDirection: 'row',
@@ -888,21 +963,6 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'center',
         zIndex: 1,
-    },
-    closeButton: {
-        position: 'absolute',
-        top: 50, // Hardcoded for safer top area typically, or utilize insets
-        right: SPACING.m,
-        width: 36,
-        minWidth: 36,
-        height: 36,
-        paddingHorizontal: 0,
-        backgroundColor: 'rgba(0,0,0,0.6)',
-        borderRadius: 18, // Circular
-        borderWidth: 0,
-        justifyContent: 'center',
-        alignItems: 'center',
-        zIndex: 10,
     },
     movieDetailsCard: {
         marginTop: SPACING.m,

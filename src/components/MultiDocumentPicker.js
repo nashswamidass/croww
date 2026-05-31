@@ -1,16 +1,16 @@
-import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, TouchableOpacity, Image, Alert } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
+import React, { useState, useRef } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from './Typography';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
+import { showAlert } from '../utils/showAlert';
 
-// Lazy-load DocumentPicker to avoid crashing in Expo Go
+// Lazy-load native pickers to avoid crashing on web
+let ImagePicker = null;
 let DocumentPicker = null;
-try {
-    DocumentPicker = require('expo-document-picker');
-} catch (e) {
-    console.warn('expo-document-picker not available:', e.message);
+if (Platform.OS !== 'web') {
+    try { ImagePicker = require('expo-image-picker'); } catch (e) {}
+    try { DocumentPicker = require('expo-document-picker'); } catch (e) {}
 }
 
 const MultiDocumentPicker = ({
@@ -20,81 +20,118 @@ const MultiDocumentPicker = ({
     label = "Verification Documents"
 }) => {
     const [documents, setDocuments] = useState(initialDocuments);
+    // Hidden file input ref for web
+    const fileInputRef = useRef(null);
 
-    useEffect(() => {
-        onDocumentsChange(documents);
-    }, [documents]);
+    const addDocuments = (newDocs) => {
+        const updated = [...documents, ...newDocs].slice(0, maxDocuments);
+        setDocuments(updated);
+        onDocumentsChange(updated);
+    };
 
-    const pickImage = async () => {
+    // ── WEB: handle file input change ────────────────────────────────────────
+    const handleWebFileChange = (e) => {
+        const files = Array.from(e.target.files || []);
+        if (!files.length) return;
+
+        const remaining = maxDocuments - documents.length;
+        const toAdd = files.slice(0, remaining).map(file => ({
+            uri: URL.createObjectURL(file),
+            name: file.name,
+            type: file.type.includes('pdf') ? 'pdf' : 'image',
+            mimeType: file.type,
+            // Keep original File object for direct upload on web
+            _webFile: file,
+        }));
+
+        addDocuments(toAdd);
+        // Reset so same file can be picked again if removed
+        e.target.value = '';
+    };
+
+    // ── NATIVE: image picker ──────────────────────────────────────────────────
+    const pickImageNative = async () => {
+        if (!ImagePicker) return;
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-
         if (status !== 'granted') {
-            Alert.alert('Permission Required', 'Please allow access to your photo library to select images.');
+            showAlert('Permission Required', 'Please allow access to your photo library.');
             return;
         }
-
         const result = await ImagePicker.launchImageLibraryAsync({
             mediaTypes: ImagePicker.MediaTypeOptions.Images,
-            allowsEditing: true,
+            allowsMultipleSelection: true,
             quality: 0.8,
         });
-
-        if (!result.canceled && result.assets[0]) {
-            const newDoc = {
-                uri: result.assets[0].uri,
-                name: result.assets[0].fileName || `image_${Date.now()}.jpg`,
-                type: 'image'
-            };
-            setDocuments([...documents, newDoc]);
+        if (!result.canceled && result.assets?.length) {
+            const toAdd = result.assets.map(a => ({
+                uri: a.uri,
+                name: a.fileName || `image_${Date.now()}.jpg`,
+                type: 'image',
+                mimeType: 'image/jpeg',
+            }));
+            addDocuments(toAdd);
         }
     };
 
-    const pickDocument = async () => {
+    // ── NATIVE: document picker ───────────────────────────────────────────────
+    const pickDocumentNative = async () => {
         if (!DocumentPicker) {
-            Alert.alert('Not Available', 'PDF picking is not available in Expo Go. Please use "Image from Gallery" instead, or use a development build.');
+            showAlert('Not Available', 'Please use "Image from Gallery" instead.');
             return;
         }
         try {
             const result = await DocumentPicker.getDocumentAsync({
                 type: ['application/pdf', 'image/*'],
                 copyToCacheDirectory: true,
+                multiple: true,
             });
-
-            if (!result.canceled && result.assets[0]) {
-                const newDoc = {
-                    uri: result.assets[0].uri,
-                    name: result.assets[0].name,
-                    type: result.assets[0].mimeType?.includes('pdf') ? 'pdf' : 'image'
-                };
-                setDocuments([...documents, newDoc]);
+            if (!result.canceled && result.assets?.length) {
+                const toAdd = result.assets.map(a => ({
+                    uri: a.uri,
+                    name: a.name,
+                    type: a.mimeType?.includes('pdf') ? 'pdf' : 'image',
+                    mimeType: a.mimeType || 'application/octet-stream',
+                }));
+                addDocuments(toAdd);
             }
         } catch (err) {
-            console.error('Error picking document:', err);
-            Alert.alert('Error', 'Failed to pick document');
+            showAlert('Error', 'Failed to pick document.');
         }
     };
 
     const handleAddPress = () => {
-        const options = [
-            { text: 'Image from Gallery', onPress: pickImage },
-        ];
-        if (DocumentPicker) {
-            options.push({ text: 'PDF or Image File', onPress: pickDocument });
+        if (Platform.OS === 'web') {
+            // Trigger hidden file input
+            fileInputRef.current?.click();
+            return;
         }
-        options.push({ text: 'Cancel', style: 'cancel' });
-
-        Alert.alert('Add Document', 'Choose document type', options);
+        showAlert('Add Document', 'Choose document type', [
+            { text: 'Image from Gallery', onPress: pickImageNative },
+            DocumentPicker ? { text: 'PDF or Image File', onPress: pickDocumentNative } : null,
+            { text: 'Cancel', style: 'cancel' },
+        ].filter(Boolean));
     };
 
-
     const removeDocument = (index) => {
-        const newDocs = [...documents];
-        newDocs.splice(index, 1);
+        const newDocs = documents.filter((_, i) => i !== index);
         setDocuments(newDocs);
+        onDocumentsChange(newDocs);
     };
 
     return (
         <View style={styles.container}>
+            {/* Hidden native file input for web */}
+            {Platform.OS === 'web' && (
+                <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*,application/pdf"
+                    multiple
+                    style={{ display: 'none' }}
+                    onChange={handleWebFileChange}
+                />
+            )}
+
             <View style={styles.header}>
                 <Typography variant="body" style={styles.label}>{label}</Typography>
                 <Typography variant="caption" style={{ color: COLORS.secondary }}>
@@ -110,7 +147,7 @@ const MultiDocumentPicker = ({
                                 <Image source={{ uri: doc.uri }} style={styles.previewImage} />
                             ) : (
                                 <View style={styles.pdfPlaceholder}>
-                                    <Ionicons name="document-text" size={32} color={COLORS.accent} />
+                                    <Ionicons name="document-text" size={28} color={COLORS.accent} />
                                     <Typography variant="caption" style={styles.pdfLabel}>PDF</Typography>
                                 </View>
                             )}
@@ -118,6 +155,9 @@ const MultiDocumentPicker = ({
                         <View style={styles.docInfo}>
                             <Typography variant="caption" numberOfLines={1} style={styles.docName}>
                                 {doc.name}
+                            </Typography>
+                            <Typography variant="caption" style={{ color: COLORS.secondary, fontSize: 10 }}>
+                                {doc.type === 'pdf' ? 'PDF Document' : 'Image'}
                             </Typography>
                         </View>
                         <TouchableOpacity
@@ -135,9 +175,12 @@ const MultiDocumentPicker = ({
                         onPress={handleAddPress}
                         activeOpacity={0.7}
                     >
-                        <Ionicons name="add-circle-outline" size={32} color={COLORS.accent} />
-                        <Typography variant="caption" style={{ color: COLORS.accent, marginTop: 4 }}>
-                            Add Document
+                        <Ionicons name="cloud-upload-outline" size={32} color={COLORS.accent} />
+                        <Typography variant="caption" style={{ color: COLORS.accent, marginTop: 6, fontWeight: '600' }}>
+                            {Platform.OS === 'web' ? 'Click to Upload (Image or PDF)' : 'Add Document'}
+                        </Typography>
+                        <Typography variant="caption" style={{ color: COLORS.secondary, fontSize: 10, marginTop: 2 }}>
+                            Up to {maxDocuments} files
                         </Typography>
                     </TouchableOpacity>
                 )}
@@ -145,7 +188,7 @@ const MultiDocumentPicker = ({
 
             {documents.length === 0 && (
                 <Typography variant="caption" style={styles.placeholderText}>
-                    Upload up to 3 documents (Images or PDFs) for verification.
+                    Upload business registration certificate, GST certificate, or trade license.
                 </Typography>
             )}
         </View>
@@ -179,8 +222,8 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
     },
     docPreview: {
-        width: 50,
-        height: 50,
+        width: 52,
+        height: 52,
         borderRadius: BORDER_RADIUS.s,
         overflow: 'hidden',
         backgroundColor: COLORS.surface,
@@ -200,7 +243,7 @@ const styles = StyleSheet.create({
         fontSize: 8,
         color: COLORS.accent,
         fontWeight: 'bold',
-        marginTop: -4,
+        marginTop: -2,
     },
     docInfo: {
         flex: 1,
@@ -208,26 +251,29 @@ const styles = StyleSheet.create({
     },
     docName: {
         color: COLORS.primary,
+        fontWeight: '500',
     },
     removeButton: {
         padding: 4,
     },
     addButton: {
-        height: 80,
-        borderWidth: 1,
-        borderColor: COLORS.border,
+        minHeight: 90,
+        borderWidth: 1.5,
+        borderColor: COLORS.accent + '60',
         borderStyle: 'dashed',
-        borderRadius: BORDER_RADIUS.s,
+        borderRadius: BORDER_RADIUS.m,
         justifyContent: 'center',
         alignItems: 'center',
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: COLORS.accent + '08',
         marginTop: SPACING.s,
+        padding: SPACING.m,
     },
     placeholderText: {
         color: COLORS.secondary,
         textAlign: 'center',
         marginTop: SPACING.s,
         fontStyle: 'italic',
+        fontSize: 11,
     },
 });
 

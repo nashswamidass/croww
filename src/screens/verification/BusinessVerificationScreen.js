@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView, TextInput, Alert } from 'react-native';
+import { View, StyleSheet, ScrollView, TextInput } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import AntigravityButton from '../../components/AntigravityButton';
@@ -7,6 +7,7 @@ import NotionCard from '../../components/NotionCard';
 import MultiDocumentPicker from '../../components/MultiDocumentPicker';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { submitBusinessVerification } from '../../services/verificationService';
+import { showAlert } from '../../utils/showAlert';
 
 const BusinessVerificationScreen = ({ navigation, route }) => {
     const { onVerified } = route.params || {};
@@ -17,28 +18,28 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
     const [loading, setLoading] = useState(false);
 
     const handleSubmit = async () => {
-        if (!businessName || !registrationNumber) {
-            Alert.alert('Missing Information', 'Please fill in all required fields');
+        if (!businessName.trim() || !registrationNumber.trim()) {
+            showAlert('Missing Information', 'Please fill in all required fields.');
             return;
         }
 
         if (documents.length === 0) {
-            Alert.alert('Documents Required', 'Please upload at least one business registration document');
+            showAlert('Documents Required', 'Please upload at least one business registration document.');
             return;
         }
 
         setLoading(true);
 
         const businessData = {
-            businessName,
-            registrationNumber,
+            businessName: businessName.trim(),
+            registrationNumber: registrationNumber.trim(),
         };
 
         const result = await submitBusinessVerification(businessData, documents);
         setLoading(false);
 
         if (result.success) {
-            Alert.alert(
+            showAlert(
                 'Submitted Successfully',
                 `Your business verification has been submitted for review.\n\nVerification ID: ${result.verificationId}\n\nYou'll be notified once approved (typically 1-2 business days).`,
                 [
@@ -52,7 +53,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                 ]
             );
         } else {
-            Alert.alert('Error', result.message);
+            showAlert('Submission Failed', result.message || 'Failed to submit. Please try again.');
         }
     };
 
@@ -74,7 +75,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                         • Business Registration Certificate{'\n'}
                         • GST Certificate{'\n'}
                         • Trade License{'\n'}
-                        (Upload up to 3 documents, Images or PDFs)
+                        (Upload up to 3 documents — images or PDFs)
                     </Typography>
                 </NotionCard>
 
@@ -93,10 +94,11 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                     <Typography variant="body" style={styles.label}>Registration Number *</Typography>
                     <TextInput
                         style={styles.input}
-                        placeholder="CIN/GST/Trade License Number"
+                        placeholder="CIN / GST / Trade License Number"
                         placeholderTextColor={COLORS.secondary}
                         value={registrationNumber}
                         onChangeText={setRegistrationNumber}
+                        autoCapitalize="characters"
                     />
                 </View>
 
@@ -106,15 +108,16 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
                     maxDocuments={3}
                 />
 
-                <NotionCard style={[styles.infoCard, { backgroundColor: COLORS.accent + '20' }]}>
+                <NotionCard style={[styles.infoCard, { backgroundColor: COLORS.accent + '15' }]}>
                     <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                        ⏱️ Verification typically takes 1-2 business days. You'll receive a notification once approved.
+                        ⏱️ Verification typically takes 1–2 business days. You'll receive a notification once approved.
                     </Typography>
                 </NotionCard>
 
                 <AntigravityButton
-                    title={loading ? "Submitting..." : "Submit for Review"}
+                    title={loading ? 'Submitting...' : 'Submit for Review'}
                     onPress={handleSubmit}
+                    loading={loading}
                     disabled={loading}
                     style={styles.button}
                 />
@@ -133,6 +136,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
 const styles = StyleSheet.create({
     content: {
         padding: SPACING.m,
+        paddingBottom: SPACING.xl,
     },
     header: {
         marginBottom: SPACING.l,

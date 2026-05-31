@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, Modal } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Location from 'expo-location';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -10,13 +10,15 @@ import { SPACING, COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { SERVICE_CATEGORIES } from '../../constants/services';
 import { userService } from '../../services/userService';
 import { getDistanceFromLatLonInKm, formatDistance } from '../../utils/distance';
-import LocationSelectorModal from '../../components/LocationSelectorModal';
+import LocationSelectorModal, { AVAILABLE_CITIES } from '../../components/LocationSelectorModal';
 import { locationService } from '../../services/locationService';
 
-// Mock User Location (Mumbai Center) - Still needed for distance calculation if GPS is off
-const MOCK_USER_LOCATION = { latitude: 19.0760, longitude: 72.8777 };
+// Mock User Location (Bengaluru Center) - Still needed for distance calculation if GPS is off
+const MOCK_USER_LOCATION = { latitude: 12.9716, longitude: 77.5946 };
 
 const CITY_COORDINATES = {
+    'Bengaluru': { latitude: 12.9716, longitude: 77.5946 },
+    'Trivandrum': { latitude: 8.5241, longitude: 76.9366 },
     'Mumbai': { latitude: 19.0760, longitude: 72.8777 },
     'Delhi': { latitude: 28.7041, longitude: 77.1025 },
     'Bangalore': { latitude: 12.9716, longitude: 77.5946 },
@@ -28,6 +30,7 @@ const CITY_COORDINATES = {
     'Pune': { latitude: 18.5204, longitude: 73.8567 },
     'Jaipur': { latitude: 26.9124, longitude: 75.7873 },
     'Goa': { latitude: 15.2993, longitude: 74.1240 },
+    'Kochi': { latitude: 9.9312, longitude: 76.2673 },
 };
 
 const SearchScreen = ({ navigation }) => {
@@ -40,9 +43,11 @@ const SearchScreen = ({ navigation }) => {
     const [loading, setLoading] = useState(true);
     const [enabledCategories, setEnabledCategories] = useState({});
     const [userLocation, setUserLocation] = useState(MOCK_USER_LOCATION);
-    const [locationName, setLocationName] = useState('Mumbai'); // Default display name
+    const [locationName, setLocationName] = useState('Bengaluru'); // Default display name
     const [showLocationModal, setShowLocationModal] = useState(false);
     const [currentUser, setCurrentUser] = useState(null);
+    const [showCityUnavailableModal, setShowCityUnavailableModal] = useState(false);
+    const [unavailableCityName, setUnavailableCityName] = useState('');
 
     useEffect(() => {
         const initializeMarketplace = async () => {
@@ -247,8 +252,11 @@ const SearchScreen = ({ navigation }) => {
                         style={styles.filterChip}
                         onPress={() => setShowLocationModal(true)}
                     >
-                        <Ionicons name="location" size={16} color={COLORS.accent} />
-                        <Typography variant="small" numberOfLines={1} style={styles.filterChipText}>
+                        <Ionicons name="location" size={14} color={COLORS.accent} />
+                        {AVAILABLE_CITIES.includes(locationName) && (
+                            <View style={styles.liveDotChip} />
+                        )}
+                        <Typography variant="small" numberOfLines={1} style={[styles.filterChipText, { flex: 1 }]}>
                             {locationName}
                         </Typography>
                         <Ionicons name="chevron-down" size={12} color={COLORS.secondary} />
@@ -352,9 +360,19 @@ const SearchScreen = ({ navigation }) => {
                                         </Typography>
                                     </View>
                                     <View style={styles.meta}>
-                                        <Typography variant="h3" style={{ color: COLORS.primary }}>
-                                            ₹{item.price}{item.priceUnit || '/hr'}
-                                        </Typography>
+                                        {item.packages && item.packages.length > 0 ? (
+                                            <Typography variant="h3" style={{ color: COLORS.primary }}>
+                                                ₹{item.price}{item.priceUnit || '/hr'}
+                                            </Typography>
+                                        ) : (
+                                            <TouchableOpacity
+                                                style={styles.enquireButton}
+                                                onPress={() => navigation.navigate('ServiceDetail', { serviceId: item.id })}
+                                                activeOpacity={0.8}
+                                            >
+                                                <Typography variant="small" style={styles.enquireButtonText}>Enquire Now</Typography>
+                                            </TouchableOpacity>
+                                        )}
                                         <View style={styles.ratingRow}>
                                             <Ionicons name="star" size={14} color="#FFD700" />
                                             <Typography variant="caption" style={{ marginLeft: 4 }}>{item.rating || 'New'}</Typography>
@@ -371,29 +389,94 @@ const SearchScreen = ({ navigation }) => {
                 visible={showLocationModal}
                 onClose={() => setShowLocationModal(false)}
                 currentCity={locationName}
-                onSelect={async (city) => {
-                    if (city && CITY_COORDINATES[city]) {
-                        setLocationName(city);
-                        setUserLocation(CITY_COORDINATES[city]);
-                    } else if (city) {
-                        setLocationName(city);
-                    } else {
+                onSelect={async (city, isAvailable) => {
+                    if (city === null) {
                         // "Use Current Location" — attempt detection via service
                         setLoading(true);
                         try {
                             const { coords, cityName: detectedCity } = await locationService.getLocation();
                             if (coords) {
                                 setUserLocation(coords);
-                                setLocationName(detectedCity || 'Current Location');
+                                const detected = detectedCity || 'Current Location';
+                                const detectedIsAvailable = AVAILABLE_CITIES.some(
+                                    c => c.toLowerCase() === detected.toLowerCase()
+                                );
+                                if (!detectedIsAvailable) {
+                                    setUnavailableCityName(detected);
+                                    setShowCityUnavailableModal(true);
+                                } else {
+                                    setLocationName(detected);
+                                }
                             }
                         } catch (e) {
                             console.warn('Location detection failed:', e);
                         } finally {
                             setLoading(false);
                         }
+                        return;
+                    }
+
+                    if (!isAvailable) {
+                        // City is not yet live — show coming soon popup
+                        setUnavailableCityName(city);
+                        setShowCityUnavailableModal(true);
+                        return;
+                    }
+
+                    // Available city — switch to it
+                    setLocationName(city);
+                    if (CITY_COORDINATES[city]) {
+                        setUserLocation(CITY_COORDINATES[city]);
                     }
                 }}
             />
+
+            {/* City Unavailable Modal */}
+            <Modal
+                visible={showCityUnavailableModal}
+                transparent
+                animationType="fade"
+                onRequestClose={() => setShowCityUnavailableModal(false)}
+            >
+                <View style={styles.unavailableOverlay}>
+                    <View style={styles.unavailableCard}>
+                        <View style={styles.unavailableIconCircle}>
+                            <Ionicons name="rocket-outline" size={36} color={COLORS.accent} />
+                        </View>
+                        <Typography variant="h2" style={styles.unavailableTitle}>
+                            Coming Soon to {unavailableCityName}!
+                        </Typography>
+                        <Typography variant="body" color={COLORS.secondary} style={styles.unavailableSubtitle}>
+                            Croww is currently available in{' '}
+                            <Typography variant="body" style={{ color: COLORS.primary, fontWeight: '700' }}>Bengaluru</Typography>
+                            {' '}and{' '}
+                            <Typography variant="body" style={{ color: COLORS.primary, fontWeight: '700' }}>Trivandrum</Typography>.
+                            {' '}We're expanding soon! Meanwhile, explore amazing events and services in Bengaluru.
+                        </Typography>
+                        <TouchableOpacity
+                            style={styles.unavailablePrimaryBtn}
+                            onPress={() => {
+                                setShowCityUnavailableModal(false);
+                                setLocationName('Bengaluru');
+                                setUserLocation(CITY_COORDINATES['Bengaluru']);
+                            }}
+                        >
+                            <Ionicons name="map-outline" size={18} color={COLORS.background} style={{ marginRight: 6 }} />
+                            <Typography variant="body" style={styles.unavailablePrimaryBtnText}>
+                                Browse Events in Bengaluru
+                            </Typography>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                            style={styles.unavailableSecondaryBtn}
+                            onPress={() => setShowCityUnavailableModal(false)}
+                        >
+                            <Typography variant="body" style={styles.unavailableSecondaryBtnText}>
+                                Maybe Later
+                            </Typography>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 };
@@ -565,6 +648,19 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         marginTop: 2,
     },
+    enquireButton: {
+        backgroundColor: COLORS.accent,
+        borderRadius: BORDER_RADIUS.s,
+        paddingHorizontal: 10,
+        paddingVertical: 5,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    enquireButtonText: {
+        color: '#000',
+        fontWeight: '700',
+        fontSize: 11,
+    },
     emptyStateContainer: {
         alignItems: 'center',
         justifyContent: 'center',
@@ -607,7 +703,74 @@ const styles = StyleSheet.create({
         color: COLORS.background,
         fontWeight: '700',
         fontSize: 14,
-    }
-});
+    },
+    liveDotChip: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#00C853',
+        marginRight: 2,
+    },
+    unavailableOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        padding: SPACING.m,
+    },
+    unavailableCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.l,
+        padding: SPACING.xl,
+        alignItems: 'center',
+        width: '100%',
+        maxWidth: 380,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    unavailableIconCircle: {
+        width: 72,
+        height: 72,
+        borderRadius: 36,
+        backgroundColor: COLORS.accent + '15',
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: SPACING.l,
+    },
+    unavailableTitle: {
+        textAlign: 'center',
+        marginBottom: SPACING.m,
+    },
+    unavailableSubtitle: {
+        textAlign: 'center',
+        lineHeight: 22,
+        marginBottom: SPACING.xl,
+    },
+    unavailablePrimaryBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.accent,
+        paddingVertical: 14,
+        paddingHorizontal: SPACING.l,
+        borderRadius: BORDER_RADIUS.m,
+        width: '100%',
+        justifyContent: 'center',
+        marginBottom: SPACING.s,
+    },
+    unavailablePrimaryBtnText: {
+        color: COLORS.background,
+        fontWeight: '700',
+        fontSize: 15,
+    },
+    unavailableSecondaryBtn: {
+        paddingVertical: 12,
+        width: '100%',
+        alignItems: 'center',
+    },
+    unavailableSecondaryBtnText: {
+        color: COLORS.secondary,
+        fontWeight: '500',
+    },
+})
 
 export default SearchScreen;

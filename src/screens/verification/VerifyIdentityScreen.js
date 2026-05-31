@@ -31,6 +31,9 @@ const VerifyIdentityScreen = ({ navigation, route }) => {
             if (params.verification_id) {
                 console.log("[VerifyIdentity] Redirect detected with ID:", params.verification_id);
                 setVerificationId(params.verification_id);
+                if (Platform.OS !== 'web') {
+                    WebBrowser.dismissBrowser();
+                }
                 // Trigger auto-verification
                 handleCheckCompletion(params.verification_id);
             }
@@ -58,9 +61,7 @@ const VerifyIdentityScreen = ({ navigation, route }) => {
             // Use platform-specific redirect URL:
             // Web → croww.ai/kyc-complete (real page user lands on)
             // Mobile → croww.ai/kyc-complete (safe fallback; browser closes after DigiLocker)
-            const redirectUrl = Platform.OS === 'web'
-                ? 'https://croww.ai/kyc-complete'
-                : 'crowwapp://kyc-complete';
+            const redirectUrl = 'https://croww.ai/kyc-complete';
 
             const result = await getDigiLockerUrl('signup', redirectUrl);
             if (result.url && result.verification_id) {
@@ -87,7 +88,8 @@ const VerifyIdentityScreen = ({ navigation, route }) => {
 
     // Updated to accept optional id parameter for auto-check
     const handleCheckCompletion = async (explicitId = null) => {
-        const idToCheck = explicitId || verificationId;
+        // Prevent React Native synthetic event from being used as the ID
+        const idToCheck = (typeof explicitId === 'string' ? explicitId : null) || verificationId;
         
         if (!idToCheck) {
             showAlert('Wait', 'Please start the verification first.');

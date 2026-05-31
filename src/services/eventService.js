@@ -104,15 +104,9 @@ export const eventService = {
                 
                 if (data.date) {
                     const eventDate = new Date(data.date);
-                    // Business/official events NEVER expire (organizer manages lifecycle)
-                    // Regular events expire 6 hours after they start
-                    const isBusinessEvent = data.isOfficial ||
-                        data.verificationType === 'business' ||
-                        (data.verificationStatus === 'verified' && data.verificationType === 'business');
-                    if (!isBusinessEvent) {
-                        if (eventDate.getTime() + (6 * 60 * 60 * 1000) < now.getTime()) {
-                            return; // Skip expired regular events
-                        }
+                    // All events expire 12 hours after they start
+                    if (eventDate.getTime() + (12 * 60 * 60 * 1000) < now.getTime()) {
+                        return; // Skip expired events
                     }
                 }
                 events.push({ id: doc.id, ...data });

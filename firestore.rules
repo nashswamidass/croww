@@ -13,22 +13,19 @@ service cloud.firestore {
     }
 
     function isAdmin() {
-      return isSignedIn() &&
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid));
+      return isSignedIn() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) ||
+        get(/databases/$(database)/documents/users/$(request.auth.uid)).data.userType == 'admin'
+      );
     }
 
     // ─── Users ─────────────────────────────────────────────────────────────────
-    // Any signed-in user can read public profiles (needed for buddy system, search, etc.)
-    // Only the user themselves can write their own profile.
     match /users/{userId} {
       allow read: if isSignedIn();
       allow write: if isOwner(userId) || isAdmin();
     }
 
     // ─── Events ────────────────────────────────────────────────────────────────
-    // Public events: any signed-in user can read in lists.
-    // Private events: hidden from feeds, but readable by anyone with the direct link (get).
-    // Create/Update/Delete: only the event organizer or admin.
     match /events/{eventId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn() && (
@@ -38,13 +35,19 @@ service cloud.firestore {
       );
       allow create: if isSignedIn() &&
         request.resource.data.organizerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && (
-        resource.data.organizerId == request.auth.uid || isAdmin()
+      // Allow organizers, admins, or users updating ticket capacity counts
+      allow update: if isSignedIn() && (
+        resource.data.organizerId == request.auth.uid ||
+        isAdmin() ||
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['remainingTickets', 'attendeesCount'])
+      );
+      allow delete: if isSignedIn() && (
+        resource.data.organizerId == request.auth.uid ||
+        isAdmin()
       );
     }
 
     // ─── Tickets ───────────────────────────────────────────────────────────────
-    // CRITICAL: Only the ticket owner or the event organizer (for scanning) can read.
     match /tickets/{ticketId} {
       // Single doc read (e.g. ticket detail, QR scan)
       allow get: if isSignedIn() && (
@@ -52,12 +55,7 @@ service cloud.firestore {
         resource.data.organizerId == request.auth.uid ||
         isAdmin()
       );
-      // Collection query (e.g. list my tickets) — Firestore can't check resource.data
-      // on list queries, so we allow any signed-in user to list and rely on
-      // client-side filtering + query constraints (where userId == uid).
       allow list: if isSignedIn();
-      // Tickets are created by Cloud Functions (backend) only.
-      // However we allow client-side creation during the ticket issue flow.
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;
       // Allow organizer to update status (scan), and user to do nothing.
@@ -75,7 +73,6 @@ service cloud.firestore {
         resource.data.providerId == request.auth.uid ||
         isAdmin()
       );
-      // Allow list queries (e.g. getBookingsForProvider / getBookingsForUser)
       allow list: if isSignedIn();
       allow create: if isSignedIn() &&
         request.resource.data.senderId == request.auth.uid;
@@ -89,14 +86,25 @@ service cloud.firestore {
       );
     }
 
+    // ─── App Settings ─────────────────────────────────────────────────────────
+    match /app_settings/{document=**} {
+      allow read: if true;
+      allow write: if isAdmin();
+    }
+
     // ─── Notifications ─────────────────────────────────────────────────────────
-    // Only the notification recipient can read/update (mark as read) their notifications.
     match /notifications/{notificationId} {
-      allow read, update: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
-      allow create: if isSignedIn(); // Cloud Functions and users can create
-      allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow read, update: if isSignedIn() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
+      allow create: if isSignedIn();
+      allow delete: if isSignedIn() && (
+        resource.data.toUserId == request.auth.uid ||
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     // ─── Chats / Messages ──────────────────────────────────────────────────────
@@ -124,21 +132,8 @@ service cloud.firestore {
         resource.data.userId == request.auth.uid || isAdmin()
       );
       allow delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+        request.resource.data.userId == request.auth.uid;
     }
-
-    // ─── Follows ───────────────────────────────────────────────────────────────
-    // Any signed-in user can read (needed to check follower/following lists).
-    // Writes are handled by the toggleFollow Cloud Function (backend), but we
-    // also allow client-side for status checks. Actual write enforced via Cloud Function auth.
-    match /follows/{followId} {
-      allow read: if isSignedIn();
-      // Writes go through Cloud Function, but allow direct client writes as well
-      // (the followId is structured as {followerId}_{targetUserId})
-      allow create, delete: if isSignedIn();
-    }
-
-    // ─── Buddy Requests ─────────────────────────────────────────────────────────
     match /buddy_requests/{requestId} {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
@@ -168,6 +163,12 @@ service cloud.firestore {
       );
     }
 
+    // ─── Follows ───────────────────────────────────────────────────────────────
+    match /follows/{followId} {
+      allow read: if isSignedIn();
+      allow create, delete: if isSignedIn();
+    }
+
     // ─── Services / Packages ───────────────────────────────────────────────────
     match /services/{serviceId} {
       allow read: if isSignedIn();
@@ -180,8 +181,10 @@ service cloud.firestore {
       allow read: if isSignedIn();
       allow create: if isSignedIn() &&
         request.resource.data.userId == request.auth.uid;
-      allow update, delete: if isSignedIn() &&
-        resource.data.userId == request.auth.uid;
+      allow update, delete: if isSignedIn() && (
+        resource.data.userId == request.auth.uid ||
+        isAdmin()
+      );
     }
 
     // ─── Admins (restricted) ──────────────────────────────────────────────────

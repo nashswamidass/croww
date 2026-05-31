@@ -123,7 +123,9 @@ const ChatListScreen = ({ navigation }) => {
                     </View>
                     <View style={styles.chatFooter}>
                         <Typography variant="caption" numberOfLines={1} style={[styles.lastMessage, unreadCount > 0 && styles.unreadMessage]}>
-                            {item.lastMessage || 'Start a conversation'}
+                            {item.lastMessage?.startsWith('__GIPHY__:') || item.lastMessage?.startsWith('__STICKER__') 
+                                ? '🎁 Sent a sticker' 
+                                : (item.lastMessage || 'Start a conversation')}
                         </Typography>
                         {unreadCount > 0 && (
                             <View style={styles.badge}>

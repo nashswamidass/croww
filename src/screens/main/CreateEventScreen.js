@@ -45,6 +45,9 @@ const CreateEventScreen = ({ navigation, route }) => {
     const [screenName, setScreenName] = useState(editEvent?.screenName || '');
     const [spotsAvailable, setSpotsAvailable] = useState(editEvent?.spotsAvailable || 2);
     const [genderPreference, setGenderPreference] = useState(editEvent?.genderPreference || 'any');
+    const [eventType, setEventType] = useState(editEvent?.eventType || 'event'); // 'event' or 'table'
+    const [ticketType, setTicketType] = useState(editEvent?.ticketType || 'Individual'); // 'Individual', 'Couple', 'Group'
+    const [paxPerTicket, setPaxPerTicket] = useState(editEvent?.paxPerTicket?.toString() || '1');
 
     const spotOptions = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
     const eventCategories = ['Party', 'Dinner', 'Movie', 'Concert', 'Workshop', 'Sports', 'Networking', 'Art', 'Nightlife', 'Other'];
@@ -266,7 +269,10 @@ const CreateEventScreen = ({ navigation, route }) => {
                 movieName: category === 'Movie' ? (movieName || "") : null,
                 screenName: category === 'Movie' ? (screenName || "") : null,
                 verificationStatus: (isPublic && (isAadhaarVerified || isOfficialAccount)) ? 'verified' : 'none',
-                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isProviderVerified ? 'provider' : (isAadhaarVerified ? 'aadhaar' : "none"))) : "none"
+                verificationType: isPublic ? (isBusinessVerified ? 'business' : (isProviderVerified ? 'provider' : (isAadhaarVerified ? 'aadhaar' : "none"))) : "none",
+                eventType: isBusinessVerified ? eventType : 'event',
+                ticketType: isPaid || eventType === 'table' ? ticketType : 'Individual',
+                paxPerTicket: ticketType === 'Individual' ? 1 : (ticketType === 'Couple' ? 2 : parseInt(paxPerTicket) || 1)
             };
 
             if (isEditMode) {
@@ -496,6 +502,38 @@ const CreateEventScreen = ({ navigation, route }) => {
                     </NotionCard>
                 )}
 
+                {/* Event Type Section (For Verified Business Users) */}
+                {verificationStatus?.businessVerified && (
+                    <NotionCard style={styles.ticketingCard}>
+                        <Typography variant="h3" style={{ marginBottom: SPACING.m }}>Event Settings</Typography>
+                        <Typography variant="body" style={styles.label}>What are you hosting?</Typography>
+                        <View style={{ flexDirection: 'row', gap: SPACING.s, marginTop: SPACING.s }}>
+                            <TouchableOpacity
+                                style={[
+                                    styles.typeOption,
+                                    eventType === 'event' && styles.typeOptionSelected
+                                ]}
+                                onPress={() => setEventType('event')}
+                            >
+                                <Typography variant="body" style={[styles.spotText, eventType === 'event' && styles.spotTextSelected]}>
+                                    Event
+                                </Typography>
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[
+                                    styles.typeOption,
+                                    eventType === 'table' && styles.typeOptionSelected
+                                ]}
+                                onPress={() => setEventType('table')}
+                            >
+                                <Typography variant="body" style={[styles.spotText, eventType === 'table' && styles.spotTextSelected]}>
+                                    Table Booking
+                                </Typography>
+                            </TouchableOpacity>
+                        </View>
+                    </NotionCard>
+                )}
+
                 {/* Ticketing Section (For Verified Business Users) */}
                 {verificationStatus?.businessVerified && (
                     <NotionCard style={styles.ticketingCard}>
@@ -548,6 +586,40 @@ const CreateEventScreen = ({ navigation, route }) => {
                                 />
                             </View>
                         </View>
+
+                        {(isPaid || eventType === 'table') && (
+                            <View style={[styles.ticketingInputs, { borderTopWidth: 0, marginTop: SPACING.s, paddingTop: 0 }]}>
+                                <View style={{ flex: 2, marginRight: SPACING.s }}>
+                                    <Typography variant="small" style={styles.inputLabel}>Ticket Admits</Typography>
+                                    <View style={{ flexDirection: 'row', backgroundColor: COLORS.surfaceHighlight, borderRadius: 8, overflow: 'hidden', borderWidth: 1, borderColor: COLORS.border }}>
+                                        {['Individual', 'Couple', 'Group'].map((type) => (
+                                            <TouchableOpacity 
+                                                key={type}
+                                                style={{ flex: 1, paddingVertical: 12, alignItems: 'center', backgroundColor: ticketType === type ? COLORS.primary : 'transparent' }}
+                                                onPress={() => setTicketType(type)}
+                                            >
+                                                <Typography variant="small" style={{ color: ticketType === type ? COLORS.surface : COLORS.primary }}>
+                                                    {type === 'Individual' ? '1 Pax' : type === 'Couple' ? '2 Pax' : 'Group'}
+                                                </Typography>
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                </View>
+                                {ticketType === 'Group' && (
+                                    <View style={{ flex: 1 }}>
+                                        <Typography variant="small" style={styles.inputLabel}>Pax Count</Typography>
+                                        <TextInput
+                                            style={styles.miniInput}
+                                            placeholder="e.g. 4"
+                                            keyboardType="numeric"
+                                            value={paxPerTicket}
+                                            onChangeText={setPaxPerTicket}
+                                            placeholderTextColor={COLORS.secondary}
+                                        />
+                                    </View>
+                                )}
+                            </View>
+                        )}
                     </NotionCard>
                 )}
 
@@ -777,6 +849,20 @@ const styles = StyleSheet.create({
     spotTextSelected: {
         color: '#FFFFFF',
         fontWeight: 'bold',
+    },
+    typeOption: {
+        flex: 1,
+        paddingVertical: 12,
+        borderRadius: 8,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    typeOptionSelected: {
+        borderColor: COLORS.accent,
+        backgroundColor: COLORS.accent,
     },
     dateTimeRow: {
         flexDirection: 'row',

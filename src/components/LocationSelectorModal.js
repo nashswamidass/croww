@@ -1,22 +1,31 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, Modal, TouchableOpacity, FlatList, TextInput } from 'react-native';
+import { View, StyleSheet, Modal, TouchableOpacity, SectionList, TextInput } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from './Typography';
 import { COLORS, SPACING, BORDER_RADIUS } from '../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-const POPULAR_CITIES = [
-    'Mumbai', 'Delhi', 'Bangalore', 'Hyderabad', 'Ahmedabad',
-    'Chennai', 'Kolkata', 'Surat', 'Pune', 'Jaipur', 'Goa'
+// Cities where the app is fully live
+export const AVAILABLE_CITIES = ['Bengaluru', 'Trivandrum'];
+
+const ALL_CITIES = [
+    'Mumbai', 'Delhi', 'Hyderabad', 'Ahmedabad',
+    'Chennai', 'Kolkata', 'Pune', 'Jaipur', 'Goa', 'Kochi', 'Surat',
 ];
 
 const LocationSelectorModal = ({ visible, onClose, onSelect, currentCity }) => {
     const insets = useSafeAreaInsets();
     const [searchQuery, setSearchQuery] = useState('');
 
-    const filteredCities = POPULAR_CITIES.filter(city =>
-        city.toLowerCase().includes(searchQuery.toLowerCase())
-    );
+    const query = searchQuery.toLowerCase();
+
+    const filteredAvailable = AVAILABLE_CITIES.filter(c => c.toLowerCase().includes(query));
+    const filteredOther = ALL_CITIES.filter(c => c.toLowerCase().includes(query));
+
+    const sections = [
+        ...(filteredAvailable.length > 0 ? [{ title: 'available', data: filteredAvailable }] : []),
+        ...(filteredOther.length > 0 ? [{ title: 'comingsoon', data: filteredOther }] : []),
+    ];
 
     return (
         <Modal visible={visible} animationType="slide" transparent={true}>
@@ -40,40 +49,73 @@ const LocationSelectorModal = ({ visible, onClose, onSelect, currentCity }) => {
                         />
                     </View>
 
-                    <Typography variant="caption" style={styles.sectionTitle}>Popular Cities</Typography>
-
-                    <FlatList
-                        data={filteredCities}
+                    <SectionList
+                        sections={sections}
                         keyExtractor={(item) => item}
-                        renderItem={({ item }) => (
-                            <TouchableOpacity
-                                style={[
-                                    styles.cityItem,
-                                    currentCity === item && styles.cityItemActive
-                                ]}
-                                onPress={() => {
-                                    onSelect(item);
-                                    onClose();
-                                }}
-                            >
-                                <Typography
-                                    variant="body"
-                                    style={{ color: currentCity === item ? COLORS.primary : COLORS.secondary }}
-                                >
-                                    {item}
-                                </Typography>
-                                {currentCity === item && (
-                                    <Ionicons name="checkmark-circle" size={20} color={COLORS.accent} />
+                        renderSectionHeader={({ section }) => (
+                            <View style={styles.sectionHeaderRow}>
+                                {section.title === 'available' ? (
+                                    <>
+                                        <Typography variant="caption" style={styles.sectionTitle}>Available Now</Typography>
+                                        <View style={styles.liveBadge}>
+                                            <View style={styles.liveDot} />
+                                            <Typography style={styles.liveBadgeText}>LIVE</Typography>
+                                        </View>
+                                    </>
+                                ) : (
+                                    <Typography variant="caption" style={[styles.sectionTitle, { color: COLORS.secondary }]}>Coming Soon</Typography>
                                 )}
-                            </TouchableOpacity>
+                            </View>
                         )}
+                        renderItem={({ item, section }) => {
+                            const isAvailable = section.title === 'available';
+                            const isSelected = currentCity === item;
+                            return (
+                                <TouchableOpacity
+                                    style={[
+                                        styles.cityItem,
+                                        isSelected && styles.cityItemActive,
+                                        !isAvailable && styles.cityItemDimmed,
+                                    ]}
+                                    onPress={() => {
+                                        onSelect(item, isAvailable);
+                                        onClose();
+                                    }}
+                                    activeOpacity={0.7}
+                                >
+                                    <View style={styles.cityItemLeft}>
+                                        <Ionicons
+                                            name={isAvailable ? 'location' : 'lock-closed-outline'}
+                                            size={18}
+                                            color={isAvailable ? COLORS.accent : COLORS.secondary}
+                                            style={{ marginRight: SPACING.s }}
+                                        />
+                                        <Typography
+                                            variant="body"
+                                            style={{
+                                                color: isSelected ? COLORS.primary : isAvailable ? COLORS.primary : COLORS.secondary,
+                                                fontWeight: isSelected ? '700' : '400',
+                                            }}
+                                        >
+                                            {item}
+                                        </Typography>
+                                    </View>
+                                    {isSelected ? (
+                                        <Ionicons name="checkmark-circle" size={20} color={COLORS.accent} />
+                                    ) : !isAvailable ? (
+                                        <Typography style={styles.soonTag}>Soon</Typography>
+                                    ) : null}
+                                </TouchableOpacity>
+                            );
+                        }}
                         contentContainerStyle={styles.listContent}
+                        showsVerticalScrollIndicator={false}
                     />
 
                     <TouchableOpacity
                         style={styles.autoLocation}
                         onPress={() => {
-                            onSelect(null); // Signal to use auto-detection
+                            onSelect(null, false); // Signal to use auto-detection
                             onClose();
                         }}
                     >
@@ -91,14 +133,14 @@ const LocationSelectorModal = ({ visible, onClose, onSelect, currentCity }) => {
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: 'rgba(0,0,0,0.6)',
         justifyContent: 'flex-end',
     },
     container: {
         backgroundColor: COLORS.surface,
         borderTopLeftRadius: BORDER_RADIUS.l,
         borderTopRightRadius: BORDER_RADIUS.l,
-        maxHeight: '80%',
+        maxHeight: '85%',
         padding: SPACING.m,
     },
     header: {
@@ -117,7 +159,7 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.surfaceHighlight,
         borderRadius: BORDER_RADIUS.m,
         paddingHorizontal: SPACING.m,
-        marginBottom: SPACING.l,
+        marginBottom: SPACING.m,
     },
     searchIcon: {
         marginRight: SPACING.s,
@@ -128,11 +170,41 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
         fontSize: 16,
     },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: COLORS.surface,
+        paddingVertical: SPACING.xs,
+        marginTop: SPACING.s,
+    },
     sectionTitle: {
-        color: COLORS.secondary,
+        color: COLORS.accent,
         textTransform: 'uppercase',
-        marginBottom: SPACING.s,
         letterSpacing: 1,
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    liveBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#00C853' + '20',
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        gap: 4,
+    },
+    liveDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: '#00C853',
+    },
+    liveBadgeText: {
+        color: '#00C853',
+        fontSize: 9,
+        fontWeight: '800',
+        letterSpacing: 0.5,
     },
     listContent: {
         paddingBottom: SPACING.m,
@@ -145,8 +217,25 @@ const styles = StyleSheet.create({
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
     },
+    cityItemLeft: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
     cityItemActive: {
-        backgroundColor: COLORS.accent + '05',
+        backgroundColor: COLORS.accent + '10',
+    },
+    cityItemDimmed: {
+        opacity: 0.55,
+    },
+    soonTag: {
+        fontSize: 10,
+        color: COLORS.secondary,
+        fontWeight: '600',
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: 4,
+        overflow: 'hidden',
     },
     autoLocation: {
         flexDirection: 'row',

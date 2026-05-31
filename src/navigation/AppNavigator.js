@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, createRef } from 'react';
+import React, { useEffect, useRef, createRef } from 'react';
 import { View, ActivityIndicator, Image, StyleSheet, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
@@ -73,24 +73,11 @@ const Tab = createBottomTabNavigator();
 
 const MainTabNavigator = () => {
     const insets = useSafeAreaInsets();
-    const [isBusiness, setIsBusiness] = useState(false);
+    const { user: authUser } = useAuth();
 
-    useEffect(() => {
-        const checkUser = async () => {
-            try {
-                // Timeout guard: if AsyncStorage is slow on cold boot, don't stall tab rendering
-                const userWithTimeout = await Promise.race([
-                    userService.getUser(),
-                    new Promise(resolve => setTimeout(() => resolve(null), 3000))
-                ]);
-                setIsBusiness(userWithTimeout?.userType === 'business' || userWithTimeout?.userType === 'provider');
-            } catch (e) {
-                // Non-critical — tab bar falls back to individual layout
-                setIsBusiness(false);
-            }
-        };
-        checkUser();
-    }, []);
+    // Derive isBusiness directly from the live AuthContext user — no cache lag
+    const isBusiness = authUser?.userType === 'business' || authUser?.userType === 'provider'
+        || authUser?.isBusiness || authUser?.isProvider;
 
     return (
         <Tab.Navigator

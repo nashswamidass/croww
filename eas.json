@@ -13,7 +13,17 @@
             "env": {
                 "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
                 "SENTRY_DISABLE_AUTO_UPLOAD": "true",
-                "EXPO_PUBLIC_CASHFREE_ENV": "PRODUCTION"
+                "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDaBIQfycxVH8b2p-Z0SsJZTH-57WIwkts",
+                "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "croww-live-2026.firebaseapp.com",
+                "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "croww-live-2026",
+                "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "croww-live-2026.firebasestorage.app",
+                "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "871336486604",
+                "EXPO_PUBLIC_FIREBASE_APP_ID": "1:871336486604:web:80e2f6b627aa8224350469",
+                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDS7SdfUY8rSfqGKd0js797upzS1deSQ7I",
+                "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "871336486604-ok8idj1emoq9u1l26777bf1buh1cqnbt.apps.googleusercontent.com",
+                "EXPO_PUBLIC_CASHFREE_ENV": "PRODUCTION",
+                "EXPO_PUBLIC_CASHFREE_APP_ID": "1206869833208382a0c03e5759a9686021",
+                "EXPO_PUBLIC_CASHFREE_APP_URL": "https://croww-app.web.app"
             }
         },
         "preview": {
@@ -33,7 +43,7 @@
                 "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "croww-live-2026.firebasestorage.app",
                 "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "871336486604",
                 "EXPO_PUBLIC_FIREBASE_APP_ID": "1:871336486604:web:80e2f6b627aa8224350469",
-                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD0ImBUpfR64-yuSzLeNw5NTZcQlNsXYO8",
+                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDS7SdfUY8rSfqGKd0js797upzS1deSQ7I",
                 "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "871336486604-ok8idj1emoq9u1l26777bf1buh1cqnbt.apps.googleusercontent.com",
                 "EXPO_PUBLIC_CASHFREE_ENV": "PRODUCTION",
                 "EXPO_PUBLIC_CASHFREE_APP_ID": "1206869833208382a0c03e5759a9686021",
@@ -56,7 +66,7 @@
                 "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "croww-live-2026.firebasestorage.app",
                 "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "871336486604",
                 "EXPO_PUBLIC_FIREBASE_APP_ID": "1:871336486604:web:80e2f6b627aa8224350469",
-                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyD0ImBUpfR64-yuSzLeNw5NTZcQlNsXYO8",
+                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDS7SdfUY8rSfqGKd0js797upzS1deSQ7I",
                 "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "871336486604-ok8idj1emoq9u1l26777bf1buh1cqnbt.apps.googleusercontent.com",
                 "EXPO_PUBLIC_CASHFREE_ENV": "PRODUCTION",
                 "EXPO_PUBLIC_CASHFREE_APP_ID": "1206869833208382a0c03e5759a9686021",

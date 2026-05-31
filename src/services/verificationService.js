@@ -100,7 +100,7 @@ export const finalizeAadhaarVerification = async (verificationId) => {
 /**
  * Submit business verification documents
  * @param {Object} businessData - Business information
- * @param {Array} documents - Array of document URIs or objects {uri, name}
+ * @param {Array} documents - Array of document objects {uri, name, mimeType, _webFile?}
  * @returns {Promise<{success: boolean, message: string, verificationId?: string}>}
  */
 export const submitBusinessVerification = async (businessData, documents = []) => {
@@ -115,21 +115,32 @@ export const submitBusinessVerification = async (businessData, documents = []) =
         for (let i = 0; i < documents.length; i++) {
             const docItem = documents[i];
             const uri = typeof docItem === 'string' ? docItem : docItem.uri;
-            const originalName = typeof docItem === 'object' ? docItem.name : `doc_${i}`;
+            const originalName = typeof docItem === 'object' ? (docItem.name || `doc_${i}`) : `doc_${i}`;
+            const mimeType = typeof docItem === 'object' ? (docItem.mimeType || 'image/jpeg') : 'image/jpeg';
 
-            // Extract extension
-            const extension = uri.includes('.pdf') ? 'pdf' : 'jpg';
+            // Determine file extension from MIME type
+            let extension = 'jpg';
+            if (mimeType.includes('pdf')) extension = 'pdf';
+            else if (mimeType.includes('png')) extension = 'png';
+            else if (mimeType.includes('webp')) extension = 'webp';
+
             const fileName = `verification_${Date.now()}_${i}.${extension}`;
             const storageRef = ref(storage, `verification_docs/${user.uid}/${fileName}`);
 
-            // Convert URI to Blob for Firebase Storage
-            const response = await fetch(uri);
-            const blob = await response.blob();
+            let blob;
+            // On web, if we have the raw File object, use it directly (avoids cross-origin blob URL issues)
+            if (docItem._webFile instanceof Blob) {
+                blob = docItem._webFile;
+            } else {
+                // Native: fetch the file:// or blob: URI
+                const fetchResponse = await fetch(uri);
+                blob = await fetchResponse.blob();
+            }
 
-            // Upload to Storage
-            await uploadBytes(storageRef, blob);
+            // Upload with correct content type so Firebase Storage serves it properly
+            await uploadBytes(storageRef, blob, { contentType: mimeType });
             const downloadURL = await getDownloadURL(storageRef);
-            documentUrls.push(downloadURL);
+            documentUrls.push({ url: downloadURL, name: originalName, mimeType });
         }
 
         // Update User Doc in Firestore
@@ -138,8 +149,10 @@ export const submitBusinessVerification = async (businessData, documents = []) =
             verificationData: {
                 businessName: businessData.businessName,
                 registrationNumber: businessData.registrationNumber,
-                documentUrls: documentUrls,
-                documentUrl: documentUrls[0] || null, // Keep singular for backward compatibility
+                // Store full document metadata for the admin panel
+                documentUrls: documentUrls.map(d => d.url),
+                documentMeta: documentUrls,
+                documentUrl: documentUrls[0]?.url || null, // backward compat
                 status: 'pending',
                 submittedAt: serverTimestamp(),
                 verificationId

@@ -98,6 +98,8 @@ const NotificationsScreen = ({ navigation }) => {
                 return { icon: 'person-add', color: COLORS.success };
             case 'friend_accepted':
                 return { icon: 'people', color: COLORS.success };
+            case 'review_prompt':
+                return { icon: 'star', color: '#FFD700' };
             case 'chat_message':
             case 'chat':
                 return { icon: 'chatbubble-ellipses', color: COLORS.accents.purple || '#9C27B0' };

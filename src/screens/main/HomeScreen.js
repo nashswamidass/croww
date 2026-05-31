@@ -42,6 +42,32 @@ const HomeScreen = ({ navigation }) => {
     const [unreadCount, setUnreadCount] = useState(0);
     const [isPolicyModalVisible, setIsPolicyModalVisible] = useState(false);
 
+    const validateCity = (city) => {
+        if (!city) return false;
+        const lowerCity = city.toLowerCase();
+        const supported = ['bengaluru', 'bangalore', 'trivandrum', 'thiruvananthapuram'];
+        return supported.some(c => lowerCity.includes(c));
+    };
+
+    const enforceSupportedCity = async () => {
+        // Set immediately so UI doesn't hang on 'Detecting...'
+        setCityName('Bengaluru');
+        setManualCity('Bengaluru');
+        await AsyncStorage.setItem('manualCity', 'Bengaluru');
+        setUserLocation({ latitude: 12.9716, longitude: 77.5946 });
+
+        if (Platform.OS === 'web') {
+            window.alert("We're not in your city yet! 🌍\n\nWe are sleeplessly working to entertain you soon. Meanwhile, you can browse events in Bengaluru.");
+        } else {
+            Alert.alert(
+                "We're not in your city yet! 🌍",
+                "We are sleeplessly working to entertain you soon. Meanwhile, you can browse events in Bengaluru.",
+                [{ text: "Okay" }],
+                { cancelable: false }
+            );
+        }
+    };
+
     useEffect(() => {
         let unsubscribeChats;
 
@@ -50,8 +76,12 @@ const HomeScreen = ({ navigation }) => {
                 // 1. Check for manual city choice first
                 const savedCity = await AsyncStorage.getItem('manualCity');
                 if (savedCity) {
-                    setCityName(savedCity);
-                    setManualCity(savedCity);
+                    if (validateCity(savedCity)) {
+                        setCityName(savedCity);
+                        setManualCity(savedCity);
+                    } else {
+                        enforceSupportedCity();
+                    }
                 }
 
                 // 2. Check cache for coordinates
@@ -64,8 +94,16 @@ const HomeScreen = ({ navigation }) => {
                 if (!savedCity) {
                     const detect = async () => {
                         const { coords, cityName: detectedCity } = await locationService.getLocation();
-                        if (coords) setUserLocation(coords);
-                        if (detectedCity) setCityName(detectedCity);
+                        if (detectedCity) {
+                            if (validateCity(detectedCity)) {
+                                if (coords) setUserLocation(coords);
+                                setCityName(detectedCity);
+                            } else {
+                                enforceSupportedCity();
+                            }
+                        } else {
+                            if (coords) setUserLocation(coords);
+                        }
                     };
                     detect();
                 }
@@ -112,13 +150,26 @@ const HomeScreen = ({ navigation }) => {
             await AsyncStorage.removeItem('manualCity');
             setCityName('Detecting...');
             const { coords, cityName: detectedCity } = await locationService.getLocation();
-            if (coords) setUserLocation(coords);
-            if (detectedCity) setCityName(detectedCity);
+            if (detectedCity) {
+                if (validateCity(detectedCity)) {
+                    if (coords) setUserLocation(coords);
+                    setCityName(detectedCity);
+                } else {
+                    enforceSupportedCity();
+                }
+            } else {
+                if (coords) setUserLocation(coords);
+                setCityName('Unknown');
+            }
         } else {
-            setCityName(city);
-            setManualCity(city);
-            await AsyncStorage.setItem('manualCity', city);
-            Alert.alert("Location Updated", `Viewing events in ${city}`);
+            if (validateCity(city)) {
+                setCityName(city);
+                setManualCity(city);
+                await AsyncStorage.setItem('manualCity', city);
+                Alert.alert("Location Updated", `Viewing events in ${city}`);
+            } else {
+                enforceSupportedCity();
+            }
         }
     };
 
@@ -517,8 +568,8 @@ const styles = StyleSheet.create({
         paddingRight: SPACING.m,
     },
     featuredCard: {
-        width: 250, // Reduced width
-        height: 320, // Reduced height
+        width: 175, // 30% smaller width
+        height: 224, // 30% smaller height
         marginRight: SPACING.m,
         borderRadius: BORDER_RADIUS.l,
         overflow: 'hidden', // Ensure image respects border radius

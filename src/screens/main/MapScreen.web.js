@@ -43,7 +43,7 @@ const MapScreenWeb = ({ navigation }) => {
     const [selectedEvent, setSelectedEvent] = useState(null);
     const [allEvents, setAllEvents] = useState([]);
     const [displayedEvents, setDisplayedEvents] = useState([]);
-    const [timeFilter, setTimeFilter] = useState('1M');
+    const [timeFilter, setTimeFilter] = useState('ALL');
     const [currentPosition, setCurrentPosition] = useState(defaultCenter);
     const [suggestions, setSuggestions] = useState([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -602,7 +602,7 @@ const MapScreenWeb = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#000' },
+    container: { flex: 1, backgroundColor: '#000', height: '100vh' },
     centerContent: { justifyContent: 'center', alignItems: 'center' },
     overlayContainer: {
         position: 'absolute',

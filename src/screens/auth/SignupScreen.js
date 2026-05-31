@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, StyleSheet, TouchableOpacity, ScrollView, Alert } from 'react-native';
+import { View, StyleSheet, TouchableOpacity, ScrollView } from 'react-native';
 import { getRandomAvatar } from '../../utils/avatarHelper';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -8,6 +8,7 @@ import AntigravityButton from '../../components/AntigravityButton';
 import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { authService } from '../../services/authService';
 import { SERVICE_CATEGORIES } from '../../constants/services';
+import { showAlert } from '../../utils/showAlert';
 
 const SignupScreen = ({ navigation }) => {
     const [name, setName] = useState('');
@@ -16,6 +17,7 @@ const SignupScreen = ({ navigation }) => {
     const [userType, setUserType] = useState('individual'); // 'individual', 'business', or 'provider'
     const [category, setCategory] = useState('Bar');
     const [providerCategory, setProviderCategory] = useState('Music/DJ');
+    const [loading, setLoading] = useState(false);
 
     // Filter categories based on userType
     const businessCategories = SERVICE_CATEGORIES.filter(c => c.type === 'business');
@@ -26,7 +28,7 @@ const SignupScreen = ({ navigation }) => {
         const trimmedEmail = email.trim();
 
         if (!trimmedName || !trimmedEmail || !password) {
-            Alert.alert('Error', 'Please fill in all fields');
+            showAlert('Error', 'Please fill in all fields');
             return;
         }
 
@@ -63,11 +65,12 @@ const SignupScreen = ({ navigation }) => {
             policyAcceptedAt: null
         };
 
+        setLoading(true);
         try {
             await authService.signup(trimmedEmail, password, userData);
-            Alert.alert(
+            showAlert(
                 'Account Created',
-                'A verification email has been sent to your inbox. Please verify your email to access all features.',
+                'Your account has been created successfully! Welcome to Croww.',
                 [{ text: 'OK' }]
             );
         } catch (error) {
@@ -75,8 +78,10 @@ const SignupScreen = ({ navigation }) => {
             let message = error.message || 'Signup failed. Please try again.';
             if (error.code === 'auth/email-already-in-use') message = 'This email is already in use.';
             if (error.code === 'auth/invalid-email') message = 'Invalid email address.';
-            if (error.code === 'auth/weak-password') message = 'Password is too weak.';
-            Alert.alert('Signup Failed', message);
+            if (error.code === 'auth/weak-password') message = 'Password must be at least 6 characters.';
+            showAlert('Signup Failed', message);
+        } finally {
+            setLoading(false);
         }
     };
 
@@ -186,8 +191,9 @@ const SignupScreen = ({ navigation }) => {
                     />
 
                     <AntigravityButton
-                        title="Sign Up"
+                        title={loading ? 'Creating Account...' : 'Sign Up'}
                         onPress={handleSignup}
+                        loading={loading}
                         style={styles.button}
                     />
 

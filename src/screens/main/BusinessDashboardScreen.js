@@ -423,6 +423,16 @@ const BusinessDashboardScreen = ({ navigation }) => {
                                     <Typography variant="caption" style={{ marginTop: 4 }}>Inquiries</Typography>
                                 </TouchableOpacity>
 
+                                {isProvider && (
+                                    <TouchableOpacity
+                                        style={styles.actionItem}
+                                        onPress={() => navigation.navigate('EventList', { title: 'All Events', filter: 'all' })}
+                                    >
+                                        <Ionicons name="calendar-outline" size={28} color={COLORS.primary} />
+                                        <Typography variant="caption">All Events</Typography>
+                                    </TouchableOpacity>
+                                )}
+
                                 {isProvider ? (
                                     <TouchableOpacity
                                         style={styles.actionItem}
@@ -465,6 +475,14 @@ const BusinessDashboardScreen = ({ navigation }) => {
                                         <Typography variant="caption">Packages</Typography>
                                     </TouchableOpacity>
                                 )}
+
+                                <TouchableOpacity
+                                    style={styles.actionItem}
+                                    onPress={() => navigation.navigate('Search')}
+                                >
+                                    <Ionicons name="storefront" size={28} color={COLORS.primary} />
+                                    <Typography variant="caption">Marketplace</Typography>
+                                </TouchableOpacity>
                             </View>
                         </View>
 

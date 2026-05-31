@@ -97,6 +97,19 @@ const ServiceDetailScreen = ({ route, navigation }) => {
         fetchData();
     }, [finalServiceId, currentUser?.id]);
 
+    // Auto-open write review modal if navigated from review_prompt notification
+    React.useEffect(() => {
+        if (!loading && service && route.params?.openReview) {
+            const isVerified = currentUser?.isVerified || currentUser?.isApproved;
+            const isOwn = currentUser && currentUser.id === finalServiceId;
+            if (isVerified && !isOwn) {
+                setShowReviewModal(true);
+            } else if (!isVerified) {
+                showAlert('Verification Required', 'Only verified users can leave reviews.');
+            }
+        }
+    }, [loading, service, route.params?.openReview, currentUser, finalServiceId]);
+
     const handleShare = async () => {
         try {
             const url = `https://croww.ai/provider/${finalServiceId}`;
@@ -313,22 +326,28 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 </View>
 
                 {/* Professional Stats Section */}
-                <View style={styles.sectionHeader}>
-                    <Typography variant="caption" style={styles.sectionLabel}>SERVICE OVERVIEW</Typography>
-                </View>
+                {isProfessional && (
+                    <View style={styles.sectionHeader}>
+                        <Typography variant="caption" style={styles.sectionLabel}>SERVICE OVERVIEW</Typography>
+                    </View>
+                )}
 
                 {/* Stats Row */}
                 <View style={styles.statsRow}>
-                    <View style={styles.statItem}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                            <Ionicons name="star" size={16} color="#FFD700" />
-                            <Typography variant="h3" style={styles.statValue}>
-                                {service.rating ? Number(service.rating).toFixed(1) : 'New'}
-                            </Typography>
-                        </View>
-                        <Typography variant="small" color={COLORS.secondary}>Rating</Typography>
-                    </View>
-                    <View style={styles.statDivider} />
+                    {isProfessional && (
+                        <>
+                            <View style={styles.statItem}>
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                                    <Ionicons name="star" size={16} color="#FFD700" />
+                                    <Typography variant="h3" style={styles.statValue}>
+                                        {service.rating ? Number(service.rating).toFixed(1) : 'New'}
+                                    </Typography>
+                                </View>
+                                <Typography variant="small" color={COLORS.secondary}>Rating</Typography>
+                            </View>
+                            <View style={styles.statDivider} />
+                        </>
+                    )}
                     <View style={styles.statItem}>
                         <Typography variant="h3" style={styles.statValue}>
                             {service.followersCount || 0}
@@ -610,86 +629,88 @@ const ServiceDetailScreen = ({ route, navigation }) => {
                 )}
 
                 {/* Reviews Section */}
-                <View style={styles.section}>
-                    <View style={styles.reviewsHeader}>
-                        <Typography variant="h3">Reviews</Typography>
-                        {!isOwnProfile && isVerifiedUser && (
-                            <TouchableOpacity
-                                onPress={() => setShowReviewModal(true)}
-                                style={styles.writeReviewButton}
-                            >
-                                <Ionicons name="create-outline" size={16} color={COLORS.accent} />
-                                <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600', marginLeft: 4 }}>
-                                    {userReview ? 'Edit Review' : 'Write Review'}
-                                </Typography>
-                            </TouchableOpacity>
-                        )}
-                    </View>
-
-                    {!isOwnProfile && !isVerifiedUser && (
-                        <View style={styles.verifyNotice}>
-                            <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary} />
-                            <Typography variant="caption" color={COLORS.secondary} style={{ marginLeft: SPACING.s, flex: 1 }}>
-                                Only verified users can leave reviews
-                            </Typography>
-                        </View>
-                    )}
-
-                    {reviews.length === 0 ? (
-                        <View style={styles.emptyReviews}>
-                            <Ionicons name="chatbubbles-outline" size={40} color={COLORS.border} />
-                            <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.s, textAlign: 'center' }}>
-                                {isVerifiedUser
-                                    ? "No reviews yet. Be the first to share your experience!"
-                                    : "No reviews yet"}
-                            </Typography>
-                        </View>
-                    ) : (
-                        <View style={{ gap: SPACING.m }}>
-                            {reviews.slice(0, 5).map((review) => (
-                                <NotionCard key={review.id} style={styles.reviewCard}>
-                                    <View style={styles.reviewTop}>
-                                        <TouchableOpacity
-                                            style={{ flex: 1 }}
-                                            onPress={() => navigation.push('ServiceDetail', { serviceId: review.userId })}
-                                        >
-                                            <Typography variant="body" style={{ fontWeight: '600' }}>
-                                                {review.userName}
-                                            </Typography>
-                                            <StarRating rating={review.rating} size={14} />
-                                        </TouchableOpacity>
-                                        {review.createdAt && (
-                                            <Typography variant="small" color={COLORS.secondary}>
-                                                {review.createdAt.toDate
-                                                    ? review.createdAt.toDate().toLocaleDateString()
-                                                    : ''}
-                                            </Typography>
-                                        )}
-                                    </View>
-                                    {review.comment ? (
-                                        <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.s }}>
-                                            {review.comment}
-                                        </Typography>
-                                    ) : null}
-                                </NotionCard>
-                            ))}
-                            {reviews.length > 5 && (
+                {isProfessional && (
+                    <View style={styles.section}>
+                        <View style={styles.reviewsHeader}>
+                            <Typography variant="h3">Reviews</Typography>
+                            {!isOwnProfile && isVerifiedUser && (
                                 <TouchableOpacity
-                                    style={styles.seeAllReviews}
-                                    onPress={() => navigation.navigate('ReviewList', {
-                                        businessId: finalServiceId,
-                                        businessName: service.name
-                                    })}
+                                    onPress={() => setShowReviewModal(true)}
+                                    style={styles.writeReviewButton}
                                 >
-                                    <Typography variant="body" style={{ color: COLORS.accent, fontWeight: '600' }}>
-                                        See all {reviews.length} reviews
+                                    <Ionicons name="create-outline" size={16} color={COLORS.accent} />
+                                    <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600', marginLeft: 4 }}>
+                                        {userReview ? 'Edit Review' : 'Write Review'}
                                     </Typography>
-                                    <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
                                 </TouchableOpacity>
                             )}
                         </View>
-                    )}
-                </View>
+
+                        {!isOwnProfile && !isVerifiedUser && (
+                            <View style={styles.verifyNotice}>
+                                <Ionicons name="shield-checkmark-outline" size={18} color={COLORS.secondary} />
+                                <Typography variant="caption" color={COLORS.secondary} style={{ marginLeft: SPACING.s, flex: 1 }}>
+                                    Only verified users can leave reviews
+                                </Typography>
+                            </View>
+                        )}
+
+                        {reviews.length === 0 ? (
+                            <View style={styles.emptyReviews}>
+                                <Ionicons name="chatbubbles-outline" size={40} color={COLORS.border} />
+                                <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.s, textAlign: 'center' }}>
+                                    {isVerifiedUser
+                                        ? "No reviews yet. Be the first to share your experience!"
+                                        : "No reviews yet"}
+                                </Typography>
+                            </View>
+                        ) : (
+                            <View style={{ gap: SPACING.m }}>
+                                {reviews.slice(0, 5).map((review) => (
+                                    <NotionCard key={review.id} style={styles.reviewCard}>
+                                        <View style={styles.reviewTop}>
+                                            <TouchableOpacity
+                                                style={{ flex: 1 }}
+                                                onPress={() => navigation.push('ServiceDetail', { serviceId: review.userId })}
+                                            >
+                                                <Typography variant="body" style={{ fontWeight: '600' }}>
+                                                    {review.userName}
+                                                </Typography>
+                                                <StarRating rating={review.rating} size={14} />
+                                            </TouchableOpacity>
+                                            {review.createdAt && (
+                                                <Typography variant="small" color={COLORS.secondary}>
+                                                    {review.createdAt.toDate
+                                                        ? review.createdAt.toDate().toLocaleDateString()
+                                                        : ''}
+                                                </Typography>
+                                            )}
+                                        </View>
+                                        {review.comment ? (
+                                            <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.s }}>
+                                                {review.comment}
+                                            </Typography>
+                                        ) : null}
+                                    </NotionCard>
+                                ))}
+                                {reviews.length > 5 && (
+                                    <TouchableOpacity
+                                        style={styles.seeAllReviews}
+                                        onPress={() => navigation.navigate('ReviewList', {
+                                            businessId: finalServiceId,
+                                            businessName: service.name
+                                        })}
+                                    >
+                                        <Typography variant="body" style={{ color: COLORS.accent, fontWeight: '600' }}>
+                                            See all {reviews.length} reviews
+                                        </Typography>
+                                        <Ionicons name="chevron-forward" size={16} color={COLORS.accent} />
+                                    </TouchableOpacity>
+                                )}
+                            </View>
+                        )}
+                    </View>
+                )}
 
                 <View style={{ height: SPACING.xxl }} />
             </ScrollView>
