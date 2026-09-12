@@ -31,7 +31,25 @@ yarn-error.*
 *.pem
 
 # local env files
-.env*.local
+.env
+.env.*
+!.env.example
+!.env*.example
+
+# staging smoke-test state (ids/passwords)
+.staging-smoke*
+
+# generated / debug artifacts
+dist-web/
+build_log*.txt
+*_build_log.txt
+android_build_log.json
+logs.txt
+logs_debug.txt
+lint_*.txt
+test_cashfree.js
+test_event_creation.js
+check_error.js
 
 # typescript
 *.tsbuildinfo
