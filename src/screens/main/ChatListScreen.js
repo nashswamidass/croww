@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { View, StyleSheet, FlatList, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
+import AntigravityButton from '../../components/AntigravityButton';
+import FloatingCard from '../../components/FloatingCard';
+import { SPACING, COLORS, TOUCH_TARGETS } from '../../constants/theme';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
@@ -25,8 +27,6 @@ const ChatListScreen = ({ navigation }) => {
         }
 
         const unsubscribe = chatService.subscribeToUserChats(currentUserId, async (chatData) => {
-            // STEP 1: Render immediately with whatever names we already know
-            // (stored in participantNames field on the chat doc, or cache)
             const quickChats = chatData.map(chat => {
                 let recipient;
                 if (chat.type === 'group') {
@@ -46,7 +46,6 @@ const ChatListScreen = ({ navigation }) => {
             setChats(quickChats);
             setLoading(false);
 
-            // STEP 2: Hydrate missing avatars & names in parallel (background)
             const missingIds = chatData
                 .filter(c => c.type !== 'group')
                 .map(c => (c.participantIds || []).find(id => id && id !== currentUserId))
@@ -63,10 +62,8 @@ const ChatListScreen = ({ navigation }) => {
                 )
             );
 
-            // Store in cache
             profiles.forEach(p => { profileCache.current[p.id] = p; });
 
-            // Re-apply with full data
             setChats(prev => prev.map(chat => {
                 if (chat.type === 'group' || !chat.recipient?.id) return chat;
                 const fresh = profileCache.current[chat.recipient.id];
@@ -116,20 +113,20 @@ const ChatListScreen = ({ navigation }) => {
                 {/* Info */}
                 <View style={styles.chatInfo}>
                     <View style={styles.chatHeader}>
-                        <Typography variant="body" style={styles.name} numberOfLines={1}>
+                        <Typography variant="bodyLarge" style={styles.name} numberOfLines={1}>
                             {item.recipient?.name}
                         </Typography>
                         <Typography variant="caption" style={styles.time}>{lastMessageTime}</Typography>
                     </View>
                     <View style={styles.chatFooter}>
-                        <Typography variant="caption" numberOfLines={1} style={[styles.lastMessage, unreadCount > 0 && styles.unreadMessage]}>
+                        <Typography variant="bodyMedium" numberOfLines={1} style={[styles.lastMessage, unreadCount > 0 && styles.unreadMessage]}>
                             {item.lastMessage?.startsWith('__GIPHY__:') || item.lastMessage?.startsWith('__STICKER__') 
                                 ? '🎁 Sent a sticker' 
                                 : (item.lastMessage || 'Start a conversation')}
                         </Typography>
                         {unreadCount > 0 && (
                             <View style={styles.badge}>
-                                <Typography variant="caption" style={styles.badgeText}>
+                                <Typography variant="micro" style={styles.badgeText}>
                                     {unreadCount > 9 ? '9+' : unreadCount}
                                 </Typography>
                             </View>
@@ -140,18 +137,73 @@ const ChatListScreen = ({ navigation }) => {
         );
     };
 
+    if (!authUser) {
+        return (
+            <ScreenWrapper edges={['top']}>
+                <View style={styles.header}>
+                    {navigation.canGoBack() ? (
+                        <TouchableOpacity
+                            onPress={() => navigation.goBack()}
+                            style={styles.backButton}
+                            hitSlop={TOUCH_TARGETS.hitSlop}
+                        >
+                            <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+                        </TouchableOpacity>
+                    ) : <View style={{ width: 16 }} />}
+                    <Typography variant="titleLarge" style={styles.headerTitle}>Messages</Typography>
+                    <View style={{ width: 40 }} />
+                </View>
+
+                <View style={{ flex: 1, padding: SPACING.l, justifyContent: 'center', alignItems: 'center' }}>
+                    <FloatingCard style={{ padding: SPACING.xl, alignItems: 'center', width: '100%', maxWidth: 440 }}>
+                        <View style={{
+                            width: 72,
+                            height: 72,
+                            borderRadius: 36,
+                            backgroundColor: (COLORS.accent || '#E05A47') + '15',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: SPACING.m,
+                        }}>
+                            <Ionicons name="chatbubbles-outline" size={36} color={COLORS.accent} />
+                        </View>
+                        <Typography variant="titleLarge" style={{ fontWeight: '800', textAlign: 'center', color: COLORS.text, marginBottom: 6 }}>
+                            Sign in to view messages
+                        </Typography>
+                        <Typography variant="bodyMedium" style={{ textAlign: 'center', color: COLORS.textSecondary, lineHeight: 22, marginBottom: SPACING.xl, maxWidth: 360 }}>
+                            Connect with property owners, agents, and track location access requests in one place.
+                        </Typography>
+
+                        <AntigravityButton
+                            title="Sign in to Croww"
+                            onPress={() => navigation.navigate('Auth', { screen: 'Login' })}
+                            size="large"
+                            style={{ width: '100%', maxWidth: 300, height: 52, borderRadius: 14 }}
+                        />
+                    </FloatingCard>
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
     return (
         <ScreenWrapper edges={['top']}>
             <View style={styles.header}>
-                <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
-                    <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
-                <Typography variant="h2">Messages</Typography>
+                {navigation.canGoBack() ? (
+                    <TouchableOpacity
+                        onPress={() => navigation.goBack()}
+                        style={styles.backButton}
+                        hitSlop={TOUCH_TARGETS.hitSlop}
+                    >
+                        <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+                    </TouchableOpacity>
+                ) : <View style={{ width: 16 }} />}
+                <Typography variant="titleLarge" style={styles.headerTitle}>Messages</Typography>
                 <View style={{ width: 40 }} />
             </View>
 
             {loading ? (
-                <ActivityIndicator size="large" color={COLORS.primary} style={{ marginTop: SPACING.xl }} />
+                <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: SPACING.xl }} />
             ) : (
                 <FlatList
                     data={chats}
@@ -159,12 +211,20 @@ const ChatListScreen = ({ navigation }) => {
                     keyExtractor={item => item.id}
                     contentContainerStyle={chats.length === 0 ? styles.emptyContainer : styles.list}
                     ListEmptyComponent={
-                        <View style={styles.emptyState}>
-                            <Ionicons name="chatbubbles-outline" size={64} color={COLORS.secondary} />
-                            <Typography variant="body" style={{ marginTop: SPACING.m, color: COLORS.secondary }}>
-                                No messages yet.
+                        <FloatingCard style={styles.emptyCard}>
+                            <Ionicons name="chatbubbles-outline" size={40} color={COLORS.textSecondary} style={{ marginBottom: SPACING.s }} />
+                            <Typography variant="titleLarge" style={styles.emptyTitle}>No messages yet</Typography>
+                            <Typography variant="bodyMedium" style={styles.emptySubtitle}>
+                                Inquire about properties or request exact location details from owners directly.
                             </Typography>
-                        </View>
+                            <AntigravityButton
+                                title="Explore Properties"
+                                icon="compass-outline"
+                                onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                                accessibilityLabel="Explore properties"
+                                style={{ marginTop: SPACING.m }}
+                            />
+                        </FloatingCard>
                     }
                 />
             )}
@@ -177,31 +237,41 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        padding: SPACING.m,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: SPACING.m,
         borderBottomWidth: 1,
         borderBottomColor: COLORS.border,
     },
+    headerTitle: {
+        fontWeight: '800',
+        color: COLORS.primary,
+    },
     backButton: {
         width: 40,
+        height: 40,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     list: {
         paddingVertical: SPACING.s,
     },
     emptyContainer: {
         flex: 1,
+        paddingHorizontal: SPACING.l,
+        justifyContent: 'center',
     },
     chatItem: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: SPACING.m,
-        paddingHorizontal: SPACING.m,
+        paddingHorizontal: SPACING.l,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.surfaceHighlight,
+        borderBottomColor: COLORS.border,
     },
     avatar: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 52,
+        height: 52,
+        borderRadius: 26,
         marginRight: SPACING.m,
         backgroundColor: COLORS.surfaceHighlight,
     },
@@ -218,15 +288,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 3,
+        marginBottom: 4,
     },
     name: {
-        fontWeight: '600',
+        fontWeight: '700',
+        color: COLORS.primary,
         flex: 1,
         marginRight: SPACING.s,
     },
     time: {
-        color: COLORS.secondary,
+        color: COLORS.textSecondary,
         flexShrink: 0,
     },
     chatFooter: {
@@ -235,13 +306,13 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
     },
     lastMessage: {
-        color: COLORS.secondary,
+        color: COLORS.textSecondary,
         flex: 1,
         marginRight: SPACING.s,
     },
     unreadMessage: {
         color: COLORS.primary,
-        fontWeight: '600',
+        fontWeight: '700',
     },
     badge: {
         backgroundColor: COLORS.accent,
@@ -250,18 +321,30 @@ const styles = StyleSheet.create({
         height: 20,
         alignItems: 'center',
         justifyContent: 'center',
-        paddingHorizontal: 5,
+        paddingHorizontal: 6,
     },
     badgeText: {
-        color: '#fff',
-        fontWeight: '700',
-        fontSize: 11,
+        color: '#FFFFFF',
+        fontWeight: '800',
     },
-    emptyState: {
+    emptyCard: {
+        padding: SPACING.xl,
         alignItems: 'center',
-        justifyContent: 'center',
-        marginTop: SPACING.xxl * 2,
+        textAlign: 'center',
+        marginHorizontal: SPACING.l,
+    },
+    emptyTitle: {
+        color: COLORS.primary,
+        fontWeight: '800',
+        textAlign: 'center',
+    },
+    emptySubtitle: {
+        color: COLORS.textSecondary,
+        textAlign: 'center',
+        marginTop: 4,
+        lineHeight: 20,
     },
 });
 
 export default ChatListScreen;
+

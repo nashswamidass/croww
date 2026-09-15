@@ -43,7 +43,7 @@ const STICKER_INDICATOR = '__STICKER__';
 const GIPHY_INDICATOR   = '__GIPHY__:';
 
 const ChatScreen = ({ route, navigation }) => {
-    const { recipientId, recipientName, recipientRole } = route.params;
+    const { recipientId, recipientName, recipientRole, listingId, propertyId } = route.params || {};
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
@@ -146,7 +146,11 @@ const ChatScreen = ({ route, navigation }) => {
                         return;
                     }
 
-                    const id = await chatService.createChat([currentId, recipientId], participantNames);
+                    const id = await chatService.createChat(
+                        [currentId, recipientId],
+                        participantNames,
+                        { listingId, propertyId }
+                    );
                     setChatId(id);
 
                     if (id) {
@@ -176,7 +180,7 @@ const ChatScreen = ({ route, navigation }) => {
         };
 
         initChat();
-    }, [recipientId]);
+    }, [recipientId, listingId, propertyId]);
 
     const sendMessage = async () => {
         if (!message.trim()) return;
@@ -328,7 +332,7 @@ const ChatScreen = ({ route, navigation }) => {
                         if (navigation.canGoBack()) {
                             navigation.goBack();
                         } else {
-                            navigation.navigate('Tabs');
+                            navigation.navigate('Tabs', { screen: 'Messages' });
                         }
                     }} 
                     style={styles.backButton}
@@ -358,6 +362,23 @@ const ChatScreen = ({ route, navigation }) => {
                 </TouchableOpacity>
                 <View style={{ width: 40 }} />
             </View>
+
+            {listingId ? (
+                <View style={styles.propertyBanner}>
+                    <Ionicons name="home" size={16} color={COLORS.accent} />
+                    <Typography variant="caption" style={styles.propertyBannerText} numberOfLines={1}>
+                        Inquiring about listing
+                    </Typography>
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Listing', { listingId })}
+                        style={styles.propertyBannerBtn}
+                        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                    >
+                        <Typography variant="micro" style={styles.propertyBannerBtnText}>View</Typography>
+                        <Ionicons name="chevron-forward" size={12} color={COLORS.accent} />
+                    </TouchableOpacity>
+                </View>
+            ) : null}
 
             <KeyboardAvoidingView
                 style={styles.keyboardView}
@@ -665,6 +686,34 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    propertyBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceElevated || COLORS.surface,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        gap: 8,
+    },
+    propertyBannerText: {
+        flex: 1,
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    propertyBannerBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(235, 94, 40, 0.12)',
+        paddingHorizontal: SPACING.s,
+        paddingVertical: 4,
+        borderRadius: BORDER_RADIUS.round,
+        gap: 2,
+    },
+    propertyBannerBtnText: {
+        color: COLORS.accent,
+        fontWeight: '700',
     },
 });
 

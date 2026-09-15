@@ -63,4 +63,5 @@ app-example
 # Firebase
 .firebase/
 firebase-debug*.log
+.secret.local
 

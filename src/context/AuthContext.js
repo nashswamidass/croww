@@ -62,7 +62,14 @@ export const AuthProvider = ({ children }) => {
                         setUser(userData);
                         setIsBlocked(userData.isBlocked === true);
                     } else {
-                        setUser(null);
+                        // User is authenticated in Firebase Auth; maintain resilient fallback profile
+                        setUser(prev => (prev && prev.id === firebaseUser.uid) ? prev : {
+                            id: firebaseUser.uid,
+                            email: firebaseUser.email,
+                            name: firebaseUser.displayName || 'Croww User',
+                            userType: 'individual',
+                            role: 'individual',
+                        });
                         setIsBlocked(false);
                     }
 
@@ -82,6 +89,13 @@ export const AuthProvider = ({ children }) => {
                     console.error("[AuthContext] Profile listener error:", error);
                     clearTimeout(fallbackTimer);
                     clearTimeout(absoluteTimeoutId);
+                    setUser(prev => (prev && prev.id === firebaseUser.uid) ? prev : {
+                        id: firebaseUser.uid,
+                        email: firebaseUser.email,
+                        name: firebaseUser.displayName || 'Croww User',
+                        userType: 'individual',
+                        role: 'individual',
+                    });
                     setLoading(false);
                 });
             } else {

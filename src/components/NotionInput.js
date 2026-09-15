@@ -1,7 +1,7 @@
 import React from 'react';
 import { TextInput, View, StyleSheet } from 'react-native';
 import Typography from './Typography';
-import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '../constants/theme';
+import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES, TOUCH_TARGETS } from '../constants/theme';
 
 const NotionInput = ({
     label,
@@ -21,11 +21,11 @@ const NotionInput = ({
                 </Typography>
             )}
             <TextInput
-                style={[styles.input, props.multiline && { height: 'auto', minHeight: 48 }]}
+                style={[styles.input, props.multiline && { height: 'auto', minHeight: 72, paddingTop: SPACING.m }]}
                 value={value}
                 onChangeText={onChangeText}
                 placeholder={placeholder}
-                placeholderTextColor={COLORS.secondary}
+                placeholderTextColor={COLORS.tertiary}
                 secureTextEntry={secureTextEntry}
                 keyboardType={keyboardType}
                 {...props}
@@ -36,23 +36,24 @@ const NotionInput = ({
 
 const styles = StyleSheet.create({
     container: {
-        marginBottom: SPACING.m,
+        marginBottom: SPACING.l,
     },
     label: {
-        marginBottom: SPACING.s,
-        marginLeft: SPACING.xs,
+        marginBottom: SPACING.xs,
+        marginLeft: 2,
         fontWeight: '600',
-        color: COLORS.secondary,
+        color: COLORS.primary,
+        fontSize: 14,
     },
     input: {
-        height: 48,
-        borderWidth: 1,
+        height: TOUCH_TARGETS.button,
+        borderWidth: 1.5,
         borderColor: COLORS.border,
-        borderRadius: BORDER_RADIUS.m,
-        paddingHorizontal: SPACING.m,
+        borderRadius: BORDER_RADIUS.input,
+        paddingHorizontal: SPACING.l,
         fontSize: FONT_SIZES.m,
         color: COLORS.primary,
-        backgroundColor: COLORS.surfaceHighlight,
+        backgroundColor: COLORS.surface,
     },
 });
 

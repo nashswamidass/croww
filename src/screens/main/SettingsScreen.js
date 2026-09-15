@@ -209,17 +209,21 @@ const SettingsScreen = ({ navigation }) => {
                         <SettingItem
                             icon="shield-checkmark-outline"
                             title="Verification"
-                            subtitle="Verify your account"
-                            onPress={() => {
-                                // Only business accounts use document-based verification
-                                // Individuals and Providers use Aadhaar verification
-                                if (currentUser?.userType === 'business') {
-                                    navigation.navigate('BusinessVerification');
-                                } else {
-                                    navigation.navigate('VerifyIdentity');
-                                }
-                            }}
+                            subtitle="Identity, owner, agent, and builder trust"
+                            onPress={() => navigation.navigate('TrustOverview')}
                         />
+                        {(currentUser?.userType === 'business' || currentUser?.userType === 'provider'
+                            || currentUser?.isBusiness || currentUser?.isProvider) && (
+                            <>
+                                <View style={styles.divider} />
+                                <SettingItem
+                                    icon="grid-outline"
+                                    title="Event dashboard"
+                                    subtitle="Legacy organizer and booking tools"
+                                    onPress={() => navigation.navigate('BusinessDashboard')}
+                                />
+                            </>
+                        )}
                     </NotionCard>
                 </View>
 

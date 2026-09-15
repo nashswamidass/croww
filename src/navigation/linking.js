@@ -1,16 +1,21 @@
 import * as Linking from 'expo-linking';
 
 const linking = {
-    // Add support for custom schemes and web origins
-    prefixes: [Linking.createURL('/'), 'https://croww.ai', 'https://croww-app.web.app'],
+    prefixes: [
+        Linking.createURL('/'),
+        'crowwapp://',
+        'https://croww.ai',
+        'https://croww-app.web.app',
+        'https://croww-staging-2026.web.app',
+    ],
 
     config: {
         screens: {
-            // Root Navigator (AppNavigator)
             Auth: {
                 screens: {
                     Login: 'login',
                     Signup: 'signup',
+                    ForgotPassword: 'forgot-password',
                     LegalPolicy: {
                         path: 'policy/:type',
                         parse: {
@@ -23,11 +28,56 @@ const linking = {
                 screens: {
                     Tabs: {
                         screens: {
-                            Home: 'home',
-                            Tickets: 'my-tickets',
-                            Map: 'map',
-                            Search: 'marketplace',
+                            Explore: 'explore',
+                            Saved: 'saved',
+                            Post: 'post',
+                            Messages: 'inbox',
                             Profile: 'me',
+                        },
+                    },
+                    // Legacy URLs remain routable on the stack, not as primary tabs.
+                    Home: 'home',
+                    Map: 'map',
+                    Search: 'marketplace',
+                    MyTickets: 'my-tickets',
+                    Property: {
+                        path: 'property/:propertyId',
+                        parse: {
+                            propertyId: (propertyId) => propertyId,
+                        },
+                    },
+                    Listing: {
+                        path: 'listing/:listingId',
+                        parse: {
+                            listingId: (listingId) => listingId,
+                        },
+                    },
+                    Locality: {
+                        path: 'area/:localityId',
+                        parse: {
+                            localityId: (localityId) => localityId,
+                        },
+                    },
+                    PostListing: {
+                        path: 'post/edit/:listingId?',
+                        parse: {
+                            listingId: (listingId) => listingId,
+                        },
+                    },
+                    InventoryDashboard: 'inventory',
+                    InventoryMedia: {
+                        path: 'inventory/media/:listingId',
+                        parse: {
+                            listingId: (listingId) => listingId,
+                        },
+                    },
+                    TrustOverview: 'verification',
+                    SubmitVerification: 'verification/submit',
+                    SpatialTour: 'spatial-tour',
+                    SavedSearch: {
+                        path: 'saved-search/:searchId',
+                        parse: {
+                            searchId: (searchId) => searchId,
                         },
                     },
                     LegalPolicy: {
@@ -51,6 +101,7 @@ const linking = {
                     Settings: 'settings',
                     HelpCenter: 'help',
                     Chat: 'messages/:chatId',
+                    ChatList: 'chats',
                     VerifyIdentity: 'kyc-complete',
                     WebPayment: 'payment-return',
                     Notifications: 'notifications',

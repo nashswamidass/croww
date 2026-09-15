@@ -175,7 +175,7 @@ const BuddyRequestDetailScreen = ({ route, navigation }) => {
                     <Typography variant="small" style={styles.sectionTitle}>MESSAGE</Typography>
                     <View style={styles.messageBox}>
                         <Typography variant="body" style={styles.messageText}>
-                            "{request.message || 'No message provided.'}"
+                            {`"${request.message || 'No message provided.'}"`}
                         </Typography>
                     </View>
                 </View>

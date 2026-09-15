@@ -1,24 +1,55 @@
 const { onRequest } = require("firebase-functions/v2/https");
 const { onDocumentCreated, onDocumentUpdated } = require("firebase-functions/v2/firestore");
 const { onSchedule } = require("firebase-functions/v2/scheduler");
+const { defineSecret } = require("firebase-functions/params");
 const { logger } = require("firebase-functions");
-const { Cashfree, CFEnvironment } = require("cashfree-pg");
-const { Expo } = require("expo-server-sdk");
 const admin = require("firebase-admin");
 const crypto = require("crypto");
 const fs = require("fs");
 const path = require("path");
-const nodemailer = require("nodemailer");
 const fetch = require("node-fetch");
 
-require("dotenv").config({ path: path.join(__dirname, ".env") });
+// Cloud Run sets K_SERVICE. Skip local dotenv there so production uses
+// Secret Manager / function env, not functions/.env. Emulators and laptops
+// still load the gitignored local file. Same process.env names as today.
+const runningOnGcp = Boolean(process.env.K_SERVICE);
+if (!runningOnGcp && process.env.FUNCTIONS_CONTROL_API !== "true") {
+    require("dotenv").config({ path: path.join(__dirname, ".env") });
+    require("dotenv").config({ path: path.join(__dirname, ".env.local"), override: true });
+}
 
-admin.initializeApp();
+const cashfreePgClientSecret = defineSecret("CASHFREE_PG_CLIENT_SECRET");
+const cashfreeVerifyClientSecret = defineSecret("CASHFREE_VERIFY_CLIENT_SECRET");
 
-const expo = new Expo();
+// Skip Admin init during Firebase CLI discovery (FUNCTIONS_CONTROL_API).
+// initializeApp() otherwise hangs the analysis process on metadata lookup.
+if (process.env.FUNCTIONS_CONTROL_API !== "true") {
+    admin.initializeApp();
+}
+
+function currentGcpProject() {
+    return process.env.GCLOUD_PROJECT || process.env.GCP_PROJECT || process.env.GOOGLE_CLOUD_PROJECT || "";
+}
+
+function refuseProductionPaymentSecretsOnStaging() {
+    if (currentGcpProject() !== "croww-staging-2026") return;
+    const secrets = [
+        process.env.CASHFREE_PG_CLIENT_SECRET,
+        process.env.CASHFREE_VERIFY_CLIENT_SECRET,
+    ];
+    if (secrets.some((value) => typeof value === "string" && value.includes("_prod_"))) {
+        throw new Error("Refusing production Cashfree secrets on croww-staging-2026");
+    }
+}
+
 const { sendEmail, getWelcomeTemplate, getPasswordResetTemplate, getCancellationTemplate } = require("./emails");
+const { requireAuth, requireAdmin, isAdminUid } = require("./httpAuth");
 
-const DEPLOY_TAG = "[CROWW_BACKEND_V5]";
+const DEPLOY_TAG = "[CROWW_BACKEND_V6]";
+
+// Property domain: verification, ownership transfer, lastVerifiedAt, locality
+// stats, and source.authoritative stay server/admin-controlled. Publication is
+// publishListing (admin). Public pins are synced via syncPropertyPublicLocation.
 
 logger.info(`${DEPLOY_TAG} Loaded! SMTP_USER present: ${!!process.env.SMTP_USER}. CASHFREE_PG present: ${!!process.env.CASHFREE_PG_CLIENT_ID}. CASHFREE_VERIFY present: ${!!process.env.CASHFREE_VERIFY_CLIENT_ID}`);
 
@@ -29,6 +60,8 @@ CASHFREE HELPERS
 */
 
 const getCashfreeInstance = (environmentName = "SANDBOX") => {
+    refuseProductionPaymentSecretsOnStaging();
+    const { Cashfree, CFEnvironment } = require("cashfree-pg");
     const clientId = (process.env.CASHFREE_PG_CLIENT_ID || "").trim();
     const clientSecret = (process.env.CASHFREE_PG_CLIENT_SECRET || "").trim();
     let normalizedEnv = (environmentName || "SANDBOX").toUpperCase().trim();
@@ -62,12 +95,16 @@ CASHFREE PAYMENT
 ----------------------------------
 */
 
-exports.createCashfreeOrder = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+exports.createCashfreeOrder = onRequest({ cors: true, invoker: "public", secrets: [cashfreePgClientSecret] }, async (request, response) => {
     try {
-        const { orderAmount, customerId, customerPhone, customerName, customerEmail, environment } = request.body;
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
+        const { orderAmount, customerPhone, customerName, customerEmail, environment } = request.body;
         const { clientId, clientSecret, normalizedEnv } = getCashfreeInstance(environment);
         const orderId = `ORDER_${Date.now()}_${Math.floor(Math.random() * 1000)}`;
         const origin = request.headers.origin || "https://croww.ai";
+        const customerId = decoded.uid;
 
         const requestData = {
             order_amount: Number(parseFloat(orderAmount).toFixed(2)),
@@ -111,8 +148,11 @@ exports.createCashfreeOrder = onRequest({ cors: true, invoker: "public" }, async
     }
 });
 
-exports.verifyCashfreePayment = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+exports.verifyCashfreePayment = onRequest({ cors: true, invoker: "public", secrets: [cashfreePgClientSecret] }, async (request, response) => {
     try {
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
         const { orderId, environment } = request.body;
         if (!orderId) {
             response.status(400).send({ error: "Missing orderId" });
@@ -122,10 +162,11 @@ exports.verifyCashfreePayment = onRequest({ cors: true, invoker: "public" }, asy
         const apiResponse = await cashfree.PGOrderFetchPayments(orderId);
         const payments = apiResponse.data || [];
         const successPayment = payments.find(p => p.payment_status === 'SUCCESS');
+        // Status comes from Cashfree, never from the client body.
         response.status(200).send({
             order_id: orderId,
             status: successPayment ? 'PAID' : 'PENDING',
-            payment_details: successPayment || null
+            payment_details: successPayment ? { payment_status: successPayment.payment_status } : null
         });
     } catch (error) {
         logger.error("Error verifying payment:", error);
@@ -148,7 +189,7 @@ DIGILOCKER - CREATE URL
 ----------------------------------
 */
 
-exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public", secrets: [cashfreeVerifyClientSecret] }, async (request, response) => {
     if (request.method === "GET") {
         const appScheme = request.query.app_scheme;
         const verificationId = request.query.verification_id;
@@ -185,7 +226,11 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
     }
 
     try {
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
         const { userFlow, environment, redirectUrl } = request.body;
+        refuseProductionPaymentSecretsOnStaging();
         const clientId = process.env.CASHFREE_VERIFY_CLIENT_ID;
         const clientSecret = process.env.CASHFREE_VERIFY_CLIENT_SECRET;
         const signature = generateCfSignature(clientId);
@@ -206,8 +251,12 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
 
         let finalRedirectUrl = redirectUrl || "https://croww.ai/kyc-complete";
         if (!finalRedirectUrl.startsWith("https://")) {
-            // Proxy the deep link through this cloud function to bypass Cashfree's HTTPS requirement
-            finalRedirectUrl = `https://getdigilockerurl-6vktyfoeaa-uc.a.run.app?app_scheme=${encodeURIComponent(finalRedirectUrl)}`;
+            const host = request.get?.("host") || request.headers.host;
+            if (!host) {
+                response.status(400).send({ error: "INVALID_REDIRECT", message: "HTTPS redirect host unavailable" });
+                return;
+            }
+            finalRedirectUrl = `https://${host}?app_scheme=${encodeURIComponent(finalRedirectUrl)}`;
         }
         
         const redirectWithId = finalRedirectUrl.includes("?") 
@@ -235,6 +284,12 @@ exports.getDigiLockerUrl = onRequest({ cors: true, invoker: "public" }, async (r
             return;
         }
 
+        await admin.firestore().collection("kyc_sessions").doc(verificationId).set({
+            uid: decoded.uid,
+            provider: "cashfree_digilocker",
+            createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+
         response.status(200).send({ verification_id: verificationId, url: data.url });
     } catch (error) {
         console.error("Error generating DigiLocker URL:", error);
@@ -248,15 +303,26 @@ DIGILOCKER - CHECK STATUS
 ----------------------------------
 */
 
-exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
+exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public", secrets: [cashfreeVerifyClientSecret] }, async (request, response) => {
     try {
-        const { verificationId, userId, environment } = request.body;
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
+        const { verificationId, environment } = request.body;
+        const userId = decoded.uid;
+        refuseProductionPaymentSecretsOnStaging();
         const clientId = process.env.CASHFREE_VERIFY_CLIENT_ID;
         const clientSecret = process.env.CASHFREE_VERIFY_CLIENT_SECRET;
         const signature = generateCfSignature(clientId);
 
         if (!verificationId) {
             response.status(400).send({ error: "Missing verificationId" });
+            return;
+        }
+
+        const sessionSnap = await admin.firestore().collection("kyc_sessions").doc(String(verificationId)).get();
+        if (!sessionSnap.exists || sessionSnap.data().uid !== userId) {
+            response.status(403).send({ error: "FORBIDDEN", message: "Verification session does not belong to this user" });
             return;
         }
 
@@ -292,33 +358,59 @@ exports.getDigiLockerStatus = onRequest({ cors: true, invoker: "public" }, async
 
                 if (docResponse.ok) {
                     const docData = await docResponse.json();
-                    await admin.firestore().collection("users").doc(userId).update({
+                    const now = admin.firestore.FieldValue.serverTimestamp();
+                    const userRef = admin.firestore().collection("users").doc(userId);
+                    await userRef.update({
                         kycStatus: "VERIFIED",
                         aadhaarVerified: true,
+                        isVerified: true,
                         kycProvider: "cashfree_digilocker",
-                        verifiedAt: admin.firestore.FieldValue.serverTimestamp(),
+                        verifiedAt: now,
+                        aadhaarVerifiedAt: now,
                         kycDetails: {
                             name: docData.name || "",
                             dob: docData.dob || "",
                             gender: docData.gender || "",
                             masked_aadhaar: docData.uid || docData.masked_aadhaar || "",
                             address: docData.split_address || docData.address || {}
+                        },
+                        "trust.identity": {
+                            status: "VERIFIED",
+                            verifiedAt: now,
+                            expiresAt: null,
+                            updatedAt: now,
                         }
                     });
+                    await userRef.collection("kyc_private").doc("current").set({
+                        provider: "cashfree_digilocker",
+                        verificationId: String(verificationId),
+                        name: docData.name || "",
+                        dob: docData.dob || "",
+                        gender: docData.gender || "",
+                        masked_aadhaar: docData.uid || docData.masked_aadhaar || "",
+                        address: docData.split_address || docData.address || {},
+                        updatedAt: now,
+                    }, { merge: true });
                     data.kyc_updated = true;
+                    data.displayName = docData.name || "";
                 } else {
                     console.error("Cashfree document error:", await docResponse.text());
                 }
             } catch (firestoreError) {
                 console.error("Error updating KYC in Firestore:", firestoreError);
-                data.kyc_error = firestoreError.message;
             }
         }
 
-        response.status(200).send(data);
+        response.status(200).send({
+            status: data.status || null,
+            verification_id: verificationId,
+            kyc_updated: Boolean(data.kyc_updated),
+            identityVerified: data.status === "SUCCESS" || data.status === "AUTHENTICATED",
+            displayName: data.displayName || null,
+        });
     } catch (error) {
         console.error("Error fetching DigiLocker status:", error);
-        response.status(500).send({ error: "Internal Server Error", details: error.message });
+        response.status(500).send({ error: "Internal Server Error", message: "Could not check verification status" });
     }
 });
 
@@ -338,6 +430,8 @@ exports.sendPushNotification = onDocumentCreated("notifications/{notificationId}
         const userDoc = await admin.firestore().collection("users").doc(toUserId).get();
         if (!userDoc.exists) return;
         const pushToken = userDoc.data().pushToken;
+        const { Expo } = require("expo-server-sdk");
+        const expo = new Expo();
         if (!pushToken || !Expo.isExpoPushToken(pushToken)) return;
         const messages = [{ 
             to: pushToken, 
@@ -381,13 +475,13 @@ exports.sendCustomPasswordReset = onRequest({ cors: true, invoker: "public" }, a
             response.status(400).send({ error: "Missing email" });
             return;
         }
-        logger.info(`[AuthReset] Request for: ${email}. SMTP_USER: ${process.env.SMTP_USER || 'MISSING'}`);
+        logger.info(`[AuthReset] Password reset requested. SMTP configured: ${!!process.env.SMTP_USER}`);
         let userRecord;
         try {
             userRecord = await admin.auth().getUserByEmail(email);
-            logger.info(`[AuthReset] Found user: ${userRecord.uid}`);
+            logger.info(`[AuthReset] Account found`);
         } catch (e) {
-            logger.warn(`[AuthReset] User not found for ${email}:`, e.message);
+            logger.warn(`[AuthReset] No account for requested email`);
             response.status(200).send({ success: true, message: "If an account exists with this email, a reset link has been sent." });
             return;
         }
@@ -396,7 +490,7 @@ exports.sendCustomPasswordReset = onRequest({ cors: true, invoker: "public" }, a
         try {
             resetLink = await admin.auth().generatePasswordResetLink(email, actionCodeSettings);
         } catch (linkError) {
-            logger.error(`[AuthReset] Link generation failed for ${email}:`, { code: linkError.code, message: linkError.message });
+            logger.error(`[AuthReset] Link generation failed:`, { code: linkError.code, message: linkError.message });
             resetLink = await admin.auth().generatePasswordResetLink(email);
         }
         logger.info(`[AuthReset] Generated reset link`);
@@ -404,14 +498,14 @@ exports.sendCustomPasswordReset = onRequest({ cors: true, invoker: "public" }, a
         const text = `Reset Your Password\n\nHi ${userRecord.displayName || "User"},\n\nWe received a request to reset your password for your Croww account.\n\nCopy and paste the link below into your browser to choose a new password. This link will expire in 1 hour.\n\n${resetLink}\n\nIf you didn't request a password reset, you can safely ignore this email.`;
         const emailResult = await sendEmail({ to: email, subject: "Reset your Croww password", html, text });
         if (!emailResult.success) {
-            logger.error(`[AuthReset] SMTP Error for ${email}:`, emailResult.error);
+            logger.error(`[AuthReset] SMTP Error:`, emailResult.error);
             response.status(500).send({ error: "Email Delivery Failed", message: emailResult.error });
             return;
         }
-        logger.info(`[AuthReset] Success for ${email}`);
+        logger.info(`[AuthReset] Reset email dispatched`);
         response.status(200).send({ success: true, message: "Custom reset email sent successfully." });
     } catch (error) {
-        logger.error(`[AuthReset] CRITICAL ERROR for ${email}:`, error);
+        logger.error(`[AuthReset] CRITICAL ERROR:`, error);
         response.status(500).send({ error: "Internal Server Error", message: error.message });
     }
 });
@@ -444,8 +538,20 @@ USER MANAGEMENT
 
 exports.deleteUserAccount = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
     try {
-        const { uid } = request.body;
-        if (!uid) { response.status(400).send({ error: "Missing user UID" }); return; }
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
+        const requestedUid = request.body && request.body.uid;
+        let uid = decoded.uid;
+        if (requestedUid && requestedUid !== decoded.uid) {
+            const adminCaller = await isAdminUid(decoded.uid);
+            if (!adminCaller) {
+                response.status(403).send({ error: "FORBIDDEN", message: "Cannot delete another user" });
+                return;
+            }
+            uid = requestedUid;
+        }
+
         const db = admin.firestore();
         const userRef = db.collection("users").doc(uid);
         try { await userRef.update({ isBlocked: true, deletedAt: new Date().toISOString() }); } catch (flagErr) { logger.warn(`[DeleteAccount] Could not flag isBlocked`); }
@@ -483,8 +589,12 @@ exports.deleteUserAccount = onRequest({ cors: true, invoker: "public" }, async (
 });
 
 exports.toggleUserBlock = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
-    const { uid, block } = request.body;
+    const decoded = await requireAdmin(request, response);
+    if (!decoded) return;
+
+    const { uid, block } = request.body || {};
     if (!uid) return response.status(400).send({ error: "User ID is required." });
+    if (uid === decoded.uid) return response.status(400).send({ error: "Cannot block yourself." });
     try {
         const db = admin.firestore();
         await db.collection("users").doc(uid).update({
@@ -501,8 +611,12 @@ exports.toggleUserBlock = onRequest({ cors: true, invoker: "public" }, async (re
 
 exports.toggleFollow = onRequest({ cors: true, invoker: "public" }, async (request, response) => {
     try {
-        const { followerId, targetUserId, action } = request.body;
-        if (!followerId || !targetUserId) { response.status(400).send({ error: "Missing followerId or targetUserId" }); return; }
+        const decoded = await requireAuth(request, response);
+        if (!decoded) return;
+
+        const { targetUserId, action } = request.body || {};
+        const followerId = decoded.uid;
+        if (!targetUserId) { response.status(400).send({ error: "Missing targetUserId" }); return; }
         if (followerId === targetUserId) { response.status(400).send({ error: "Cannot follow yourself" }); return; }
         const db = admin.firestore();
         const followId = `${followerId}_${targetUserId}`;
@@ -847,3 +961,28 @@ exports.onBookingUpdated = onDocumentUpdated("bookings/{bookingId}", async (even
         } catch (error) { logger.error("Error in onBookingUpdated:", error); }
     }
 });
+
+const propertyInventory = require("./propertyInventory");
+exports.publishListing = propertyInventory.publishListing;
+exports.syncPropertyPublicLocation = propertyInventory.syncPropertyPublicLocation;
+
+const localityIntelligence = require("./localityIntelligence");
+exports.recomputeLocalityMarket = localityIntelligence.recomputeLocalityMarket;
+
+const savedSearchAlerts = require("./savedSearchAlerts");
+exports.onListingWrittenSavedSearchAlerts = savedSearchAlerts.onListingWrittenSavedSearchAlerts;
+
+const verificationReview = require("./verificationReview");
+exports.reviewVerification = verificationReview.reviewVerification;
+exports.onVerificationCaseCreated = verificationReview.onVerificationCaseCreated;
+
+const spatialProcessing = require("./spatialProcessing");
+exports.finalizeSpatialAsset = spatialProcessing.finalizeSpatialAsset;
+exports.archiveSpatialAsset = spatialProcessing.archiveSpatialAsset;
+exports.onSpatialJobCreated = spatialProcessing.onSpatialJobCreated;
+
+const locationSharing = require("./locationSharing");
+exports.requestLocationShare = locationSharing.requestLocationShare;
+exports.respondLocationShare = locationSharing.respondLocationShare;
+exports.revokeLocationShare = locationSharing.revokeLocationShare;
+

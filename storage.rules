@@ -1,0 +1,85 @@
+rules_version = '2';
+service firebase.storage {
+  match /b/{bucket}/o {
+    
+    // Helper functions
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return request.auth.uid == userId;
+    }
+
+    function isAdmin() {
+      return request.auth != null && (
+        firestore.exists(/databases/(default)/documents/admins/$(request.auth.uid)) ||
+        firestore.get(/databases/(default)/documents/users/$(request.auth.uid)).data.userType == 'admin'
+      );
+    }
+
+    // Profile Pictures
+    match /profile_pictures/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Event Images (Banners, etc.)
+    match /event_images/{allPaths=**} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Business Verification Documents (Private)
+    match /verification_docs/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // Profile Covers
+    match /profile_covers/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Business Photos
+    match /business_photos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+    
+    // Portfolio Photos
+    match /portfolio_photos/{userId}/{fileName} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Public property listing media (photos, floor plans, videos).
+    // Never store KYC / verification_docs under this prefix.
+    match /property_media/{userId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if isOwner(userId);
+    }
+
+    // Private property documents (ownership proofs, etc.). Not public listing media.
+    match /property_documents/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId);
+    }
+
+    // 3D source / intermediates. Private. 512 MB application cap.
+    match /property_spatial/{userId}/{allPaths=**} {
+      allow read: if isOwner(userId) || isAdmin();
+      allow write: if isOwner(userId) && request.resource.size < 536870912;
+    }
+
+    match /property_spatial_public/{mediaId}/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+    
+    // Default deny
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

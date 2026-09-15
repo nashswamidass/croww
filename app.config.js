@@ -1,9 +1,24 @@
+const APP_ENV = process.env.APP_ENV;
+const FIREBASE_PROJECT_ID = process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID;
+
+if (APP_ENV === "staging" && FIREBASE_PROJECT_ID !== "croww-staging-2026") {
+  throw new Error(
+    "Staging builds must set EXPO_PUBLIC_FIREBASE_PROJECT_ID=croww-staging-2026. Refusing to bake another Firebase project."
+  );
+}
+
+if (APP_ENV === "production-preview" && FIREBASE_PROJECT_ID !== "croww-live-2026") {
+  throw new Error(
+    "Production-preview mode must set EXPO_PUBLIC_FIREBASE_PROJECT_ID=croww-live-2026. Refusing non-production project."
+  );
+}
+
 export default {
   "expo": {
     "name": "Croww",
     "slug": "croww-app",
     "owner": "nashnewton",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "scheme": "crowwapp",
@@ -12,7 +27,7 @@ export default {
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
-      "buildNumber": "27",
+      "buildNumber": "28",
       "googleServicesFile": process.env.APP_ENV === 'staging' ? "./GoogleService-Info.staging.plist" : "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
@@ -41,7 +56,7 @@ export default {
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "package": "com.croww.app",
-      "versionCode": 11,
+      "versionCode": 12,
       "permissions": [
         "ACCESS_FINE_LOCATION",
         "ACCESS_COARSE_LOCATION"
@@ -81,20 +96,20 @@ export default {
       [
         "expo-location",
         {
-          "locationAlwaysPermission": "Allow Croww to access your location to show nearby events.",
-          "locationWhenInUsePermission": "Allow Croww to access your location to show nearby events."
+          "locationAlwaysPermission": "Allow Croww to access your location to show nearby properties and localities.",
+          "locationWhenInUsePermission": "Allow Croww to access your location to show nearby properties and localities."
         }
       ],
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Croww to access your camera to take profile photos and scan documents."
+          "cameraPermission": "Allow Croww to access your camera to take property and profile photos and scan documents."
         }
       ],
       [
         "expo-image-picker",
         {
-          "photosPermission": "Allow Croww to access your photos to upload profile images."
+          "photosPermission": "Allow Croww to access your photos to upload property and profile images."
         }
       ],
       // "@sentry/react-native",

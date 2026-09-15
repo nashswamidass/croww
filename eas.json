@@ -50,6 +50,30 @@
                 "EXPO_PUBLIC_CASHFREE_APP_URL": "https://croww-app.web.app"
             }
         },
+        "staging": {
+            "distribution": "internal",
+            "android": {
+                "buildType": "apk"
+            },
+            "ios": {
+                "simulator": false
+            },
+            "env": {
+                "APP_ENV": "staging",
+                "NPM_CONFIG_LEGACY_PEER_DEPS": "true",
+                "SENTRY_DISABLE_AUTO_UPLOAD": "true",
+                "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyCmKosmKf0qhQMAPdzwAAVcEyWBe82h6Ok",
+                "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "croww-staging-2026.firebaseapp.com",
+                "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "croww-staging-2026",
+                "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "croww-staging-2026.firebasestorage.app",
+                "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "113101837709",
+                "EXPO_PUBLIC_FIREBASE_APP_ID": "1:113101837709:web:623be8ee3ce8c1190799c4",
+                "EXPO_PUBLIC_GOOGLE_MAPS_API_KEY": "AIzaSyDS7SdfUY8rSfqGKd0js797upzS1deSQ7I",
+                "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "113101837709-cfojivn6kqgvjmm4ab2cg09fv4us0aqq.apps.googleusercontent.com",
+                "EXPO_PUBLIC_CASHFREE_ENV": "TEST",
+                "EXPO_PUBLIC_CASHFREE_APP_URL": "https://croww-staging-2026.web.app"
+            }
+        },
         "production": {
             "android": {
                 "buildType": "app-bundle"

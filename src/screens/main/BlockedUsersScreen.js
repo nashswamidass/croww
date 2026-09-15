@@ -61,7 +61,7 @@ const BlockedUsersScreen = ({ navigation }) => {
                             No Blocked Users
                         </Typography>
                         <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.s }}>
-                            You haven't blocked anyone yet
+                            {"You haven't blocked anyone yet"}
                         </Typography>
                     </View>
                 ) : (

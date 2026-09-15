@@ -255,10 +255,13 @@ export const ticketService = {
      */
     getEventStats: async (eventId, organizerId) => {
         try {
-            // Query by eventId only — security rules allow any authenticated user to read tickets
+            if (!eventId || !organizerId) {
+                return { sold: 0, scanned: 0, attendees: [] };
+            }
             const q = query(
                 collection(db, TICKETS_COLLECTION),
-                where('eventId', '==', eventId)
+                where('eventId', '==', eventId),
+                where('organizerId', '==', organizerId)
             );
             const querySnapshot = await getDocs(q);
 

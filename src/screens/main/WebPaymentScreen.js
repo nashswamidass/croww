@@ -4,6 +4,8 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import { COLORS, SPACING } from '../../constants/theme';
 import { paymentService } from '../../services/paymentService';
+import { ticketService } from '../../services/ticketService';
+import { bookingService } from '../../services/bookingService';
 import { showAlert } from '../../utils/showAlert';
 import { Ionicons } from '@expo/vector-icons';
 import AntigravityButton from '../../components/AntigravityButton';
@@ -81,10 +83,7 @@ const WebPaymentScreen = ({ navigation, route }) => {
             console.error("WebPayment: Proactive finalization failed:", e);
         }
 
-        navigation.navigate('Tabs', {
-            screen: 'Tickets',
-            params: { order_id: orderId }
-        });
+        navigation.navigate('MyTickets', { order_id: orderId });
     };
 
     const initializationCalled = React.useRef(false);
@@ -162,7 +161,7 @@ const WebPaymentScreen = ({ navigation, route }) => {
                             Checkout via Browser
                         </Typography>
                         <Typography variant="body" color={COLORS.secondary} style={{ textAlign: 'center', marginTop: SPACING.s }}>
-                            To ensure the highest security on your device, we'll open a secure payment session in your browser.
+                            {"To ensure the highest security on your device, we'll open a secure payment session in your browser."}
                         </Typography>
 
                         <AntigravityButton

@@ -2,6 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 import { db, storage, auth } from './firebaseConfig';
 import API_ENDPOINTS from '../constants/apiConfig';
+import { authenticatedFetch } from '../utils/authenticatedFetch';
 import { doc, updateDoc, serverTimestamp, getDoc } from 'firebase/firestore';
 import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 
@@ -15,14 +16,13 @@ import { ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 export const getDigiLockerUrl = async (userFlow = 'signin', redirectUrl = 'https://croww.ai/kyc-complete') => {
     try {
         const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
-        const response = await fetch(API_ENDPOINTS.GET_DIGILOCKER_URL, {
+        const response = await authenticatedFetch(API_ENDPOINTS.GET_DIGILOCKER_URL, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 userFlow,
                 environment,
                 redirectUrl
-            })
+            }
         });
 
         if (!response.ok) {
@@ -46,51 +46,33 @@ export const finalizeAadhaarVerification = async (verificationId) => {
         const user = auth.currentUser;
         if (!user) throw new Error("User not authenticated");
 
-        // Fetch details from Cashfree to confirm success
         const environment = process.env.EXPO_PUBLIC_CASHFREE_ENV || 'SANDBOX';
 
-        const response = await fetch(API_ENDPOINTS.GET_DIGILOCKER_STATUS, {
+        const response = await authenticatedFetch(API_ENDPOINTS.GET_DIGILOCKER_STATUS, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
+            body: {
                 verificationId,
-                userId: user.uid,
                 environment
-            })
-        });
-        const data = await response.json();
-
-        if (data.status === 'SUCCESS' || data.status === 'AUTHENTICATED') {
-            await AsyncStorage.setItem('aadhaar_verified', 'true');
-            
-            // Persist to Firestore so Admin Panel can see details
-            const userRef = doc(db, 'users', user.uid);
-            const verificationPayload = {
-                aadhaarVerified: true,
-                isVerified: true,
-                aadhaarVerifiedAt: serverTimestamp(),
-                verificationData: {
-                    type: data.type || 'aadhaar_otp',
-                    status: 'verified',
-                    aadhaarVerifiedAt: serverTimestamp(),
-                    data: data.data || data // Store the full result including full_name, dob, gender, address
-                }
-            };
-            
-            // Also update kycDetails for backward compatibility/redundancy if needed
-            if (data.data?.full_name || data.full_name) {
-                verificationPayload.kycDetails = {
-                    name: data.data?.full_name || data.full_name,
-                    verifiedAt: serverTimestamp()
-                };
             }
+        });
+        const data = await response.json().catch(() => ({}));
 
-            await updateDoc(userRef, verificationPayload);
-
-            return { success: true, message: 'Aadhaar verified via DigiLocker', data: data };
-        } else {
-            throw new Error(data.message || "Verification not successful yet. Status: " + data.status);
+        if (!response.ok) {
+            throw new Error(data.message || `Server error: ${response.status}`);
         }
+
+        if (data.status === 'SUCCESS' || data.status === 'AUTHENTICATED' || data.identityVerified) {
+            await AsyncStorage.setItem('aadhaar_verified', 'true');
+            if (data.displayName) {
+                await AsyncStorage.setItem('aadhaar_name', String(data.displayName));
+            }
+            return {
+                success: true,
+                message: 'Aadhaar verified via DigiLocker',
+                displayName: data.displayName || null,
+            };
+        }
+        throw new Error(data.message || "Verification not successful yet. Status: " + data.status);
     } catch (error) {
         console.error("Error finalizing verification:", error);
         return { success: false, message: error.message };

@@ -132,7 +132,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
                         Message (Optional)
                     </Typography>
                     <Typography variant="caption" style={styles.subtitle}>
-                        Tell people about your group or what you're looking for
+                        {"Tell people about your group or what you're looking for"}
                     </Typography>
 
                     <TextInput
@@ -169,7 +169,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
                         </View>
                         {message && (
                             <Typography variant="small" style={{ color: COLORS.secondary, marginTop: SPACING.s }}>
-                                "{message}"
+                                {`"${message}"`}
                             </Typography>
                         )}
                     </NotionCard>
@@ -179,7 +179,7 @@ const CreateBuddyRequestScreen = ({ route, navigation }) => {
                 <View style={styles.safetyNotice}>
                     <Ionicons name="shield-checkmark" size={20} color={COLORS.accent} />
                     <Typography variant="caption" style={styles.safetyText}>
-                        Always meet in public places and let someone know where you're going. Stay safe!
+                        {"Always meet in public places and let someone know where you're going. Stay safe!"}
                     </Typography>
                 </View>
 

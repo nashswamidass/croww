@@ -1,5 +1,6 @@
 import { Platform } from 'react-native';
 import API_ENDPOINTS from '../constants/apiConfig';
+import { authenticatedFetch } from '../utils/authenticatedFetch';
 
 const loadCashfreeSdk = () => {
     if (Platform.OS !== 'web') return Promise.resolve(false);
@@ -82,7 +83,7 @@ class PaymentService {
     async doPayment(paymentSessionId, orderId) {
         try {
             console.log('--- STARTING WEB PAYMENT FLOW ---');
-            console.log('SessionID:', paymentSessionId);
+            console.log('Initiating web payment checkout');
             console.log('OrderID:', orderId);
             console.log('Environment:', this.environment);
 
@@ -121,19 +122,16 @@ class PaymentService {
                 throw new Error('Customer ID is required');
             }
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+                body: {
                     orderAmount: amount,
                     customerId: customerId,
                     customerPhone: customerPhone,
                     customerName: customerName,
                     customerEmail: customerEmail,
                     environment: this.environment === 'PRODUCTION' ? 'PRODUCTION' : 'SANDBOX'
-                }),
+                },
             });
 
             const responseText = await response.text();
@@ -144,7 +142,6 @@ class PaymentService {
             }
 
             const data = JSON.parse(responseText);
-            console.log("PaymentServiceWeb: Backend Order JSON:", data);
 
             const sessionId = data.payment_session_id || data.paymentSessionId || data.payment_session || data.session_id;
             const orderId = data.order_id || data.orderId;
@@ -163,15 +160,12 @@ class PaymentService {
         try {
             const API_URL = API_ENDPOINTS.VERIFY_CASHFREE_PAYMENT;
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+                body: {
                     orderId,
                     environment: this.environment
-                }),
+                },
             });
 
             const responseText = await response.text();

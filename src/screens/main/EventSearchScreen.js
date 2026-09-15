@@ -90,7 +90,7 @@ const EventSearchScreen = ({ navigation }) => {
                         <View style={styles.emptyState}>
                             <Ionicons name="search-outline" size={48} color={COLORS.border} />
                             <Typography variant="body" color={COLORS.secondary} style={{ marginTop: SPACING.m }}>
-                                No results found matching "{searchQuery}"
+                                {`No results found matching "${searchQuery}"`}
                             </Typography>
                         </View>
                     ) : (

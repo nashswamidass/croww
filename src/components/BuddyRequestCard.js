@@ -75,7 +75,7 @@ const BuddyRequestCard = ({
                 {/* Message preview */}
                 {request.message ? (
                     <Typography variant="small" style={styles.message} numberOfLines={1}>
-                        "{request.message}"
+                        {`"${request.message}"`}
                     </Typography>
                 ) : null}
 

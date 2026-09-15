@@ -110,7 +110,7 @@ const BusinessVerificationScreen = ({ navigation, route }) => {
 
                 <NotionCard style={[styles.infoCard, { backgroundColor: COLORS.accent + '15' }]}>
                     <Typography variant="caption" style={{ color: COLORS.secondary }}>
-                        ⏱️ Verification typically takes 1–2 business days. You'll receive a notification once approved.
+                        {"⏱️ Verification typically takes 1–2 business days. You'll receive a notification once approved."}
                     </Typography>
                 </NotionCard>
 

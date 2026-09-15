@@ -1,9 +1,11 @@
-export const DARK_MAP_STYLE = [
+// Light Map Style for Croww Consumer Experience
+// Clean, airy, subtle roads, pastel green parks, soft blue water, high-contrast readable locality labels
+export const LIGHT_MAP_STYLE = [
     {
         "elementType": "geometry",
         "stylers": [
             {
-                "color": "#212121"
+                "color": "#F5F5F3"
             }
         ]
     },
@@ -19,7 +21,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#757575"
+                "color": "#4B5563"
             }
         ]
     },
@@ -27,7 +29,10 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.stroke",
         "stylers": [
             {
-                "color": "#212121"
+                "color": "#FFFFFF"
+            },
+            {
+                "weight": 2.5
             }
         ]
     },
@@ -36,7 +41,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "geometry",
         "stylers": [
             {
-                "color": "#757575"
+                "visibility": "off"
             }
         ]
     },
@@ -45,7 +50,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#9e9e9e"
+                "color": "#1F2937"
             }
         ]
     },
@@ -62,7 +67,10 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#bdbdbd"
+                "color": "#111827"
+            },
+            {
+                "weight": 600
             }
         ]
     },
@@ -71,7 +79,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#757575"
+                "color": "#6B7280"
             }
         ]
     },
@@ -80,7 +88,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "geometry",
         "stylers": [
             {
-                "color": "#181818"
+                "color": "#E5EFE6"
             }
         ]
     },
@@ -89,16 +97,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#616161"
-            }
-        ]
-    },
-    {
-        "featureType": "poi.park",
-        "elementType": "labels.text.stroke",
-        "stylers": [
-            {
-                "color": "#1b1b1b"
+                "color": "#3B7A57"
             }
         ]
     },
@@ -107,7 +106,16 @@ export const DARK_MAP_STYLE = [
         "elementType": "geometry.fill",
         "stylers": [
             {
-                "color": "#2c2c2c"
+                "color": "#FFFFFF"
+            }
+        ]
+    },
+    {
+        "featureType": "road",
+        "elementType": "geometry.stroke",
+        "stylers": [
+            {
+                "color": "#E5E7EB"
             }
         ]
     },
@@ -116,7 +124,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#8a8a8a"
+                "color": "#6B7280"
             }
         ]
     },
@@ -125,25 +133,28 @@ export const DARK_MAP_STYLE = [
         "elementType": "geometry",
         "stylers": [
             {
-                "color": "#373737"
+                "color": "#FFFFFF"
             }
         ]
     },
     {
         "featureType": "road.highway",
-        "elementType": "geometry",
+        "elementType": "geometry.fill",
         "stylers": [
             {
-                "color": "#3c3c3c"
+                "color": "#FDE68A"
             }
         ]
     },
     {
-        "featureType": "road.highway.controlled_access",
-        "elementType": "geometry",
+        "featureType": "road.highway",
+        "elementType": "geometry.stroke",
         "stylers": [
             {
-                "color": "#4e4e4e"
+                "color": "#F59E0B"
+            },
+            {
+                "weight": 0.5
             }
         ]
     },
@@ -152,7 +163,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#616161"
+                "color": "#9CA3AF"
             }
         ]
     },
@@ -161,7 +172,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#757575"
+                "color": "#6B7280"
             }
         ]
     },
@@ -170,7 +181,7 @@ export const DARK_MAP_STYLE = [
         "elementType": "geometry",
         "stylers": [
             {
-                "color": "#000000"
+                "color": "#DBEAFE"
             }
         ]
     },
@@ -179,8 +190,11 @@ export const DARK_MAP_STYLE = [
         "elementType": "labels.text.fill",
         "stylers": [
             {
-                "color": "#3d3d3d"
+                "color": "#3B82F6"
             }
         ]
     }
 ];
+
+// Alias DARK_MAP_STYLE to LIGHT_MAP_STYLE to eradicate any dark map instances
+export const DARK_MAP_STYLE = LIGHT_MAP_STYLE;

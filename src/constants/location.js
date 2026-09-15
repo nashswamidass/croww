@@ -2,6 +2,7 @@ export const CITY_COORDINATES = {
     'Mumbai': { latitude: 19.0760, longitude: 72.8777 },
     'Delhi': { latitude: 28.6139, longitude: 77.2090 },
     'Bangalore': { latitude: 12.9716, longitude: 77.5946 },
+    'Bengaluru': { latitude: 12.9716, longitude: 77.5946 },
     'Hyderabad': { latitude: 17.3850, longitude: 78.4867 },
     'Ahmedabad': { latitude: 23.0225, longitude: 72.5714 },
     'Chennai': { latitude: 13.0827, longitude: 80.2707 },

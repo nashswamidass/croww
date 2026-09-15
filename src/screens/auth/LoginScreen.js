@@ -1,168 +1,229 @@
-import React, { useState, useRef } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Alert, ActivityIndicator, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { PhoneAuthProvider, signInWithCredential } from 'firebase/auth';
-import { doc, setDoc, getDoc, serverTimestamp } from 'firebase/firestore';
+import React, { useState } from 'react';
+import {
+    View,
+    StyleSheet,
+    TouchableOpacity,
+    KeyboardAvoidingView,
+    ScrollView,
+    Platform,
+    TextInput,
+} from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import NotionInput from '../../components/NotionInput';
 import AntigravityButton from '../../components/AntigravityButton';
-import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
-import { auth, db } from '../../services/firebaseConfig';
-import { userService } from '../../services/userService';
+import { SPACING, COLORS, BORDER_RADIUS, TOUCH_TARGETS, SHADOWS } from '../../constants/theme';
 import { authService } from '../../services/authService';
-import { getRandomAvatar } from '../../utils/avatarHelper';
 
-import { showAlert } from '../../utils/showAlert';
-
-const LoginScreen = ({ navigation }) => {
+const LoginScreen = ({ route, navigation }) => {
+    const returnAction = route.params?.returnAction || null;
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
+    const [showPassword, setShowPassword] = useState(false);
     const [loading, setLoading] = useState(false);
+    const [errorMessage, setErrorMessage] = useState(null);
 
     const handleLogin = async () => {
         const trimmedEmail = email.trim();
-        console.log(`[Login] Attempting login for: ${trimmedEmail}`);
-
         if (!trimmedEmail || !password) {
-            showAlert('Error', 'Please fill in all fields');
+            setErrorMessage('Please enter both your email and password.');
             return;
         }
 
+        setErrorMessage(null);
         setLoading(true);
+
         try {
             const user = await authService.login(trimmedEmail, password);
-            console.log(`[Login] Success for uid: ${user.id}`);
-        } catch (error) {
-            console.error('[Login] Error Details:', error);
-            console.error('[Login] Error Code:', error.code);
-            console.error('[Login] Error Message:', error.message);
+            console.log(`[Login] Successful authentication for UID: ${user.id}`);
 
+            if (navigation.canGoBack()) {
+                navigation.goBack();
+            } else {
+                navigation.navigate('Tabs', { screen: 'Explore' });
+            }
+        } catch (error) {
+            console.error('[Login] Error:', error.code, error.message);
             let message = 'Login failed. Please check your credentials.';
 
             if (
                 error.code === 'auth/user-not-found' ||
                 error.code === 'auth/wrong-password' ||
-                error.code === 'auth/invalid-credential' ||
-                error.code === 'auth/invalid-email'
+                error.code === 'auth/invalid-credential'
             ) {
-                message = 'Email or password is incorrect. Please try again.';
+                message = 'Invalid email or password. Please verify your credentials.';
+            } else if (error.code === 'auth/invalid-email') {
+                message = 'Please enter a valid email address.';
             } else if (error.code === 'auth/too-many-requests') {
-                message = 'Too many failed attempts. Please try again later.';
+                message = 'Too many attempts. Please wait a moment and try again.';
             } else if (error.message) {
                 message = error.message;
             }
 
-            showAlert('Login Failed', message);
+            setErrorMessage(message);
         } finally {
             setLoading(false);
         }
     };
 
-    const handleResetPassword = async () => {
-        if (!email) {
-            showAlert('Error', 'Please enter your email address first');
-            return;
-        }
-
-        showAlert(
-            'Reset Password',
-            `Send a password reset email to ${email}?`,
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Send',
-                    onPress: async () => {
-                        setLoading(true);
-                        try {
-                            await authService.resetPassword(email);
-                            showAlert('Success', 'Password reset email sent. Please check your inbox.');
-                        } catch (error) {
-                            showAlert('Error', error.message || 'Failed to send reset email.');
-                        } finally {
-                            setLoading(false);
-                        }
-                    }
-                }
-            ]
-        );
-    };
-
     return (
-        <ScreenWrapper>
+        <ScreenWrapper edges={['top', 'bottom']}>
             <KeyboardAvoidingView
                 style={{ flex: 1 }}
-                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
                 <ScrollView
                     contentContainerStyle={styles.scrollContent}
                     keyboardShouldPersistTaps="handled"
                     showsVerticalScrollIndicator={false}
                 >
-                    <View style={styles.header}>
-                        <Image
-                            source={require('../../../assets/croww-logo.png')}
-                            style={styles.logo}
-                            resizeMode="contain"
-                        />
-                        <Typography variant="h1" style={styles.title}>Welcome back</Typography>
-                        <Typography variant="body" style={styles.subtitle}>Sign in to find events near you.</Typography>
+                    {/* Top Bar with Close/Back */}
+                    <View style={styles.topBar}>
+                        {navigation.canGoBack() ? (
+                            <TouchableOpacity
+                                onPress={() => navigation.goBack()}
+                                style={styles.closeButton}
+                                accessibilityRole="button"
+                                accessibilityLabel="Close"
+                                hitSlop={TOUCH_TARGETS.hitSlop}
+                            >
+                                <Ionicons name="close" size={24} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        ) : <View style={{ width: 44 }} />}
                     </View>
 
-                    <View style={styles.form}>
-                        <NotionInput
-                            label="Email"
-                            placeholder="name@example.com"
-                            value={email}
-                            onChangeText={setEmail}
-                            keyboardType="email-address"
-                        />
-                        <NotionInput
-                            label="Password"
-                            placeholder="Enter your password"
-                            value={password}
-                            onChangeText={setPassword}
-                            secureTextEntry
-                        />
-
-                        <AntigravityButton
-                            title="Login"
-                            onPress={handleLogin}
-                            loading={loading}
-                            style={styles.button}
-                        />
-
-                        <TouchableOpacity
-                            onPress={handleResetPassword}
-                            style={styles.forgotPasswordContainer}
-                        >
-                            <Typography variant="caption" style={styles.forgotPasswordText}>
-                                Forgot Password?
+                    <View style={styles.container}>
+                        {/* Consumer Wordmark & Headline */}
+                        <View style={styles.header}>
+                            <View style={styles.brandRow}>
+                                <View style={styles.logoBadge}>
+                                    <Ionicons name="home" size={22} color={COLORS.accent} />
+                                </View>
+                                <Typography variant="display" style={styles.brandTitle}>
+                                    Croww
+                                </Typography>
+                            </View>
+                            <Typography variant="bodyLarge" style={styles.brandSubtitle}>
+                                Find the place that feels right.
                             </Typography>
-                        </TouchableOpacity>
-                    </View>
+                        </View>
 
-                    <View style={styles.footer}>
-                        <Typography variant="caption">Don't have an account? </Typography>
+                        {/* Error Banner */}
+                        {errorMessage ? (
+                            <View style={styles.errorBanner}>
+                                <Ionicons name="alert-circle-outline" size={18} color={COLORS.error} />
+                                <Typography variant="bodyMedium" style={styles.errorText}>
+                                    {errorMessage}
+                                </Typography>
+                            </View>
+                        ) : null}
+
+                        {/* Form Inputs */}
+                        <View style={styles.form}>
+                            <View style={styles.inputGroup}>
+                                <Typography variant="caption" style={styles.inputLabel}>
+                                    Email
+                                </Typography>
+                                <View style={styles.inputWrapper}>
+                                    <TextInput
+                                        style={styles.input}
+                                        placeholder="name@example.com"
+                                        placeholderTextColor={COLORS.tertiary}
+                                        value={email}
+                                        onChangeText={(t) => {
+                                            setEmail(t);
+                                            if (errorMessage) setErrorMessage(null);
+                                        }}
+                                        keyboardType="email-address"
+                                        autoCapitalize="none"
+                                        autoCorrect={false}
+                                    />
+                                </View>
+                            </View>
+
+                            <View style={styles.inputGroup}>
+                                <Typography variant="caption" style={styles.inputLabel}>
+                                    Password
+                                </Typography>
+                                <View style={styles.inputWrapper}>
+                                    <TextInput
+                                        style={[styles.input, { paddingRight: 40 }]}
+                                        placeholder="Enter your password"
+                                        placeholderTextColor={COLORS.tertiary}
+                                        value={password}
+                                        onChangeText={(t) => {
+                                            setPassword(t);
+                                            if (errorMessage) setErrorMessage(null);
+                                        }}
+                                        secureTextEntry={!showPassword}
+                                        autoCapitalize="none"
+                                    />
+                                    <TouchableOpacity
+                                        onPress={() => setShowPassword(!showPassword)}
+                                        style={styles.eyeButton}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={showPassword ? 'Hide password' : 'Show password'}
+                                        hitSlop={TOUCH_TARGETS.hitSlop}
+                                    >
+                                        <Ionicons
+                                            name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                                            size={20}
+                                            color={COLORS.secondary}
+                                        />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
+
+                            {/* Primary Action Button */}
+                            <AntigravityButton
+                                title="Sign in"
+                                onPress={handleLogin}
+                                loading={loading}
+                                size="large"
+                                style={styles.continueButton}
+                            />
+
+                            {/* Forgot Password Link */}
+                            <TouchableOpacity
+                                onPress={() => navigation.navigate('ForgotPassword')}
+                                style={styles.forgotPasswordContainer}
+                                accessibilityRole="button"
+                                hitSlop={TOUCH_TARGETS.hitSlop}
+                            >
+                                <Typography variant="bodyMedium" style={styles.forgotPasswordText}>
+                                    Forgot password?
+                                </Typography>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Divider */}
+                        <View style={styles.dividerRow}>
+                            <View style={styles.dividerLine} />
+                            <Typography variant="caption" style={styles.dividerText}>
+                                or
+                            </Typography>
+                            <View style={styles.dividerLine} />
+                        </View>
+
+                        {/* Secondary Action: Create Account */}
                         <AntigravityButton
-                            title="Sign Up"
+                            title="Create new account"
                             variant="secondary"
-                            style={styles.linkButton}
-                            onPress={() => navigation.navigate('Signup')}
+                            onPress={() => navigation.navigate('Signup', { returnAction })}
+                            size="large"
+                            style={styles.createAccountButton}
                         />
-                    </View>
 
-                    <View style={styles.legalFooter}>
-                        <TouchableOpacity onPress={() => navigation.navigate('LegalPolicy', { type: 'privacy' })}>
-                            <Typography variant="caption" style={styles.legalLink}>Privacy Policy</Typography>
-                        </TouchableOpacity>
-                        <Typography variant="caption" color={COLORS.secondary}> • </Typography>
-                        <TouchableOpacity onPress={() => navigation.navigate('LegalPolicy', { type: 'security' })}>
-                            <Typography variant="caption" style={styles.legalLink}>Security Policy</Typography>
-                        </TouchableOpacity>
-                        <Typography variant="caption" color={COLORS.secondary}> • </Typography>
-                        <TouchableOpacity onPress={() => navigation.navigate('LegalPolicy', { type: 'refund' })}>
-                            <Typography variant="caption" style={styles.legalLink}>Refund Policy</Typography>
-                        </TouchableOpacity>
+                        {/* Legal Links */}
+                        <View style={styles.legalFooter}>
+                            <TouchableOpacity onPress={() => navigation.navigate('LegalPolicy', { type: 'privacy' })}>
+                                <Typography variant="caption" style={styles.legalLink}>Privacy Policy</Typography>
+                            </TouchableOpacity>
+                            <Typography variant="caption" style={styles.legalDot}> • </Typography>
+                            <TouchableOpacity onPress={() => navigation.navigate('LegalPolicy', { type: 'security' })}>
+                                <Typography variant="caption" style={styles.legalLink}>Security Policy</Typography>
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </ScrollView>
             </KeyboardAvoidingView>
@@ -173,64 +234,157 @@ const LoginScreen = ({ navigation }) => {
 const styles = StyleSheet.create({
     scrollContent: {
         flexGrow: 1,
-        justifyContent: 'center',
         paddingHorizontal: SPACING.xl,
-        paddingVertical: SPACING.xl,
+        paddingBottom: SPACING.xxl,
+        backgroundColor: COLORS.background,
+    },
+    topBar: {
+        height: 48,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+    closeButton: {
+        width: 44,
+        height: 44,
+        justifyContent: 'center',
+        alignItems: 'flex-start',
+    },
+    container: {
+        width: '100%',
+        maxWidth: 440,
+        alignSelf: 'center',
+        paddingTop: SPACING.m,
     },
     header: {
+        marginBottom: SPACING.xl,
+    },
+    brandRow: {
+        flexDirection: 'row',
         alignItems: 'center',
-        marginBottom: SPACING.xxl,
-    },
-    logo: {
-        width: 160,
-        height: 70,
-        marginBottom: SPACING.l,
-    },
-    title: {
+        gap: SPACING.m,
         marginBottom: SPACING.xs,
     },
-    subtitle: {
+    logoBadge: {
+        width: 42,
+        height: 42,
+        borderRadius: 21,
+        backgroundColor: COLORS.accentMuted,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    brandTitle: {
+        fontWeight: '900',
+        color: COLORS.primary,
+        fontSize: 34,
+        letterSpacing: -0.8,
+    },
+    brandSubtitle: {
         color: COLORS.secondary,
-        textAlign: 'center',
+        fontSize: 17,
+        lineHeight: 24,
+        marginTop: 4,
+    },
+    errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: '#FEE2E2',
+        borderWidth: 1,
+        borderColor: '#FCA5A5',
+        borderRadius: BORDER_RADIUS.m,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 10,
+        marginBottom: SPACING.l,
+    },
+    errorText: {
+        color: COLORS.error,
+        flex: 1,
+        fontWeight: '600',
     },
     form: {
         width: '100%',
     },
-    button: {
-        marginTop: SPACING.m,
+    inputGroup: {
+        marginBottom: SPACING.l,
+    },
+    inputLabel: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        marginBottom: 8,
+        fontSize: 14,
+    },
+    inputWrapper: {
+        height: 52,
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.input,
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        paddingHorizontal: SPACING.m,
+        justifyContent: 'center',
+        position: 'relative',
+        ...SHADOWS.subtle,
+    },
+    input: {
+        color: COLORS.primary,
+        fontSize: 16,
+        height: '100%',
+    },
+    eyeButton: {
+        position: 'absolute',
+        right: 14,
+        top: 0,
+        bottom: 0,
+        justifyContent: 'center',
+        alignItems: 'center',
+        width: 32,
+    },
+    continueButton: {
+        height: 54,
+        borderRadius: BORDER_RADIUS.button,
+        marginTop: SPACING.s,
     },
     forgotPasswordContainer: {
-        marginTop: SPACING.m,
-        alignItems: 'flex-end',
+        marginTop: SPACING.l,
+        alignItems: 'center',
+        paddingVertical: 4,
     },
     forgotPasswordText: {
         color: COLORS.accent,
-        fontWeight: '600',
+        fontWeight: '700',
     },
-    footer: {
-        marginTop: SPACING.xxl,
+    dividerRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
+        marginVertical: SPACING.xl,
     },
-    linkButton: {
-        height: 32,
-        minWidth: 0,
-        paddingHorizontal: SPACING.s,
-        borderWidth: 0,
+    dividerLine: {
+        flex: 1,
+        height: 1,
+        backgroundColor: COLORS.border,
+    },
+    dividerText: {
+        marginHorizontal: SPACING.m,
+        color: COLORS.secondary,
+        textTransform: 'lowercase',
+    },
+    createAccountButton: {
+        height: 52,
+        borderRadius: BORDER_RADIUS.button,
     },
     legalFooter: {
-        marginTop: SPACING.xl,
+        marginTop: SPACING.xxl,
         flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
-        flexWrap: 'wrap',
     },
     legalLink: {
         color: COLORS.secondary,
-        textDecorationLine: 'underline',
-    }
+        fontSize: 13,
+    },
+    legalDot: {
+        color: COLORS.secondary,
+        marginHorizontal: 6,
+    },
 });
 
 export default LoginScreen;
-

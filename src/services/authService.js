@@ -2,14 +2,14 @@ import {
     signInWithEmailAndPassword,
     createUserWithEmailAndPassword,
     signOut,
-    updateProfile,
-    sendEmailVerification,
-    sendPasswordResetEmail
+    updateProfile
 } from 'firebase/auth';
-import { doc, setDoc, getDoc, deleteDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
+import { doc, setDoc, getDoc, updateDoc, serverTimestamp } from 'firebase/firestore';
 import { auth, db } from './firebaseConfig';
 import { userService } from './userService';
 import API_ENDPOINTS from '../constants/apiConfig';
+import { authenticatedFetch } from '../utils/authenticatedFetch';
+import { signupUserType, stripServerOnlyUserFields } from '../domain/verification';
 
 const USERS_COLLECTION = 'users';
 
@@ -38,12 +38,12 @@ export const authService = {
             const user = userCredential.user;
 
             // 2. Prepare user document
-            const { userType } = userData; // Destructure userType for conditional logic
+            const userType = signupUserType(userData.userType);
             const UserProfile = {
                 id: user.uid,
                 email: email,
                 name: userData.name,
-                userType: userType || 'individual',
+                userType,
                 category: userData.category || null,
                 stats: userType === 'provider' ? {
                     bookings: 0,
@@ -60,16 +60,19 @@ export const authService = {
                     friends: 0,
                     buddyConnections: 0
                 }),
-                policyAccepted: (userType !== 'business' && userType !== 'provider'), // Individuals don't need to accept
+                policyAccepted: (userType !== 'business' && userType !== 'provider'),
                 policyAcceptedAt: null,
                 isVerified: false,
-                role: userType || 'individual', // Duplicate for ease of access if needed
+                aadhaarVerified: false,
+                role: userType,
                 createdAt: serverTimestamp(),
-                ...userData
             };
-
-            // Remove password/sensitive fields if any accidentally passed
-            delete UserProfile.password;
+            const extras = stripServerOnlyUserFields(userData || {});
+            delete extras.password;
+            delete extras.id;
+            delete extras.email;
+            delete extras.userType;
+            Object.assign(UserProfile, extras);
 
             // 3. Save to Firestore
             await withTimeout(
@@ -77,6 +80,7 @@ export const authService = {
                 10000,
                 'Profile creation timeout. Please try logging in if account was created.'
             );
+            await userService.syncPublicProfile(user.uid, UserProfile);
 
             // 4. Update Auth Profile (Display Name)
             await withTimeout(
@@ -124,22 +128,34 @@ export const authService = {
             const user = userCredential.user;
 
             // 2. Fetch User Profile from Firestore
-            const userDoc = await withTimeout(
-                getDoc(doc(db, USERS_COLLECTION, user.uid)),
-                10000,
-                'Profile fetch timeout. Please check your connection and try again.'
-            );
-
-            if (!userDoc.exists()) {
-                throw new Error('User profile not found');
+            let userData = null;
+            try {
+                const userDoc = await withTimeout(
+                    getDoc(doc(db, USERS_COLLECTION, user.uid)),
+                    10000,
+                    'Profile fetch timeout.'
+                );
+                if (userDoc.exists()) {
+                    userData = userDoc.data();
+                }
+            } catch (profileErr) {
+                console.warn('[authService.login] Profile fetch notice:', profileErr.message);
             }
 
-            const userData = userDoc.data();
+            const profile = userData
+                ? { ...userData, id: user.uid }
+                : {
+                    id: user.uid,
+                    email: user.email,
+                    name: user.displayName || 'Croww User',
+                    userType: 'individual',
+                    role: 'individual',
+                };
 
             // 3. Cache locally
-            await userService.saveUserToStorage({ ...userData, id: user.uid });
+            await userService.saveUserToStorage(profile);
 
-            return { ...userData, id: user.uid };
+            return profile;
         } catch (error) {
             console.error('Login error:', error);
             throw error;
@@ -180,17 +196,11 @@ export const authService = {
 
             const uid = user.uid;
 
-            // Call custom Cloud Function for secure account deletion
             const API_URL = API_ENDPOINTS.DELETE_USER_ACCOUNT;
 
-            console.log(`[AuthService] Calling deleteAccount function for UID: ${uid}`);
-
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ uid }),
+                body: { uid },
             });
 
             if (!response.ok) {

@@ -204,7 +204,7 @@ const ManageEventsScreen = ({ navigation }) => {
                 <View style={styles.emptyContainer}>
                     <Ionicons name="calendar-outline" size={64} color={COLORS.border} />
                     <Typography variant="body" color={COLORS.secondary} style={styles.emptyText}>
-                        You haven't created any events yet.
+                        {"You haven't created any events yet."}
                     </Typography>
                     <TouchableOpacity
                         style={styles.createButton}

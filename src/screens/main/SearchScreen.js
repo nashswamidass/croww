@@ -451,7 +451,7 @@ const SearchScreen = ({ navigation }) => {
                             <Typography variant="body" style={{ color: COLORS.primary, fontWeight: '700' }}>Bengaluru</Typography>
                             {' '}and{' '}
                             <Typography variant="body" style={{ color: COLORS.primary, fontWeight: '700' }}>Trivandrum</Typography>.
-                            {' '}We're expanding soon! Meanwhile, explore amazing events and services in Bengaluru.
+                            {' '}{"We're expanding soon! Meanwhile, explore amazing events and services in Bengaluru."}
                         </Typography>
                         <TouchableOpacity
                             style={styles.unavailablePrimaryBtn}

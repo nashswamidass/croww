@@ -12,13 +12,30 @@ import {
     increment,
     writeBatch
 } from 'firebase/firestore';
-import { db } from './firebaseConfig';
+import { db, auth } from './firebaseConfig';
 import API_ENDPOINTS from '../constants/apiConfig';
+import { authenticatedFetch } from '../utils/authenticatedFetch';
+import {
+    stripServerOnlyUserFields,
+    toPublicUserProfile,
+    PUBLIC_PROFILE_COLLECTION,
+} from '../domain/verification';
 
 const USERS_COLLECTION = 'users';
 const FOLLOWS_COLLECTION = 'follows';
 
+async function syncPublicProfile(userId, source) {
+    if (!userId) return;
+    try {
+        const projection = toPublicUserProfile(userId, source || {});
+        await setDoc(doc(db, PUBLIC_PROFILE_COLLECTION, userId), projection, { merge: true });
+    } catch (error) {
+        console.warn('[UserService] public profile sync failed (non-critical):', error?.message);
+    }
+}
+
 export const userService = {
+    syncPublicProfile,
     /**
      * Get all service providers and businesses for the marketplace.
      * Excludes blocked users (deleted by admin).
@@ -26,16 +43,15 @@ export const userService = {
     getServiceProviders: async () => {
         try {
             const q = query(
-                collection(db, USERS_COLLECTION),
+                collection(db, PUBLIC_PROFILE_COLLECTION),
                 where('userType', 'in', ['provider', 'business'])
             );
             const querySnapshot = await getDocs(q);
             const providers = [];
-            querySnapshot.forEach((doc) => {
-                const data = doc.data();
-                // Exclude blocked/admin-deleted users
+            querySnapshot.forEach((docSnap) => {
+                const data = docSnap.data();
                 if (data.isBlocked === true) return;
-                providers.push({ id: doc.id, ...data });
+                providers.push({ id: docSnap.id, ...data });
             });
             return providers;
         } catch (error) {
@@ -62,7 +78,8 @@ export const userService = {
                 return null;
             }
 
-            const docRef = doc(db, USERS_COLLECTION, cleanId);
+            const isSelf = auth.currentUser?.uid === cleanId;
+            const docRef = doc(db, isSelf ? USERS_COLLECTION : PUBLIC_PROFILE_COLLECTION, cleanId);
             const docSnap = await getDoc(docRef);
             if (docSnap.exists()) {
                 return { id: docSnap.id, ...docSnap.data() };
@@ -102,7 +119,9 @@ export const userService = {
             if (!userData.id) throw new Error("User ID is required to save user");
 
             // 1. Save to Firestore
-            await setDoc(doc(db, USERS_COLLECTION, userData.id), userData, { merge: true });
+            const safe = stripServerOnlyUserFields(userData);
+            await setDoc(doc(db, USERS_COLLECTION, userData.id), safe, { merge: true });
+            await syncPublicProfile(userData.id, userData);
 
             // 2. Update Local Storage
             await userService.saveUserToStorage(userData);
@@ -212,6 +231,7 @@ export const userService = {
                 await setDoc(userRef, {
                     packages: [...packages, newPackage]
                 }, { merge: true });
+                await syncPublicProfile(userId, { ...currentData, id: userId, packages: [...packages, newPackage] });
 
                 // Update local storage if this is the current user
                 const currentUser = await userService.getUser();
@@ -247,6 +267,7 @@ export const userService = {
                 const updatedPackages = packages.filter(p => p.id !== packageId);
 
                 await setDoc(userRef, { packages: updatedPackages }, { merge: true });
+                await syncPublicProfile(userId, { ...currentData, id: userId, packages: updatedPackages });
 
                 // Update local storage if this is the current user
                 const currentUser = await userService.getUser();
@@ -276,12 +297,14 @@ export const userService = {
         try {
             if (!userId) throw new Error("User ID is required to update profile");
             const userRef = doc(db, USERS_COLLECTION, userId);
-            await setDoc(userRef, data, { merge: true });
+            const safe = stripServerOnlyUserFields(data);
+            const currentUser = await userService.getUser();
+            await setDoc(userRef, safe, { merge: true });
+            await syncPublicProfile(userId, { ...(currentUser || {}), ...data, ...safe, id: userId });
 
             // Sync local storage if this is the current user
-            const currentUser = await userService.getUser();
             if (currentUser && currentUser.id === userId) {
-                const updatedUser = { ...currentUser, ...data };
+                const updatedUser = { ...currentUser, ...safe };
                 await userService.saveUserToStorage(updatedUser);
             }
             return true;
@@ -299,10 +322,9 @@ export const userService = {
             const API_URL = API_ENDPOINTS.TOGGLE_FOLLOW;
             console.log(`[UserService] Following user via: ${API_URL}`);
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ followerId, targetUserId, action: 'follow' }),
+                body: { targetUserId, action: 'follow' },
             });
 
             if (!response.ok) {
@@ -326,10 +348,9 @@ export const userService = {
             const API_URL = API_ENDPOINTS.TOGGLE_FOLLOW;
             console.log(`[UserService] Unfollowing user via: ${API_URL}`);
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ followerId, targetUserId, action: 'unfollow' }),
+                body: { targetUserId, action: 'unfollow' },
             });
 
             if (!response.ok) {

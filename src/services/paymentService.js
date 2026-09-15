@@ -2,6 +2,7 @@ import { Platform } from 'react-native';
 import { CFPaymentGatewayService } from 'react-native-cashfree-pg-sdk';
 import { CFSession, CFThemeBuilder, CFDropCheckoutPayment, CFPaymentComponentBuilder } from 'cashfree-pg-api-contract';
 import API_ENDPOINTS from '../constants/apiConfig';
+import { authenticatedFetch } from '../utils/authenticatedFetch';
 
 class PaymentService {
     constructor() {
@@ -56,9 +57,7 @@ class PaymentService {
      */
     async doPayment(paymentSessionId, orderId) {
         try {
-            console.log('--- STARTING NATIVE PAYMENT FLOW ---');
-            console.log('SessionID:', paymentSessionId);
-            console.log('OrderID:', orderId);
+            console.log('Initiating Native Payment (Drop Checkout)');
 
             if (!paymentSessionId) {
                 throw new Error('Missing Payment Session ID');
@@ -111,19 +110,16 @@ class PaymentService {
                 throw new Error('Customer ID is required');
             }
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+                body: {
                     orderAmount: amount,
                     customerId: customerId,
                     customerPhone: customerPhone,
                     customerName: customerName,
                     customerEmail: customerEmail,
                     environment: this.environment === 'PRODUCTION' ? 'PRODUCTION' : 'SANDBOX'
-                }),
+                },
             });
 
             const responseText = await response.text();
@@ -134,7 +130,6 @@ class PaymentService {
             }
 
             const data = JSON.parse(responseText);
-            console.log("PaymentServiceNative: Backend Order JSON:", data);
 
             const sessionId = data.payment_session_id || data.paymentSessionId || data.payment_session || data.session_id;
             const orderId = data.order_id || data.orderId;
@@ -153,15 +148,12 @@ class PaymentService {
         try {
             const API_URL = API_ENDPOINTS.VERIFY_CASHFREE_PAYMENT;
 
-            const response = await fetch(API_URL, {
+            const response = await authenticatedFetch(API_URL, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
+                body: {
                     orderId,
                     environment: this.environment
-                }),
+                },
             });
 
             const responseText = await response.text();

@@ -1,45 +1,65 @@
 {
-    "hosting": [
+  "hosting": [
+    {
+      "site": "croww-app",
+      "public": "dist",
+      "ignore": [
+        "firebase.json",
+        "**/.*"
+      ],
+      "rewrites": [
         {
-            "site": "croww-app",
-            "public": "dist",
-            "ignore": [
-                "firebase.json",
-                "**/.*"
-            ],
-            "rewrites": [
-                {
-                    "source": "**",
-                    "destination": "/index.html"
-                }
-            ],
-            "headers": [
-                {
-                    "source": "/index.html",
-                    "headers": [
-                        {
-                            "key": "Cache-Control",
-                            "value": "no-cache, no-store, must-revalidate"
-                        }
-                    ]
-                }
-            ]
+          "source": "**",
+          "destination": "/index.html"
         }
-    ],
+      ],
+      "headers": [
+        {
+          "source": "/index.html",
+          "headers": [
+            {
+              "key": "Cache-Control",
+              "value": "no-cache, no-store, must-revalidate"
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "firestore": {
+    "rules": "firestore.rules",
+    "indexes": "firestore.indexes.json"
+  },
+  "functions": [
+    {
+      "source": "functions",
+      "codebase": "default",
+      "ignore": [
+        "node_modules",
+        ".git",
+        "firebase-debug.log",
+        "firebase-debug.*.log",
+        ".env",
+        ".env.*",
+        ".secret.local",
+        ".staging-smoke-*"
+      ]
+    }
+  ],
+  "emulators": {
     "firestore": {
-        "rules": "firestore.rules",
-        "indexes": "firestore.indexes.json"
+      "port": 8080
     },
-    "functions": [
-        {
-            "source": "functions",
-            "codebase": "default",
-            "ignore": [
-                "node_modules",
-                ".git",
-                "firebase-debug.log",
-                "firebase-debug.*.log"
-            ]
-        }
-    ]
+    "auth": {
+      "port": 9099
+    },
+    "storage": {
+      "port": 9199
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "singleProjectMode": true
+  }
 }

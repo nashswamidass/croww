@@ -4,7 +4,8 @@
  * Notification types and their data payloads:
  *   buddy_request_join      → { type, requestId, eventId }  → Notifications screen (owner approves/rejects from list)
  *   buddy_request_approved  → { type, requestId, eventId }  → EventBuddy screen (requester sees they're in)
- *   new_event / NEW_EVENT   → { type, eventId }             → EventDetail screen
+ *   new_event /    NEW_EVENT   → { type, eventId }             → EventDetail screen
+ *   saved_search_match → { type, listingId, savedSearchId } → Listing
  *   CHAT_MESSAGE / CHAT     → { type, chatId, senderId }    → Chat screen
  *   friend_request / FRIEND_REQUEST → { type, requestId }    → FriendRequests screen
  *   FRIEND_ACCEPTED         → { type, userId }              → Profile screen of that user
@@ -92,6 +93,16 @@ export const navigateFromNotification = (navigation, data = {}) => {
                 navigate('BookingDetail', { booking: { id: bookingId } });
             } else {
                 navigate('ProviderBookings');
+            }
+            break;
+
+        case 'saved_search_match':
+            if (data.listingId) {
+                navigate('Listing', { listingId: data.listingId });
+            } else if (data.savedSearchId) {
+                navigate('SavedSearch', { searchId: data.savedSearchId });
+            } else {
+                navigate('Tabs', { screen: 'Saved' });
             }
             break;
 

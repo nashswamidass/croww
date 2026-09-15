@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
-import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ImageBackground } from 'react-native';
+import { View, StyleSheet, ScrollView, Image, TouchableOpacity, ImageBackground, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import ScreenWrapper from '../../components/ScreenWrapper';

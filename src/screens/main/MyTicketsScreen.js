@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Image, ActivityIndicator, Platform } from 'react-native';
 import { getAuth } from 'firebase/auth';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';

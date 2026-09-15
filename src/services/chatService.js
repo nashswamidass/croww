@@ -45,9 +45,10 @@ export const chatService = {
      * Create a new chat or get existing one (1-on-1)
      * @param {string[]} participantIds - Array of user IDs
      * @param {Object} participantNames - Optional map of { id: name } for display
+     * @param {Object} [context] - Optional listing/property identifiers for inquiries
      * @returns {Promise<string>} - The chat ID
      */
-    createChat: async (participantIds, participantNames = {}) => {
+    createChat: async (participantIds, participantNames = {}, context = {}) => {
         try {
             if (!participantIds || !Array.isArray(participantIds)) {
                 return null;
@@ -70,19 +71,31 @@ export const chatService = {
 
             const querySnapshot = await getDocs(q);
             const sortedIds = [...validIds].sort();
+            const listingId = typeof context.listingId === 'string' ? context.listingId : null;
+            const propertyId = typeof context.propertyId === 'string' ? context.propertyId : null;
 
             for (const docSnapshot of querySnapshot.docs) {
                 const data = docSnapshot.data();
                 if (data.type === 'private' || !data.type) {
                     const docParticipantIds = [...(data.participantIds || [])].sort();
                     if (JSON.stringify(docParticipantIds) === JSON.stringify(sortedIds)) {
+                        if (listingId && (data.listingId !== listingId || data.propertyId !== propertyId)) {
+                            try {
+                                await updateDoc(doc(db, CHATS_COLLECTION, docSnapshot.id), {
+                                    listingId,
+                                    propertyId: propertyId || null,
+                                });
+                            } catch (contextError) {
+                                console.warn('Could not attach listing context to existing chat:', contextError?.message);
+                            }
+                        }
                         return docSnapshot.id;
                     }
                 }
             }
 
             // Create new if not found
-            const chatRef = await addDoc(collection(db, CHATS_COLLECTION), {
+            const payload = {
                 participantIds: sortedIds,
                 participantNames: participantNames,
                 type: 'private',
@@ -90,7 +103,13 @@ export const chatService = {
                 lastMessage: null,
                 lastMessageTimestamp: serverTimestamp(),
                 unreadCounts: sortedIds.reduce((acc, id) => ({ ...acc, [id]: 0 }), {})
-            });
+            };
+            if (listingId) {
+                payload.listingId = listingId;
+                payload.propertyId = propertyId || null;
+            }
+
+            const chatRef = await addDoc(collection(db, CHATS_COLLECTION), payload);
 
             return chatRef.id;
         } catch (error) {
@@ -301,6 +320,43 @@ export const chatService = {
                 callback([]);
             }
         });
+    },
+
+    /**
+     * One-shot bounded chat list for dashboard inquiry summaries.
+     * Does not read message subcollections.
+     */
+    listUserChats: async (userId, { limitCount = 40 } = {}) => {
+        if (!userId || typeof userId !== 'string') return [];
+        const size = Math.min(Math.max(Number(limitCount) || 40, 1), 40);
+        try {
+            const q = query(
+                collection(db, CHATS_COLLECTION),
+                where('participantIds', 'array-contains', userId),
+                orderBy('lastMessageTimestamp', 'desc'),
+                limit(size)
+            );
+            const snap = await getDocs(q);
+            return snap.docs.map((docSnapshot) => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data(),
+            }));
+        } catch (error) {
+            if (error?.code !== 'failed-precondition') {
+                console.warn('[chatService] listUserChats failed', error?.code || error?.message);
+                return [];
+            }
+            const fallbackQ = query(
+                collection(db, CHATS_COLLECTION),
+                where('participantIds', 'array-contains', userId),
+                limit(size)
+            );
+            const snap = await getDocs(fallbackQ);
+            return snap.docs.map((docSnapshot) => ({
+                id: docSnapshot.id,
+                ...docSnapshot.data(),
+            })).sort((a, b) => (b.lastMessageTimestamp?.seconds || 0) - (a.lastMessageTimestamp?.seconds || 0));
+        }
     },
 
     /**

@@ -110,7 +110,7 @@ const VerifyIdentityScreen = ({ navigation, route }) => {
                         text: 'Perfect',
                         onPress: () => {
                             if (onVerified) onVerified('aadhaar');
-                            navigation.navigate('Tabs', { screen: 'Home' });
+                            navigation.navigate('Tabs', { screen: 'Explore' });
                         }
                     }
                 ]);
@@ -155,7 +155,7 @@ const VerifyIdentityScreen = ({ navigation, route }) => {
                         </Typography>
                         <AntigravityButton 
                             title="Done" 
-                            onPress={() => navigation.navigate('Tabs', { screen: 'Home' })} 
+                            onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })} 
                             style={{ marginTop: SPACING.l, width: '100%' }}
                         />
                     </NotionCard>

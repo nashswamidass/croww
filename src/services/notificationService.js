@@ -22,6 +22,7 @@ export const notificationService = {
         try {
             await addDoc(collection(db, NOTIFICATIONS_COLLECTION), {
                 toUserId,
+                fromUserId: auth.currentUser?.uid || null,
                 title,
                 message,
                 data,

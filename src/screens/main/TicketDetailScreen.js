@@ -104,6 +104,7 @@ const TicketDetailScreen = ({ route, navigation }) => {
             const isAvailable = await Sharing.isAvailableAsync();
             if (!isAvailable) {
                 // Fallback: Copy to cache and open
+                // eslint-disable-next-line import/namespace
                 const destUri = FileSystem.cacheDirectory + fileName;
                 await FileSystem.copyAsync({ from: uri, to: destUri });
                 Alert.alert("Ticket Saved", `Ticket QR saved to your device.`);

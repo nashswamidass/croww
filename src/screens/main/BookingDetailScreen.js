@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, StyleSheet, Image, TouchableOpacity, Share, ScrollView, TextInput, Alert, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, Image, TouchableOpacity, Share, ScrollView, TextInput, Alert, ActivityIndicator, Platform } from 'react-native';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionCard from '../../components/NotionCard';

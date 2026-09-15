@@ -1,32 +1,31 @@
-import React, { useEffect, useRef, createRef } from 'react';
-import { View, ActivityIndicator, Image, StyleSheet, AppState } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Image, StyleSheet, AppState } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as SplashScreen from 'expo-splash-screen';
-import { LinearGradient } from 'expo-linear-gradient';
 
 import { NavigationContainer, createNavigationContainerRef } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
-import { COLORS, SHADOWS } from '../constants/theme';
-import { userService } from '../services/userService';
 import { useAuth } from '../context/AuthContext';
+import { ExploreProvider } from '../context/ExploreContext';
+import { AreaScorePreferencesProvider } from '../context/AreaScorePreferencesContext';
+import { SavedItemsProvider } from '../context/SavedItemsContext';
+import PropertyTabNavigator from './PropertyTabNavigator';
 
 // Auth Screens
 import LoginScreen from '../screens/auth/LoginScreen';
 import SignupScreen from '../screens/auth/SignupScreen';
+import ForgotPasswordScreen from '../screens/auth/ForgotPasswordScreen';
 import BlockedScreen from '../screens/auth/BlockedScreen';
 import LegalPolicyScreen from '../screens/auth/LegalPolicyScreen';
 import linking from './linking';
 import { navigateFromNotification } from '../utils/notificationNavigation';
 import { showAlert } from '../utils/showAlert';
-
-export const navigationRef = createNavigationContainerRef();
+import { pushNotificationService } from '../services/pushNotificationService';
 
 // Main Screens
 import HomeScreen from '../screens/main/HomeScreen';
 import MapScreen from '../screens/main/MapScreen';
 import SearchScreen from '../screens/main/SearchScreen';
-import ProfileScreen from '../screens/main/ProfileScreen';
 import BusinessDashboardScreen from '../screens/main/BusinessDashboardScreen';
 import EventSearchScreen from '../screens/main/EventSearchScreen';
 import ChatScreen from '../screens/main/ChatScreen';
@@ -60,77 +59,31 @@ import ProviderBookingsScreen from '../screens/main/ProviderBookingsScreen';
 import BookingDetailScreen from '../screens/main/BookingDetailScreen';
 import BuddyRequestDetailScreen from '../screens/main/BuddyRequestDetailScreen';
 import ReviewListScreen from '../screens/main/ReviewListScreen';
+import PropertyScreen from '../screens/property/PropertyScreen';
+import ListingScreen from '../screens/property/ListingScreen';
+import LocalityScreen from '../screens/property/LocalityScreen';
+import PostListingScreen from '../screens/property/PostListingScreen';
+import InventoryDashboardScreen from '../screens/property/InventoryDashboardScreen';
+import InventoryMediaScreen from '../screens/property/InventoryMediaScreen';
+import TrustOverviewScreen from '../screens/property/TrustOverviewScreen';
+import SubmitVerificationScreen from '../screens/property/SubmitVerificationScreen';
+import SpatialTourScreen from '../screens/property/SpatialTourScreen';
+import SavedSearchScreen from '../screens/property/SavedSearchScreen';
 
 // Verification Screens
 import VerifyIdentityScreen from '../screens/verification/VerifyIdentityScreen';
 import BusinessVerificationScreen from '../screens/verification/BusinessVerificationScreen';
 
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import TabBarIcon from '../components/TabBarIcon';
+export const navigationRef = createNavigationContainerRef();
 
 const Stack = createNativeStackNavigator();
-const Tab = createBottomTabNavigator();
-
-const MainTabNavigator = () => {
-    const insets = useSafeAreaInsets();
-    const { user: authUser } = useAuth();
-
-    // Derive isBusiness directly from the live AuthContext user — no cache lag
-    const isBusiness = authUser?.userType === 'business' || authUser?.userType === 'provider'
-        || authUser?.isBusiness || authUser?.isProvider;
-
-    return (
-        <Tab.Navigator
-            screenOptions={({ route }) => ({
-                headerShown: false,
-                tabBarActiveTintColor: COLORS.accent,
-                tabBarInactiveTintColor: COLORS.secondary,
-                tabBarStyle: {
-                    backgroundColor: COLORS.surface,
-                    borderTopWidth: 1,
-                    borderTopColor: COLORS.border,
-                    height: 60 + insets.bottom,
-                    paddingBottom: insets.bottom,
-                    paddingTop: 8,
-                },
-                tabBarShowLabel: false,
-                tabBarIcon: ({ focused }) => {
-                    let iconName;
-                    if (route.name === 'Home') {
-                        if (isBusiness) {
-                            iconName = focused ? 'analytics' : 'analytics-outline';
-                        } else {
-                            iconName = focused ? 'home' : 'home-outline';
-                        }
-                    }
-                    else if (route.name === 'Map') iconName = focused ? 'map' : 'map-outline';
-                    else if (route.name === 'Search') iconName = focused ? 'storefront' : 'storefront-outline';
-                    else if (route.name === 'Tickets') iconName = focused ? 'ticket' : 'ticket-outline';
-                    else if (route.name === 'Profile') iconName = focused ? 'person' : 'person-outline';
-
-                    return <TabBarIcon focused={focused} name={iconName} />;
-                },
-            })}
-        >
-            <Tab.Screen
-                name="Home"
-                component={isBusiness ? BusinessDashboardScreen : HomeScreen}
-            />
-            {!isBusiness && (
-                <Tab.Screen name="Tickets" component={MyTicketsScreen} />
-            )}
-            <Tab.Screen name="Map" component={MapScreen} />
-            <Tab.Screen name="Search" component={SearchScreen} />
-            <Tab.Screen name="Profile" component={ProfileScreen} />
-        </Tab.Navigator>
-    );
-};
 
 const AuthNavigator = () => {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Login" component={LoginScreen} />
             <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
             <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
         </Stack.Navigator>
     );
@@ -139,7 +92,20 @@ const AuthNavigator = () => {
 const MainNavigator = () => {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="Tabs" component={MainTabNavigator} />
+            <Stack.Screen name="Tabs" component={PropertyTabNavigator} />
+            <Stack.Screen name="Home" component={HomeScreen} />
+            <Stack.Screen name="Map" component={MapScreen} />
+            <Stack.Screen name="Search" component={SearchScreen} />
+            <Stack.Screen name="Property" component={PropertyScreen} />
+            <Stack.Screen name="Listing" component={ListingScreen} />
+            <Stack.Screen name="Locality" component={LocalityScreen} />
+            <Stack.Screen name="PostListing" component={PostListingScreen} />
+            <Stack.Screen name="InventoryDashboard" component={InventoryDashboardScreen} />
+            <Stack.Screen name="InventoryMedia" component={InventoryMediaScreen} />
+            <Stack.Screen name="TrustOverview" component={TrustOverviewScreen} />
+            <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
+            <Stack.Screen name="SpatialTour" component={SpatialTourScreen} />
+            <Stack.Screen name="SavedSearch" component={SavedSearchScreen} />
             <Stack.Screen name="BusinessDashboard" component={BusinessDashboardScreen} />
             <Stack.Screen name="EventSearch" component={EventSearchScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
@@ -176,11 +142,12 @@ const MainNavigator = () => {
             <Stack.Screen name="BuddyRequestDetail" component={BuddyRequestDetailScreen} />
             <Stack.Screen name="ReviewList" component={ReviewListScreen} />
             <Stack.Screen name="LegalPolicy" component={LegalPolicyScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Signup" component={SignupScreen} />
+            <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
         </Stack.Navigator>
     );
 };
-
-import { pushNotificationService } from '../services/pushNotificationService';
 
 const SETTINGS_KEY = '@croww_user_settings';
 const LAST_ASK_KEY = '@croww_last_notification_ask';
@@ -298,17 +265,28 @@ const AppNavigator = () => {
     }
 
     return (
-        <NavigationContainer linking={linking} ref={navigationRef}>
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-                {isBlocked ? (
-                    <Stack.Screen name="Blocked" component={BlockedScreen} />
-                ) : !isAuthenticated ? (
-                    <Stack.Screen name="Auth" component={AuthNavigator} />
-                ) : (
-                    <Stack.Screen name="Main" component={MainNavigator} />
-                )}
-            </Stack.Navigator>
-        </NavigationContainer>
+        <ExploreProvider>
+            <AreaScorePreferencesProvider>
+            <SavedItemsProvider>
+            <NavigationContainer linking={linking} ref={navigationRef}>
+                <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    {isBlocked ? (
+                        <Stack.Screen name="Blocked" component={BlockedScreen} />
+                    ) : (
+                        <>
+                            <Stack.Screen name="Main" component={MainNavigator} />
+                            <Stack.Screen
+                                name="Auth"
+                                component={AuthNavigator}
+                                options={{ presentation: 'modal' }}
+                            />
+                        </>
+                    )}
+                </Stack.Navigator>
+            </NavigationContainer>
+            </SavedItemsProvider>
+            </AreaScorePreferencesProvider>
+        </ExploreProvider>
     );
 };
 

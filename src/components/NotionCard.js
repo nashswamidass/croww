@@ -9,7 +9,7 @@ const NotionCard = ({ children, style, onPress, ...props }) => {
         <Container
             style={[styles.card, style]}
             onPress={onPress}
-            activeOpacity={0.9}
+            activeOpacity={0.88}
             {...props}
         >
             {children}
@@ -20,9 +20,11 @@ const NotionCard = ({ children, style, onPress, ...props }) => {
 const styles = StyleSheet.create({
     card: {
         backgroundColor: COLORS.surface,
-        borderRadius: BORDER_RADIUS.l,
-        padding: SPACING.m,
-        ...SHADOWS.soft,
+        borderRadius: BORDER_RADIUS.card,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        padding: SPACING.l,
+        ...SHADOWS.subtle,
     },
 });
 

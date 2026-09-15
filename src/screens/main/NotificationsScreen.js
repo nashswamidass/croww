@@ -227,7 +227,7 @@ const NotificationsScreen = ({ navigation }) => {
                             No Notifications
                         </Typography>
                         <Typography variant="body" style={{ color: COLORS.secondary, marginTop: SPACING.s }}>
-                            You're all caught up!
+                            {"You're all caught up!"}
                         </Typography>
                     </View>
                 )}
