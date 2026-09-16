@@ -5,6 +5,7 @@ import {
     FlatList,
     TouchableOpacity,
     ActivityIndicator,
+    Platform,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -411,7 +412,10 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     mapCanvas: {
-        ...StyleSheet.absoluteFillObject,
+        ...Platform.select({
+            web: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, width: '100%', height: '100%' },
+            default: StyleSheet.absoluteFillObject,
+        }),
     },
     floatingTop: {
         position: 'absolute',
