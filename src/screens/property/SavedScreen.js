@@ -6,6 +6,7 @@ import Typography from '../../components/Typography';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
+import CrowwEmptyState from '../../components/rive/CrowwEmptyState';
 import SavedListingCard from '../../components/property/saved/SavedListingCard';
 import SavedPropertyCard from '../../components/property/saved/SavedPropertyCard';
 import SavedSearchCard from '../../components/property/saved/SavedSearchCard';
@@ -203,20 +204,14 @@ const SavedScreen = ({ navigation }) => {
                                 }}
                             />
                         )) : (
-                            <FloatingCard style={styles.emptyCard}>
-                                <Ionicons name="bookmark-outline" size={32} color={COLORS.textSecondary} style={{ marginBottom: SPACING.s }} />
-                                <Typography variant="titleLarge" style={styles.emptyTitle}>No saved listings yet</Typography>
-                                <Typography variant="bodyMedium" style={styles.emptySubtitle}>
-                                    Bookmark interesting offerings directly while exploring on the map.
-                                </Typography>
-                                <AntigravityButton
-                                    title="Explore Listings"
-                                    icon="compass-outline"
-                                    onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
-                                    accessibilityLabel="Explore listings"
-                                    style={{ marginTop: SPACING.m }}
-                                />
-                            </FloatingCard>
+                            <CrowwEmptyState
+                                type="saved"
+                                title="No saved listings yet"
+                                subtitle="Bookmark interesting offerings directly while exploring on the map."
+                                actionTitle="Explore Listings"
+                                actionIcon="compass-outline"
+                                onAction={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                            />
                         )
                     ) : null}
 
@@ -232,20 +227,14 @@ const SavedScreen = ({ navigation }) => {
                                 }}
                             />
                         )) : (
-                            <FloatingCard style={styles.emptyCard}>
-                                <Ionicons name="home-outline" size={32} color={COLORS.textSecondary} style={{ marginBottom: SPACING.s }} />
-                                <Typography variant="titleLarge" style={styles.emptyTitle}>No saved properties</Typography>
-                                <Typography variant="bodyMedium" style={styles.emptySubtitle}>
-                                    Save underlying physical property records from listing detail pages.
-                                </Typography>
-                                <AntigravityButton
-                                    title="Discover Properties"
-                                    icon="search"
-                                    onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
-                                    accessibilityLabel="Discover properties"
-                                    style={{ marginTop: SPACING.m }}
-                                />
-                            </FloatingCard>
+                            <CrowwEmptyState
+                                type="saved"
+                                title="No saved properties"
+                                subtitle="Save underlying physical property records from listing detail pages."
+                                actionTitle="Discover Properties"
+                                actionIcon="search"
+                                onAction={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                            />
                         )
                     ) : null}
 
@@ -260,20 +249,14 @@ const SavedScreen = ({ navigation }) => {
                                 onDelete={() => deleteSearch(search)}
                             />
                         )) : (
-                            <FloatingCard style={styles.emptyCard}>
-                                <Ionicons name="notifications-outline" size={32} color={COLORS.textSecondary} style={{ marginBottom: SPACING.s }} />
-                                <Typography variant="titleLarge" style={styles.emptyTitle}>No search alerts</Typography>
-                                <Typography variant="bodyMedium" style={styles.emptySubtitle}>
-                                    Save a search on the Explore map to receive instant notifications when new matching properties are published.
-                                </Typography>
-                                <AntigravityButton
-                                    title="Start a Search"
-                                    icon="map-outline"
-                                    onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
-                                    accessibilityLabel="Start a search on Explore map"
-                                    style={{ marginTop: SPACING.m }}
-                                />
-                            </FloatingCard>
+                            <CrowwEmptyState
+                                type="discovery"
+                                title="No search alerts"
+                                subtitle="Save a search on the Explore map to receive instant notifications when new matching properties are published."
+                                actionTitle="Start a Search"
+                                actionIcon="map-outline"
+                                onAction={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                            />
                         )
                     ) : null}
                 </ScrollView>

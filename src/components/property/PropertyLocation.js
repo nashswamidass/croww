@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Typography from '../Typography';
 import AntigravityButton from '../AntigravityButton';
 import PropertyMiniMap from './PropertyMiniMap';
+import CrowwLocationShareState from '../rive/CrowwLocationShareState';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
 import { formatPublicLocation } from '../../utils/propertyDetailView';
 
@@ -67,14 +68,14 @@ const PropertyLocation = ({
                 </View>
 
                 <View style={[styles.privacyBadge, isExact ? styles.privacyBadgeExact : styles.privacyBadgeApprox]}>
-                    <Ionicons
-                        name={isExact ? 'location' : 'shield-outline'}
-                        size={14}
-                        color={isExact ? COLORS.success : COLORS.secondary}
+                    <CrowwLocationShareState
+                        shareStatus={shareStatus}
+                        precision={precision}
+                        isExactShared={isExactShared}
+                        isRequesting={isRequestingLocation}
+                        size={16}
+                        showLabel={true}
                     />
-                    <Typography variant="micro" style={[styles.privacyBadgeText, isExact ? styles.textExact : styles.textApprox]}>
-                        {isExact ? 'Exact location' : 'Approximate'}
-                    </Typography>
                 </View>
             </View>
 
@@ -146,11 +147,14 @@ const styles = StyleSheet.create({
     headerRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
-        alignItems: 'flex-start',
+        alignItems: 'center',
+        flexWrap: 'wrap',
         gap: SPACING.s,
+        marginBottom: SPACING.xs,
     },
     titleArea: {
         flex: 1,
+        minWidth: 160,
     },
     heading: {
         color: COLORS.secondary,

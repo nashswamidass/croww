@@ -4,6 +4,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
+import CrowwEmptyState from '../../components/rive/CrowwEmptyState';
 import { SPACING, COLORS, TOUCH_TARGETS } from '../../constants/theme';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
@@ -211,20 +212,14 @@ const ChatListScreen = ({ navigation }) => {
                     keyExtractor={item => item.id}
                     contentContainerStyle={chats.length === 0 ? styles.emptyContainer : styles.list}
                     ListEmptyComponent={
-                        <FloatingCard style={styles.emptyCard}>
-                            <Ionicons name="chatbubbles-outline" size={40} color={COLORS.textSecondary} style={{ marginBottom: SPACING.s }} />
-                            <Typography variant="titleLarge" style={styles.emptyTitle}>No messages yet</Typography>
-                            <Typography variant="bodyMedium" style={styles.emptySubtitle}>
-                                Inquire about properties or request exact location details from owners directly.
-                            </Typography>
-                            <AntigravityButton
-                                title="Explore Properties"
-                                icon="compass-outline"
-                                onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
-                                accessibilityLabel="Explore properties"
-                                style={{ marginTop: SPACING.m }}
-                            />
-                        </FloatingCard>
+                        <CrowwEmptyState
+                            type="messages"
+                            title="No messages yet"
+                            subtitle="Inquire about properties or request exact location details from owners directly."
+                            actionTitle="Explore Properties"
+                            actionIcon="compass-outline"
+                            onAction={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                        />
                     }
                 />
             )}

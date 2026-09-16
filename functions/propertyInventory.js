@@ -89,6 +89,19 @@ exports.publishListing = onRequest({ cors: true, invoker: "public" }, async (req
             response.status(400).send({ error: "INVALID_LISTING", message: "Published listings need a positive price" });
             return;
         }
+        if (listing.taxonomyId) {
+            const taxDoc = await db().collection("listingTaxonomy").doc(listing.taxonomyId).get();
+            if (taxDoc.exists) {
+                const tax = taxDoc.data();
+                if (tax.status !== "ACTIVE" || tax.postingEnabled === false) {
+                    response.status(400).send({
+                        error: "TAXONOMY_POSTING_DISABLED",
+                        message: `Listing category "${tax.displayName || listing.taxonomyId}" is not enabled for posting`
+                    });
+                    return;
+                }
+            }
+        }
         await listingRef.update({
             status: "PUBLISHED",
             publishedAt: listing.publishedAt || admin.firestore.FieldValue.serverTimestamp(),

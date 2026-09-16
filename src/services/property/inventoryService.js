@@ -20,6 +20,8 @@ import { propertyMediaService, buildPropertyStoragePath } from './propertyMediaS
 import { localityService } from './localityService';
 import { userService } from '../userService';
 import { uploadService } from '../uploadService';
+import { taxonomyService } from './taxonomyService';
+import { validateTaxonomyPosting } from '../../domain/taxonomy/validation';
 
 function requireUid() {
     const uid = auth.currentUser?.uid;
@@ -248,9 +250,26 @@ export const inventoryService = {
         const property = await propertyService.getProperty(input.propertyId);
         if (!property) throw new InventoryError('PROPERTY_NOT_FOUND', 'Property not found');
         await assertListingActor(uid, input.listedByRole, property);
+
+        const taxonomyItem = await taxonomyService.getTaxonomyItem(
+            input.taxonomyId,
+            property.category || input.category,
+            property.subtype || input.subtype
+        );
+        const taxVal = validateTaxonomyPosting({
+            typeId: input.taxonomyId || taxonomyItem?.id,
+            transactionType: input.transactionType,
+            payload: { ...property, ...input },
+            taxonomyItem,
+        });
+        if (!taxVal.valid) {
+            throw new InventoryError('TAXONOMY_POSTING_DISABLED', taxVal.errors.join('; '), taxVal);
+        }
+
         try {
             const listing = await listingService.createListing({
                 ...input,
+                taxonomyId: input.taxonomyId || taxonomyItem?.id,
                 status: 'DRAFT',
                 sourceChannel: input.sourceChannel || 'USER_CREATED',
             });

@@ -169,7 +169,7 @@ const PropertySearchBar = ({ value, onChangeText, onSelectPlace, placeholder, ci
                     style={[styles.displayText, !value && styles.placeholderText]}
                     numberOfLines={1}
                 >
-                    {value ? value : (placeholder || 'Where do you want to live?')}
+                    {value ? value : (placeholder || `Search ${city || 'Chennai'}...`)}
                 </Typography>
 
                 {value ? (

@@ -69,6 +69,7 @@ import TrustOverviewScreen from '../screens/property/TrustOverviewScreen';
 import SubmitVerificationScreen from '../screens/property/SubmitVerificationScreen';
 import SpatialTourScreen from '../screens/property/SpatialTourScreen';
 import SavedSearchScreen from '../screens/property/SavedSearchScreen';
+import PropertyVisualQAScreen from '../screens/property/PropertyVisualQAScreen';
 
 // Verification Screens
 import VerifyIdentityScreen from '../screens/verification/VerifyIdentityScreen';
@@ -106,6 +107,7 @@ const MainNavigator = () => {
             <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
             <Stack.Screen name="SpatialTour" component={SpatialTourScreen} />
             <Stack.Screen name="SavedSearch" component={SavedSearchScreen} />
+            <Stack.Screen name="PropertyVisualQA" component={PropertyVisualQAScreen} />
             <Stack.Screen name="BusinessDashboard" component={BusinessDashboardScreen} />
             <Stack.Screen name="EventSearch" component={EventSearchScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />

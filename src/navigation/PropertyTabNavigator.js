@@ -40,9 +40,9 @@ const PropertyTabNavigator = () => {
                     backgroundColor: COLORS.surface,
                     borderTopWidth: 1,
                     borderTopColor: COLORS.border,
-                    height: 64 + insets.bottom,
-                    paddingBottom: Math.max(insets.bottom, 8),
-                    paddingTop: 8,
+                    height: 68 + insets.bottom,
+                    paddingBottom: Math.max(insets.bottom, 10),
+                    paddingTop: 6,
                     shadowColor: '#000',
                     shadowOpacity: 0.04,
                     shadowRadius: 8,
@@ -62,10 +62,11 @@ const PropertyTabNavigator = () => {
                 },
                 tabBarShowLabel: true,
                 tabBarLabelStyle: {
-                    fontSize: 12,
+                    fontSize: 11,
                     fontWeight: '600',
                     letterSpacing: 0.1,
-                    marginTop: 2,
+                    marginTop: 1,
+                    marginBottom: 2,
                 },
                 tabBarIcon: ({ focused }) => {
                     const pair = TAB_ICONS[route.name] || ['ellipse-outline', 'ellipse'];

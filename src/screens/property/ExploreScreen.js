@@ -24,6 +24,8 @@ import { savedSearchService } from '../../services/property';
 import { showAlert } from '../../utils/showAlert';
 import { LAUNCH_VIEWPORT } from '../../constants/explore';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import CrowwRive from '../../components/rive/CrowwRive';
+import { EMPTY_STATES_RIVE_SPEC } from '../../components/rive/specs/emptyStates.spec';
 
 const ExploreScreen = () => {
     const navigation = useNavigation();
@@ -323,7 +325,15 @@ const ExploreScreen = () => {
                 <View style={styles.floatingBottom} pointerEvents="box-none">
                     {emptyMessage ? (
                         <View style={styles.emptyCard} pointerEvents="auto">
-                            <Ionicons name="map-outline" size={28} color={COLORS.tertiary} style={{ marginBottom: 6 }} />
+                            <CrowwRive
+                                artboard={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                artboardName={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                stateMachineName={EMPTY_STATES_RIVE_SPEC.stateMachine}
+                                inputs={{ isActive: true }}
+                                fallbackType="empty-discovery"
+                                fallbackSize={48}
+                                style={{ width: 48, height: 48, marginBottom: 6 }}
+                            />
                             <Typography variant="titleSmall" style={styles.emptyTitle}>
                                 {emptyMessage}
                             </Typography>

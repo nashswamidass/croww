@@ -576,6 +576,16 @@ service cloud.firestore {
       }
     }
 
+    match /listingTaxonomy/{typeId} {
+      allow read: if true;
+      allow create, update, delete: if isAdmin();
+    }
+
+    match /listingTaxonomy_audit/{logId} {
+      allow read, write: if isAdmin();
+    }
+
+
     function canCreateParentMedia() {
       let propertyId = request.resource.data.propertyId;
       let parentType = request.resource.data.parentType;

@@ -12,3 +12,4 @@ export { property3DService } from './property3DService';
 export { saveService } from './saveService';
 export { savedSearchService } from './savedSearchService';
 export { locationShareService, buildShareId } from './locationShareService';
+export { taxonomyService } from './taxonomyService';

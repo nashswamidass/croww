@@ -6,9 +6,11 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
+import PostChoiceChips from '../../components/property/post/PostChoiceChips';
 import AuthPromptModal from '../../components/auth/AuthPromptModal';
 import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
+import { useTaxonomy } from '../../hooks/useTaxonomy';
 import { getPropertyRoles, getShellCapabilities } from '../../navigation/propertyCapabilities';
 import { dashboardCopy, postingHubCopy } from '../../domain/property';
 
@@ -33,6 +35,9 @@ const PostScreen = () => {
     const { isLegacyOrganizer } = getShellCapabilities(user);
     const copy = postingHubCopy(roles);
     const inventoryCopy = dashboardCopy(roles);
+    const { postingCategories } = useTaxonomy();
+    const activePosting = postingCategories('rent');
+    const [selectedType, setSelectedType] = useState(activePosting[0]?.typeId || 'pg');
 
     return (
         <ScreenWrapper edges={['top']}>
@@ -54,6 +59,23 @@ const PostScreen = () => {
                         <Typography variant="bodyMedium" style={styles.cardSubtitle}>
                             Publish to verified home seekers with automated geohash discovery and privacy-first location control.
                         </Typography>
+                    </View>
+
+                    {/* Dynamic Accommodation Types Driven by Server-Driven Taxonomy */}
+                    <View style={{ marginTop: SPACING.m, marginBottom: SPACING.m }}>
+                        <Typography variant="labelLarge" style={{ color: COLORS.primary, marginBottom: SPACING.xs }}>
+                            Accommodation Type ({activePosting.length} Available)
+                        </Typography>
+                        <PostChoiceChips
+                            accessibilityLabel="Listing type"
+                            value={selectedType}
+                            onChange={setSelectedType}
+                            options={activePosting.map((item) => ({
+                                value: item.typeId,
+                                label: item.displayName,
+                                hint: item.description,
+                            }))}
+                        />
                     </View>
 
                     <View style={styles.ctaGroup}>

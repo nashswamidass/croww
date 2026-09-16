@@ -12,7 +12,8 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import AntigravityButton from '../../components/AntigravityButton';
-import { SPACING, COLORS, BORDER_RADIUS, TOUCH_TARGETS, SHADOWS } from '../../constants/theme';
+import { CrowwBrandLogo } from '../../components/rive/CrowwBrandLogo';
+import { SPACING, COLORS, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
 import { authService } from '../../services/authService';
 
 const LoginScreen = ({ route, navigation }) => {
@@ -96,9 +97,7 @@ const LoginScreen = ({ route, navigation }) => {
                         {/* Consumer Wordmark & Headline */}
                         <View style={styles.header}>
                             <View style={styles.brandRow}>
-                                <View style={styles.logoBadge}>
-                                    <Ionicons name="home" size={22} color={COLORS.accent} />
-                                </View>
+                                <CrowwBrandLogo size={40} isLoading={loading} style={{ marginRight: 6 }} />
                                 <Typography variant="display" style={styles.brandTitle}>
                                     Croww
                                 </Typography>

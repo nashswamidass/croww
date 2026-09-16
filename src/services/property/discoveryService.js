@@ -68,6 +68,7 @@ function toDiscoveryItem(row) {
         publishedAt: row.publishedAt || null,
         updatedAt: row.updatedAt || null,
         lastVerifiedAt: row.lastVerifiedAt || null,
+        listingTypeId: row.listingTypeId || row.taxonomyId || row.subtype || null,
         representationStatus: row.representationStatus || 'unverified',
         verification: row.verification || null,
         spatialTourAvailable: row.spatialTourAvailable === true,
@@ -93,7 +94,22 @@ async function queryPrefix(prefix, transactionType) {
 function applyClientFilters(items, filters = {}) {
     return items.filter((item) => {
         if (filters.category && item.category !== filters.category) return false;
-        if (filters.subtype && item.subtype !== filters.subtype) return false;
+        if (filters.listingTypeId) {
+            const itemTypeId = item.listingTypeId || item.subtype;
+            const target = filters.listingTypeId;
+            const targetClean = target.replace('stay_', '').replace('res_', '').replace('com_', '');
+            if (itemTypeId !== target && !item.subtype?.includes(targetClean)) {
+                return false;
+            }
+        }
+        if (filters.subtype) {
+            const itemTypeId = item.listingTypeId || item.subtype;
+            const target = filters.subtype;
+            const targetClean = target.replace('stay_', '').replace('res_', '').replace('com_', '');
+            if (item.subtype !== target && itemTypeId !== target && !item.subtype?.includes(targetClean)) {
+                return false;
+            }
+        }
         if (filters.bhk != null) {
             const beds = item.bedrooms;
             if (beds == null) return false;

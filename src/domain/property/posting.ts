@@ -41,6 +41,12 @@ export const SUBTYPE_LABELS: Record<string, string> = {
     agricultural: 'Agricultural land',
     commercial_plot: 'Commercial plot',
     other: 'Other land',
+    bed: 'Bed / Single Bed',
+    shared_room: 'Shared Room',
+    private_room: 'Private Room',
+    pg: 'PG / Paying Guest',
+    coliving: 'Co-living Space',
+    roommate_replacement: 'Roommate Replacement',
 };
 
 export const CATEGORY_LABELS: Record<string, string> = {
@@ -177,24 +183,25 @@ export function propertyFieldVisibility(
     category: string | null | undefined,
     subtype: string | null | undefined
 ): PropertyFieldVisibility {
+    const isStay = subtype === 'bed' || subtype === 'shared_room' || subtype === 'private_room' || subtype === 'pg' || subtype === 'coliving' || subtype === 'roommate_replacement';
     const isLand = category === 'land' || subtype === 'plot' || subtype === 'commercial_land'
         || subtype === 'residential_plot' || subtype === 'agricultural' || subtype === 'commercial_plot'
         || subtype === 'other';
-    const isResidentialUnit = category === 'residential' && subtype !== 'plot';
+    const isResidentialUnit = category === 'residential' && subtype !== 'plot' && !isStay;
     const isCommercialUnit = category === 'commercial' && subtype !== 'commercial_land';
     return {
-        bedrooms: isResidentialUnit,
-        bathrooms: isResidentialUnit,
+        bedrooms: isResidentialUnit || subtype === 'roommate_replacement',
+        bathrooms: isResidentialUnit || isStay,
         carpetArea: isResidentialUnit || subtype === 'office' || subtype === 'shop',
         builtUpArea: isResidentialUnit || isCommercialUnit,
         plotArea: isLand,
-        floor: isResidentialUnit || isCommercialUnit,
-        totalFloors: isResidentialUnit || isCommercialUnit,
-        furnishing: isResidentialUnit || subtype === 'office' || subtype === 'shop',
-        parking: !isLand || subtype === 'commercial_land',
+        floor: isResidentialUnit || isCommercialUnit || isStay,
+        totalFloors: isResidentialUnit || isCommercialUnit || isStay,
+        furnishing: isResidentialUnit || subtype === 'office' || subtype === 'shop' || isStay,
+        parking: (!isLand || subtype === 'commercial_land') && subtype !== 'bed',
         constructionYear: isResidentialUnit,
         projectName: category !== 'land',
-        amenities: category !== 'land' || subtype === 'commercial_land',
+        amenities: category !== 'land' || subtype === 'commercial_land' || isStay,
     };
 }
 
@@ -306,6 +313,8 @@ export type PostFormLike = {
     transactionType?: string | null;
     category?: string | null;
     subtype?: string | null;
+    listingTypeId?: string | null;
+    taxonomyId?: string | null;
     bedrooms?: number | null;
     bathrooms?: number | null;
     carpetAreaSqft?: number | null;
@@ -410,6 +419,8 @@ export function buildListingCreateInput(form: PostFormLike): Record<string, unkn
     const transactionType = form.transactionType;
     return {
         propertyId: form.propertyId || form.existingPropertyId,
+        taxonomyId: form.listingTypeId || form.taxonomyId || null,
+        listingTypeId: form.listingTypeId || form.taxonomyId || null,
         transactionType,
         listedByRole: form.listedByRole,
         title: (form.title || '').trim(),

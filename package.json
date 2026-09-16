@@ -18,7 +18,7 @@
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",
-    "@lottiefiles/dotlottie-react": "^0.18.1",
+    "@lottiefiles/dotlottie-react": "^0.19.16",
     "@react-google-maps/api": "^2.20.8",
     "@react-native-async-storage/async-storage": "2.2.0",
     "@react-native-community/datetimepicker": "8.4.4",
@@ -26,6 +26,7 @@
     "@react-navigation/elements": "^2.6.3",
     "@react-navigation/native": "^7.1.8",
     "@react-navigation/native-stack": "^7.3.16",
+    "@rive-app/react-canvas": "^4.34.2",
     "@sentry/react-native": "~7.2.0",
     "cashfree-pg-api-contract": "^2.0.9",
     "date-fns": "^4.1.0",
@@ -71,7 +72,8 @@
     "react-native-svg": "^15.12.1",
     "react-native-view-shot": "^4.0.3",
     "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.5.1"
+    "react-native-worklets": "0.5.1",
+    "rive-react-native": "^9.8.5"
   },
   "devDependencies": {
     "@types/react": "~19.1.0",

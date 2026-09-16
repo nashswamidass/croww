@@ -80,6 +80,7 @@ const linking = {
                             searchId: (searchId) => searchId,
                         },
                     },
+                    PropertyVisualQA: 'visual-qa',
                     LegalPolicy: {
                         path: 'legal/:type',
                         parse: {

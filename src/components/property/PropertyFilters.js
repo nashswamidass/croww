@@ -10,15 +10,7 @@ import { Ionicons } from '@expo/vector-icons';
 import Typography from '../Typography';
 import AntigravityButton from '../AntigravityButton';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
-
-const PROPERTY_TYPES = [
-    { id: null, label: 'Any Type' },
-    { id: 'apartment', label: 'Apartment' },
-    { id: 'villa', label: 'Villa' },
-    { id: 'independent_house', label: 'Independent House' },
-    { id: 'plot', label: 'Land / Plot' },
-    { id: 'commercial', label: 'Commercial' },
-];
+import { useTaxonomy } from '../../hooks/useTaxonomy';
 
 const BHK_OPTIONS = [
     { id: null, label: 'Any' },
@@ -46,23 +38,41 @@ const RENT_BUDGETS = [
 
 const PropertyFilters = ({ filters, onChange, resultCount = 0 }) => {
     const [sheetVisible, setSheetVisible] = useState(false);
+    const { consumerCategories, filterTaxonomy } = useTaxonomy();
 
     const budgets = filters.transactionType === 'rent' ? RENT_BUDGETS : BUY_BUDGETS;
     const currentBudgetId = budgets.find(
         (b) => b.min === filters.minPrice && b.max === filters.maxPrice
     )?.id || 'any';
 
+    const selectedTaxonomyItem = filterTaxonomy.find(
+        (item) => item.typeId === filters.listingTypeId || item.typeId === filters.subtype
+    );
+
     const activeFilterCount = (filters.bhk ? 1 : 0)
-        + (filters.subtype ? 1 : 0)
+        + (filters.subtype || filters.listingTypeId ? 1 : 0)
         + (filters.minPrice != null || filters.maxPrice != null ? 1 : 0);
 
     return (
         <View style={styles.container}>
-            {/* Row 1: Primary Intent [ Buy ] [ Rent ] [ Commercial ] */}
+            {/* Row 1: Primary Intent [ Rent / Stays ] [ Buy ] [ Commercial ] */}
             <View style={styles.primaryRow}>
                 <TouchableOpacity
+                    style={[styles.primaryPill, (filters.transactionType === 'rent' || !filters.transactionType) && styles.primaryPillActive]}
+                    onPress={() => onChange({ transactionType: 'rent', minPrice: null, maxPrice: null })}
+                    activeOpacity={0.8}
+                >
+                    <Typography
+                        variant="bodyMedium"
+                        style={[styles.primaryPillText, (filters.transactionType === 'rent' || !filters.transactionType) && styles.primaryPillTextActive]}
+                    >
+                        Rent
+                    </Typography>
+                </TouchableOpacity>
+
+                <TouchableOpacity
                     style={[styles.primaryPill, filters.transactionType === 'buy' && styles.primaryPillActive]}
-                    onPress={() => onChange({ transactionType: 'buy', category: 'residential', minPrice: null, maxPrice: null })}
+                    onPress={() => onChange({ transactionType: 'buy', minPrice: null, maxPrice: null })}
                     activeOpacity={0.8}
                 >
                     <Typography
@@ -74,21 +84,8 @@ const PropertyFilters = ({ filters, onChange, resultCount = 0 }) => {
                 </TouchableOpacity>
 
                 <TouchableOpacity
-                    style={[styles.primaryPill, filters.transactionType === 'rent' && styles.primaryPillActive]}
-                    onPress={() => onChange({ transactionType: 'rent', category: 'residential', minPrice: null, maxPrice: null })}
-                    activeOpacity={0.8}
-                >
-                    <Typography
-                        variant="bodyMedium"
-                        style={[styles.primaryPillText, filters.transactionType === 'rent' && styles.primaryPillTextActive]}
-                    >
-                        Rent
-                    </Typography>
-                </TouchableOpacity>
-
-                <TouchableOpacity
                     style={[styles.primaryPill, filters.category === 'commercial' && styles.primaryPillActive]}
-                    onPress={() => onChange({ category: filters.category === 'commercial' ? 'residential' : 'commercial', subtype: null })}
+                    onPress={() => onChange({ category: filters.category === 'commercial' ? null : 'commercial', subtype: null, listingTypeId: null })}
                     activeOpacity={0.8}
                 >
                     <Typography
@@ -100,18 +97,52 @@ const PropertyFilters = ({ filters, onChange, resultCount = 0 }) => {
                 </TouchableOpacity>
             </View>
 
-            {/* Row 2: Calm Refinements [ 2 BHK ] [ Budget ] [ More Filters ▾ ] */}
+            {/* Server-Driven Category Chips (Stay / Co-living / Rooms / PG) */}
+            {consumerCategories && consumerCategories.length > 0 ? (
+                <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={styles.categoryScroll}
+                >
+                    {consumerCategories.map((cat) => {
+                        const isSelected = filters.listingTypeId === cat.typeId || filters.subtype === cat.typeId;
+                        return (
+                            <TouchableOpacity
+                                key={cat.typeId}
+                                style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
+                                onPress={() => {
+                                    if (isSelected) {
+                                        onChange({ listingTypeId: null, subtype: null });
+                                    } else {
+                                        onChange({ listingTypeId: cat.typeId, subtype: cat.typeId });
+                                    }
+                                }}
+                                activeOpacity={0.8}
+                            >
+                                <Typography
+                                    variant="caption"
+                                    style={[styles.categoryChipText, isSelected && styles.categoryChipTextActive]}
+                                >
+                                    {cat.displayName}
+                                </Typography>
+                            </TouchableOpacity>
+                        );
+                    })}
+                </ScrollView>
+            ) : null}
+
+            {/* Row 2: Calm Refinements [ Type / BHK ] [ Budget ] [ More Filters ▾ ] */}
             <View style={styles.secondaryRow}>
                 <TouchableOpacity
-                    style={[styles.refinePill, filters.bhk === 2 && styles.refinePillActive]}
-                    onPress={() => onChange({ bhk: filters.bhk === 2 ? null : 2 })}
+                    style={[styles.refinePill, (selectedTaxonomyItem || filters.bhk) && styles.refinePillActive]}
+                    onPress={() => setSheetVisible(true)}
                     activeOpacity={0.8}
                 >
                     <Typography
                         variant="caption"
-                        style={[styles.refinePillText, filters.bhk === 2 && styles.refinePillTextActive]}
+                        style={[styles.refinePillText, (selectedTaxonomyItem || filters.bhk) && styles.refinePillTextActive]}
                     >
-                        {filters.bhk ? `${filters.bhk} BHK` : '2 BHK'}
+                        {selectedTaxonomyItem ? selectedTaxonomyItem.displayName : (filters.bhk ? `${filters.bhk} BHK` : 'All Stays')}
                     </Typography>
                 </TouchableOpacity>
 
@@ -197,33 +228,48 @@ const PropertyFilters = ({ filters, onChange, resultCount = 0 }) => {
                                                 variant="bodyMedium"
                                                 style={[styles.sheetChipText, filters.transactionType === tx && styles.sheetChipTextActive]}
                                             >
-                                                {tx === 'buy' ? 'Buy Property' : 'Rent Home'}
+                                                {tx === 'buy' ? 'Buy Property' : 'Rent Home / Stay'}
                                             </Typography>
                                         </TouchableOpacity>
                                     ))}
                                 </View>
                             </View>
 
-                            {/* Section 2: Property Type */}
+                            {/* Section 2: Property / Stay Type (Server-Driven) */}
                             <View style={styles.filterSection}>
                                 <Typography variant="titleSmall" style={styles.sectionHeader}>
-                                    PROPERTY TYPE
+                                    STAY & PROPERTY TYPE
                                 </Typography>
                                 <View style={styles.chipGrid}>
-                                    {PROPERTY_TYPES.map((pt) => (
-                                        <TouchableOpacity
-                                            key={String(pt.id)}
-                                            style={[styles.sheetGridChip, filters.subtype === pt.id && styles.sheetChipActive]}
-                                            onPress={() => onChange({ subtype: pt.id })}
+                                    <TouchableOpacity
+                                        key="all"
+                                        style={[styles.sheetGridChip, !filters.subtype && !filters.listingTypeId && styles.sheetChipActive]}
+                                        onPress={() => onChange({ subtype: null, listingTypeId: null })}
+                                    >
+                                        <Typography
+                                            variant="bodyMedium"
+                                            style={[styles.sheetChipText, !filters.subtype && !filters.listingTypeId && styles.sheetChipTextActive]}
                                         >
-                                            <Typography
-                                                variant="bodyMedium"
-                                                style={[styles.sheetChipText, filters.subtype === pt.id && styles.sheetChipTextActive]}
+                                            Any Type
+                                        </Typography>
+                                    </TouchableOpacity>
+                                    {filterTaxonomy.map((pt) => {
+                                        const isSelected = filters.listingTypeId === pt.typeId || filters.subtype === pt.typeId;
+                                        return (
+                                            <TouchableOpacity
+                                                key={pt.typeId}
+                                                style={[styles.sheetGridChip, isSelected && styles.sheetChipActive]}
+                                                onPress={() => onChange({ subtype: pt.typeId, listingTypeId: pt.typeId })}
                                             >
-                                                {pt.label}
-                                            </Typography>
-                                        </TouchableOpacity>
-                                    ))}
+                                                <Typography
+                                                    variant="bodyMedium"
+                                                    style={[styles.sheetChipText, isSelected && styles.sheetChipTextActive]}
+                                                >
+                                                    {pt.displayName}
+                                                </Typography>
+                                            </TouchableOpacity>
+                                        );
+                                    })}
                                 </View>
                             </View>
 
@@ -330,6 +376,34 @@ const styles = StyleSheet.create({
         fontWeight: '600',
     },
     primaryPillTextActive: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+    },
+    categoryScroll: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 2,
+    },
+    categoryChip: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.round,
+        backgroundColor: COLORS.surface,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
+    },
+    categoryChipActive: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    categoryChipText: {
+        color: COLORS.primary,
+        fontWeight: '600',
+        fontSize: 12,
+    },
+    categoryChipTextActive: {
         color: '#FFFFFF',
         fontWeight: '700',
     },

@@ -8,6 +8,7 @@ import AppNavigator from './src/navigation/AppNavigator';
 import { AuthProvider } from './src/context/AuthContext';
 import AppDownloadPopup from './src/components/AppDownloadPopup';
 import ProductionPreviewBanner from './src/components/ProductionPreviewBanner';
+import { RiveMotionProvider } from './src/components/rive/RiveMotionContext';
 
 if (process.env.EXPO_PUBLIC_APP_ENV === 'production-preview') {
     console.warn(
@@ -35,9 +36,11 @@ function App() {
         <HelmetProvider>
             <SafeAreaProvider>
                 <AuthProvider>
-                    <ProductionPreviewBanner />
-                    <AppNavigator />
-                    <AppDownloadPopup />
+                    <RiveMotionProvider>
+                        <ProductionPreviewBanner />
+                        <AppNavigator />
+                        <AppDownloadPopup />
+                    </RiveMotionProvider>
                 </AuthProvider>
             </SafeAreaProvider>
         </HelmetProvider>

@@ -13,6 +13,7 @@ export const INVENTORY_ERROR_CODES = [
     'INVALID_STATUS_TRANSITION',
     'MEDIA_NOT_PERMITTED',
     'PUBLICATION_FORBIDDEN',
+    'TAXONOMY_POSTING_DISABLED',
 ] as const;
 
 export type InventoryErrorCode = (typeof INVENTORY_ERROR_CODES)[number];

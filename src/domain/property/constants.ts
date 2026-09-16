@@ -7,7 +7,22 @@ export const PROPERTY_CATEGORIES = ['residential', 'commercial', 'land'] as cons
 
 export const TRANSACTION_TYPES = ['buy', 'rent'] as const;
 
-export const RESIDENTIAL_SUBTYPES = ['apartment', 'independent_house', 'villa', 'plot'] as const;
+export const STAY_SUBTYPES = [
+    'bed',
+    'shared_room',
+    'private_room',
+    'pg',
+    'coliving',
+    'roommate_replacement',
+] as const;
+
+export const RESIDENTIAL_SUBTYPES = [
+    'apartment',
+    'independent_house',
+    'villa',
+    'plot',
+    ...STAY_SUBTYPES,
+] as const;
 export const COMMERCIAL_SUBTYPES = ['office', 'shop', 'warehouse', 'industrial', 'commercial_land'] as const;
 export const LAND_SUBTYPES = ['residential_plot', 'agricultural', 'commercial_plot', 'other'] as const;
 export const PROPERTY_SUBTYPES = [

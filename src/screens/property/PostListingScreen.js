@@ -26,6 +26,8 @@ import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { getPropertyRoles } from '../../navigation/propertyCapabilities';
 import { inventoryService } from '../../services/property';
+import { useTaxonomy } from '../../hooks/useTaxonomy';
+import { mapTaxonomyToLegacy } from '../../domain/taxonomy';
 import {
     InventoryError,
     MAX_POST_PHOTOS,
@@ -82,6 +84,8 @@ function emptyForm() {
         transactionType: null,
         category: null,
         subtype: null,
+        listingTypeId: null,
+        taxonomyId: null,
         bedrooms: null,
         bathrooms: null,
         carpetAreaSqft: null,
@@ -136,6 +140,8 @@ function hydrateForm({ listing, property, media }) {
         transactionType: listing.transactionType,
         category: property?.category || null,
         subtype: property?.subtype || null,
+        listingTypeId: listing.taxonomyId || listing.listingTypeId || property?.subtype || null,
+        taxonomyId: listing.taxonomyId || null,
         bedrooms: property?.bedrooms ?? null,
         bathrooms: property?.bathrooms ?? null,
         carpetAreaSqft: property?.carpetAreaSqft ?? null,
@@ -199,6 +205,7 @@ const PostListingScreen = () => {
     const roles = getPropertyRoles(user);
     const actorChoices = useMemo(() => postingActorChoices(roles), [roles]);
     const listingIdParam = route.params?.listingId || null;
+    const { postingCategories } = useTaxonomy();
 
     const [form, setForm] = useState(emptyForm);
     const [stepKey, setStepKey] = useState('actor');
@@ -299,8 +306,8 @@ const PostListingScreen = () => {
             setError('Choose Buy or Rent.');
             return;
         }
-        if (current === 'category' && (!form.category || !form.subtype)) {
-            setError('Choose a property type.');
+        if (current === 'category' && (!form.category || !form.subtype) && !form.listingTypeId) {
+            setError('Choose a listing type.');
             return;
         }
         if (current === 'location') {
@@ -599,27 +606,63 @@ const PostListingScreen = () => {
             );
         }
         if (stepKey === 'category') {
+            const availablePostingCategories = postingCategories(form.transactionType || 'rent');
+            const hasTaxonomyItems = availablePostingCategories && availablePostingCategories.length > 0;
+
             return (
                 <>
-                    <Typography variant="h2" style={styles.heading}>What kind of property?</Typography>
-                    <PostChoiceChips
-                        accessibilityLabel="Property category"
-                        value={form.category}
-                        onChange={(category) => patch({ category, subtype: null, amenities: [] })}
-                        options={[
-                            { value: 'residential', label: 'Residential' },
-                            { value: 'commercial', label: 'Commercial' },
-                            { value: 'land', label: 'Land' },
-                        ]}
-                    />
-                    {form.category ? (
+                    <Typography variant="h2" style={styles.heading}>What kind of listing?</Typography>
+                    <Typography variant="bodyMedium" style={{ color: COLORS.secondary, marginBottom: SPACING.m }}>
+                        Choose the accommodation or property type you are listing.
+                    </Typography>
+                    {hasTaxonomyItems ? (
                         <PostChoiceChips
-                            accessibilityLabel="Property subtype"
-                            value={form.subtype}
-                            onChange={(subtype) => patch({ subtype })}
-                            options={subtypeOptions(form.category)}
+                            accessibilityLabel="Listing type"
+                            value={form.listingTypeId || form.subtype}
+                            onChange={(selectedId) => {
+                                const found = availablePostingCategories.find((c) => c.typeId === selectedId || c.id === selectedId);
+                                if (found) {
+                                    const legacy = mapTaxonomyToLegacy(found);
+                                    patch({
+                                        listingTypeId: found.typeId,
+                                        taxonomyId: found.typeId,
+                                        category: legacy.category,
+                                        subtype: legacy.subtype,
+                                        bedrooms: found.typeId === 'stay_bed' ? 1 : form.bedrooms,
+                                        amenities: [],
+                                    });
+                                } else {
+                                    patch({ listingTypeId: selectedId, subtype: selectedId });
+                                }
+                            }}
+                            options={availablePostingCategories.map((item) => ({
+                                value: item.typeId,
+                                label: item.displayName,
+                                hint: item.description,
+                            }))}
                         />
-                    ) : null}
+                    ) : (
+                        <>
+                            <PostChoiceChips
+                                accessibilityLabel="Property category"
+                                value={form.category}
+                                onChange={(category) => patch({ category, subtype: null, amenities: [] })}
+                                options={[
+                                    { value: 'residential', label: 'Residential' },
+                                    { value: 'commercial', label: 'Commercial' },
+                                    { value: 'land', label: 'Land' },
+                                ]}
+                            />
+                            {form.category ? (
+                                <PostChoiceChips
+                                    accessibilityLabel="Property subtype"
+                                    value={form.subtype}
+                                    onChange={(subtype) => patch({ subtype })}
+                                    options={subtypeOptions(form.category)}
+                                />
+                            ) : null}
+                        </>
+                    )}
                 </>
             );
         }
