@@ -1,4 +1,5 @@
 import * as Linking from 'expo-linking';
+import { getStateFromPath as defaultGetStateFromPath } from '@react-navigation/native';
 
 const linking = {
     prefixes: [
@@ -36,7 +37,6 @@ const linking = {
                         },
                     },
                     // Legacy URLs remain routable on the stack, not as primary tabs.
-                    Home: 'home',
                     Map: 'map',
                     Search: 'marketplace',
                     MyTickets: 'my-tickets',
@@ -123,6 +123,32 @@ const linking = {
             },
             Blocked: 'blocked',
         },
+    },
+
+    // Redirect legacy /home and bare / to the Explore tab on web.
+    getStateFromPath(path, options) {
+        const cleanPath = path.split('?')[0].replace(/^\/+/, '');
+        if (cleanPath === '' || cleanPath === 'home') {
+            return {
+                routes: [
+                    {
+                        name: 'Main',
+                        state: {
+                            routes: [
+                                {
+                                    name: 'Tabs',
+                                    state: {
+                                        routes: [{ name: 'Explore' }],
+                                        index: 0,
+                                    },
+                                },
+                            ],
+                        },
+                    },
+                ],
+            };
+        }
+        return defaultGetStateFromPath(path, options);
     },
 };
 
