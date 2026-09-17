@@ -16,11 +16,15 @@ export const COLORS = {
   text: '#111827',             // Alias for primary
   textSecondary: '#6B7280',    // Alias for secondary
 
-  // Accents (Restrained, high-contrast Croww emerald)
-  accent: '#0F766E',           // Restrained teal/emerald CTA
-  accentDark: '#0D645D',       // Darker tone for active/press
-  accentMuted: '#ECFDF5',      // Soft mint badge/container
-  accentGlow: 'rgba(15, 118, 110, 0.12)',
+  // Accents (Croww Purple)
+  accent: '#7C3AED',           // Croww purple CTA & highlight
+  accentDark: '#6D28D9',       // Darker tone for active/press
+  accentMuted: '#F5F3FF',      // Soft purple badge/container
+  accentGlow: 'rgba(124, 58, 237, 0.12)',
+
+  // Bottom Navigation (Floating black pill)
+  navBlack: '#0F0F0F',         // Pure dark floating pill nav
+  navInactive: '#9CA3AF',      // Muted grey icon/text on dark nav
 
   // Status Colors
   success: '#059669',          // Verified green

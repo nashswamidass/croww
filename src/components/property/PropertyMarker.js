@@ -48,8 +48,9 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     pillOn: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
+        backgroundColor: COLORS.accent,
+        borderColor: COLORS.accent,
+        transform: [{ scale: 1.1 }],
     },
     text: {
         color: COLORS.primary,
@@ -71,7 +72,7 @@ const styles = StyleSheet.create({
         marginTop: -1,
     },
     tipOn: {
-        borderTopColor: COLORS.primary,
+        borderTopColor: COLORS.accent,
     },
 });
 

@@ -28,6 +28,7 @@ export const ExploreProvider = ({ children }) => {
     const [filters, setFiltersState] = useState(DEFAULT_EXPLORE_FILTERS);
     const [selectedListingId, setSelectedListingId] = useState(null);
     const [focusRegion, setFocusRegion] = useState(null);
+    const [isIntelligenceMode, setIntelligenceMode] = useState(false);
 
     const setFilters = useCallback((patch) => {
         setFiltersState((prev) => {
@@ -48,6 +49,7 @@ export const ExploreProvider = ({ children }) => {
         setFiltersState(DEFAULT_EXPLORE_FILTERS);
         setSelectedListingId(null);
         setFocusRegion(null);
+        setIntelligenceMode(false);
     }, []);
 
     const applySavedSearch = useCallback((search = {}) => {
@@ -141,6 +143,8 @@ export const ExploreProvider = ({ children }) => {
         clearExploreState,
         focusLocality,
         applySavedSearch,
+        isIntelligenceMode,
+        setIntelligenceMode,
     }), [
         city,
         localityId,
@@ -155,6 +159,8 @@ export const ExploreProvider = ({ children }) => {
         clearExploreState,
         focusLocality,
         applySavedSearch,
+        isIntelligenceMode,
+        setIntelligenceMode,
     ]);
 
     return (

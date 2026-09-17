@@ -1,152 +1,228 @@
-import React, { useState } from 'react';
-import { View, StyleSheet, ScrollView } from 'react-native';
+import React, { useMemo, useState } from 'react';
+import {
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
+} from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
-import AntigravityButton from '../../components/AntigravityButton';
-import FloatingCard from '../../components/FloatingCard';
-import PostChoiceChips from '../../components/property/post/PostChoiceChips';
 import AuthPromptModal from '../../components/auth/AuthPromptModal';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
+import {
+    BORDER_RADIUS,
+    COLORS,
+    FONT_SIZES,
+    SHADOWS,
+    SPACING,
+    TOUCH_TARGETS,
+} from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useTaxonomy } from '../../hooks/useTaxonomy';
-import { getPropertyRoles, getShellCapabilities } from '../../navigation/propertyCapabilities';
-import { dashboardCopy, postingHubCopy } from '../../domain/property';
 
-const GuaranteeItem = ({ icon, title, description }) => (
-    <View style={styles.guaranteeRow}>
-        <View style={styles.guaranteeIcon}>
-            <Ionicons name={icon} size={20} color={COLORS.accent} />
-        </View>
-        <View style={styles.guaranteeContent}>
-            <Typography variant="bodyLarge" style={styles.guaranteeTitle}>{title}</Typography>
-            <Typography variant="caption" style={styles.guaranteeDesc}>{description}</Typography>
-        </View>
-    </View>
-);
+// Robust icon mapper for accommodation categories
+const getCategoryIcon = (item) => {
+    const id = (item.typeId || item.id || '').toLowerCase();
+    const name = (item.displayName || '').toLowerCase();
+    if (id.includes('bed') || name.includes('bed')) return 'bed-outline';
+    if (id.includes('shared') || name.includes('shared')) return 'people-outline';
+    if (id.includes('private') || name.includes('private')) return 'person-outline';
+    if (id.includes('pg') || name.includes('pg')) return 'business-outline';
+    if (id.includes('coliving') || name.includes('co-living') || name.includes('coliving')) return 'sparkles-outline';
+    if (id.includes('roommate') || name.includes('roommate')) return 'swap-horizontal-outline';
+    if (item.icon && item.icon !== 'key-outline') return item.icon;
+    return 'home-outline';
+};
+
+// Concise 1-line descriptions that fit without truncation
+const getCategoryDesc = (item) => {
+    const id = (item.typeId || item.id || '').toLowerCase();
+    const name = (item.displayName || '').toLowerCase();
+    if (id.includes('bed') || name.includes('bed')) return 'Single bed space';
+    if (id.includes('shared') || name.includes('shared')) return 'Shared with roommates';
+    if (id.includes('private') || name.includes('private')) return 'Independent private room';
+    if (id.includes('pg') || name.includes('pg')) return 'Food & housekeeping stay';
+    if (id.includes('coliving') || name.includes('coliving')) return 'Managed community living';
+    if (id.includes('roommate') || name.includes('roommate')) return 'Take over an existing room';
+    return item.shortDescription || item.description || 'Accommodation space';
+};
+
+const normalizeId = (id) => (id || '').replace(/^stay_/, '').toLowerCase();
 
 const PostScreen = () => {
     const navigation = useNavigation();
+    const insets = useSafeAreaInsets();
     const { user } = useAuth();
     const [authModalVisible, setAuthModalVisible] = useState(false);
     const [authContext, setAuthContext] = useState('post');
-    const roles = getPropertyRoles(user);
-    const { isLegacyOrganizer } = getShellCapabilities(user);
-    const copy = postingHubCopy(roles);
-    const inventoryCopy = dashboardCopy(roles);
-    const { postingCategories } = useTaxonomy();
-    const activePosting = postingCategories('rent');
-    const [selectedType, setSelectedType] = useState(activePosting[0]?.typeId || 'pg');
+
+    // Server-driven listing taxonomy
+    const { activeTaxonomy, postingCategories } = useTaxonomy();
+
+    // Dynamically retrieve all categories where posting is enabled, ordered by displayOrder
+    const postingItems = useMemo(() => {
+        const fromActive = activeTaxonomy
+            .filter((item) => item.postingEnabled && item.rentEnabled)
+            .sort((a, b) => (a.displayOrder || 999) - (b.displayOrder || 999));
+
+        if (fromActive.length > 0) return fromActive;
+        return postingCategories('rent');
+    }, [activeTaxonomy, postingCategories]);
+
+    const [selectedType, setSelectedType] = useState('private_room');
+
+    const handleContinue = () => {
+        if (!user) {
+            setAuthContext('post');
+            setAuthModalVisible(true);
+            return;
+        }
+        navigation.navigate('PostListing', { initialType: selectedType });
+    };
 
     return (
         <ScreenWrapper edges={['top']}>
-            <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-                {/* Header */}
+            <ScrollView
+                contentContainerStyle={[
+                    styles.scrollContent,
+                    { paddingBottom: Math.max(insets.bottom, 16) + 120 },
+                ]}
+                showsVerticalScrollIndicator={false}
+            >
+                {/* 1. Header — Launch-Oriented Focus */}
                 <View style={styles.header}>
-                    <Typography variant="display" style={styles.title}>{copy.title}</Typography>
-                    <Typography variant="bodyLarge" style={styles.subtitle}>{copy.subtitle}</Typography>
+                    <View style={styles.badge}>
+                        <Ionicons name="sparkles" size={13} color={COLORS.accent} />
+                        <Text style={styles.badgeText}>COMMUNITY SHARING</Text>
+                    </View>
+                    <Typography variant="display" style={styles.title}>
+                        Have a space to share?
+                    </Typography>
+                    <Typography variant="bodyLarge" style={styles.subtitle}>
+                        List your bed, room, PG or co-living space on Croww.
+                    </Typography>
                 </View>
 
-                {/* Main Action Card */}
-                <FloatingCard style={styles.actionCard}>
-                    <View style={styles.cardHeader}>
-                        <View style={styles.badge}>
-                            <Ionicons name="sparkles" size={14} color={COLORS.accent} />
-                            <Typography variant="micro" style={styles.badgeText}>FAST & SIMPLE</Typography>
-                        </View>
-                        <Typography variant="titleLarge" style={styles.cardTitle}>List your property</Typography>
-                        <Typography variant="bodyMedium" style={styles.cardSubtitle}>
-                            Publish to verified home seekers with automated geohash discovery and privacy-first location control.
-                        </Typography>
+                {/* 2. Category Selection — "What are you offering?" */}
+                <View style={styles.sectionWrap}>
+                    <View style={styles.sectionHeaderRow}>
+                        <Text style={styles.sectionQuestion}>What are you offering?</Text>
+                        <Text style={styles.sectionHelp}>
+                            Select the format that best matches your space.
+                        </Text>
                     </View>
 
-                    {/* Dynamic Accommodation Types Driven by Server-Driven Taxonomy */}
-                    <View style={{ marginTop: SPACING.m, marginBottom: SPACING.m }}>
-                        <Typography variant="labelLarge" style={{ color: COLORS.primary, marginBottom: SPACING.xs }}>
-                            Accommodation Type ({activePosting.length} Available)
-                        </Typography>
-                        <PostChoiceChips
-                            accessibilityLabel="Listing type"
-                            value={selectedType}
-                            onChange={setSelectedType}
-                            options={activePosting.map((item) => ({
-                                value: item.typeId,
-                                label: item.displayName,
-                                hint: item.description,
-                            }))}
-                        />
+                    {/* 3. Compact 2-Column Responsive Card Grid */}
+                    <View style={styles.gridContainer}>
+                        {postingItems.map((item, index) => {
+                            const itemId = item.typeId || item.id;
+                            const isSelected = normalizeId(selectedType) === normalizeId(itemId);
+                            const isRoommate = itemId?.toLowerCase().includes('roommate') || item.displayName?.toLowerCase().includes('roommate');
+                            const isOddLast = index === postingItems.length - 1 && postingItems.length % 2 !== 0;
+                            const isFullWidth = isRoommate || isOddLast;
+
+                            return (
+                                <TouchableOpacity
+                                    key={itemId}
+                                    style={[
+                                        styles.categoryCard,
+                                        isFullWidth ? styles.cardFullWidth : styles.cardHalfWidth,
+                                        isSelected && styles.categoryCardSelected,
+                                    ]}
+                                    activeOpacity={0.82}
+                                    onPress={() => setSelectedType(itemId)}
+                                    accessibilityRole="radio"
+                                    accessibilityState={{ selected: isSelected }}
+                                    accessibilityLabel={item.displayName}
+                                >
+                                    <View style={styles.cardTopRow}>
+                                        <View
+                                            style={[
+                                                styles.iconWrap,
+                                                isSelected && styles.iconWrapSelected,
+                                            ]}
+                                        >
+                                            <Ionicons
+                                                name={getCategoryIcon(item)}
+                                                size={20}
+                                                color={isSelected ? COLORS.accent : COLORS.primary}
+                                            />
+                                        </View>
+
+                                        <View
+                                            style={[
+                                                styles.radioCircle,
+                                                isSelected && styles.radioCircleSelected,
+                                            ]}
+                                        >
+                                            {isSelected && (
+                                                <Ionicons name="checkmark" size={12} color="#FFFFFF" />
+                                            )}
+                                        </View>
+                                    </View>
+
+                                    <Text
+                                        style={[
+                                            styles.cardTitle,
+                                            isSelected && styles.cardTitleSelected,
+                                        ]}
+                                        numberOfLines={1}
+                                    >
+                                        {item.displayName}
+                                    </Text>
+
+                                    <Text style={styles.cardDesc} numberOfLines={1}>
+                                        {getCategoryDesc(item)}
+                                    </Text>
+                                </TouchableOpacity>
+                            );
+                        })}
                     </View>
 
-                    <View style={styles.ctaGroup}>
-                        <AntigravityButton
-                            title="Start New Listing"
-                            icon="add-circle-outline"
-                            size="large"
-                            onPress={() => {
-                                if (!user) {
-                                    setAuthContext('post');
-                                    setAuthModalVisible(true);
-                                    return;
-                                }
-                                navigation.navigate('PostListing');
-                            }}
-                            accessibilityLabel="Start a new listing"
-                        />
-                        <AntigravityButton
-                            title="My Property Inventory"
-                            icon="briefcase-outline"
-                            variant="secondary"
-                            size="large"
-                            onPress={() => {
-                                if (!user) {
-                                    setAuthContext('inventory');
-                                    setAuthModalVisible(true);
-                                    return;
-                                }
-                                navigation.navigate('InventoryDashboard');
-                            }}
-                            accessibilityLabel="Open your listings inventory"
-                        />
-                    </View>
-                </FloatingCard>
+                    {/* 5. Primary Continue CTA */}
+                    <TouchableOpacity
+                        style={styles.continueBtn}
+                        activeOpacity={0.88}
+                        onPress={handleContinue}
+                        accessibilityRole="button"
+                        accessibilityLabel="Continue to listing details"
+                    >
+                        <Text style={styles.continueBtnText}>Continue</Text>
+                        <Ionicons name="arrow-forward" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
 
-                {/* Owner Privacy & Control Pillars */}
-                <View style={styles.pillarsSection}>
-                    <Typography variant="titleMedium" style={styles.sectionHeading}>OWNER ADVANTAGE</Typography>
-
-                    <FloatingCard style={styles.pillarCard}>
-                        <GuaranteeItem
-                            icon="shield-checkmark"
-                            title="Location Privacy by Default"
-                            description="Keep your exact pin hidden. Viewers see an approximate locality circle until you approve their request."
-                        />
-                        <View style={styles.divider} />
-                        <GuaranteeItem
-                            icon="locate"
-                            title="Map-First Discovery"
-                            description="Your listing instantly appears on high-intent buyer searches with geohash-indexed map boundaries."
-                        />
-                        <View style={styles.divider} />
-                        <GuaranteeItem
-                            icon="cube-outline"
-                            title="3D Tour Ready"
-                            description="Add interactive 3D spatial walkthroughs to let prospective buyers explore remotely before site visits."
-                        />
-                    </FloatingCard>
+                    {/* Secondary Access: Existing inventory */}
+                    <TouchableOpacity
+                        style={styles.inventoryLink}
+                        activeOpacity={0.7}
+                        onPress={() => {
+                            if (!user) {
+                                setAuthContext('inventory');
+                                setAuthModalVisible(true);
+                                return;
+                            }
+                            navigation.navigate('InventoryDashboard');
+                        }}
+                        accessibilityRole="button"
+                        accessibilityLabel="Manage existing listings"
+                    >
+                        <Ionicons name="briefcase-outline" size={16} color={COLORS.secondary} style={{ marginRight: 6 }} />
+                        <Text style={styles.inventoryLinkText}>
+                            Manage existing listings
+                        </Text>
+                    </TouchableOpacity>
                 </View>
-
-                <Typography variant="caption" style={styles.hint}>
-                    {inventoryCopy.subtitle}
-                </Typography>
             </ScrollView>
 
             <AuthPromptModal
                 visible={authModalVisible}
                 onClose={() => setAuthModalVisible(false)}
                 navigation={navigation}
-                title="Post your property"
-                subtitle="Sign in to publish listings to verified buyers and tenants, and manage your property inventory."
+                title="Post your space"
+                subtitle="Sign in to publish listings to verified home seekers and manage your space inventory."
                 icon="home-outline"
                 actionContext={authContext}
             />
@@ -156,108 +232,162 @@ const PostScreen = () => {
 
 const styles = StyleSheet.create({
     scrollContent: {
-        paddingBottom: SPACING.xxl,
+        paddingTop: SPACING.s,
     },
     header: {
         paddingHorizontal: SPACING.l,
-        paddingTop: SPACING.m,
+        paddingTop: SPACING.s,
         paddingBottom: SPACING.m,
-    },
-    title: {
-        color: COLORS.primary,
-        fontWeight: '900',
-        letterSpacing: -1,
-    },
-    subtitle: {
-        color: COLORS.secondary,
-        marginTop: SPACING.xs,
-        lineHeight: 22,
-    },
-    actionCard: {
-        marginHorizontal: SPACING.l,
-        marginBottom: SPACING.l,
-        padding: SPACING.l,
-    },
-    cardHeader: {
-        marginBottom: SPACING.l,
     },
     badge: {
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
         backgroundColor: COLORS.accentMuted,
-        paddingHorizontal: SPACING.s,
-        paddingVertical: 3,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
         borderRadius: BORDER_RADIUS.round,
         gap: 4,
-        marginBottom: SPACING.s,
+        marginBottom: 8,
     },
     badgeText: {
         color: COLORS.accent,
+        fontSize: 10,
         fontWeight: '800',
-        letterSpacing: 0.5,
+        letterSpacing: 0.6,
     },
-    cardTitle: {
+    title: {
         color: COLORS.primary,
-        fontWeight: '800',
-        marginBottom: 4,
+        fontWeight: '900',
+        letterSpacing: -0.8,
+        fontSize: 28,
+        lineHeight: 34,
     },
-    cardSubtitle: {
+    subtitle: {
         color: COLORS.secondary,
-        lineHeight: 20,
+        marginTop: 4,
+        fontSize: FONT_SIZES.m,
+        lineHeight: 22,
     },
-    ctaGroup: {
-        gap: SPACING.m,
-    },
-    pillarsSection: {
+    sectionWrap: {
         paddingHorizontal: SPACING.l,
-        marginBottom: SPACING.l,
-    },
-    sectionHeading: {
-        color: COLORS.secondary,
-        fontSize: 12,
-        letterSpacing: 0.8,
-        textTransform: 'uppercase',
         marginBottom: SPACING.s,
     },
-    pillarCard: {
-        padding: SPACING.l,
+    sectionHeaderRow: {
+        marginBottom: 12,
     },
-    guaranteeRow: {
-        flexDirection: 'row',
-        alignItems: 'flex-start',
-        gap: SPACING.m,
+    sectionQuestion: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.primary,
+        letterSpacing: -0.3,
     },
-    guaranteeIcon: {
-        width: 38,
-        height: 38,
-        borderRadius: 19,
-        backgroundColor: COLORS.accentMuted,
-        alignItems: 'center',
-        justifyContent: 'center',
+    sectionHelp: {
+        fontSize: FONT_SIZES.xs,
+        color: COLORS.secondary,
         marginTop: 2,
     },
-    guaranteeContent: {
-        flex: 1,
+    gridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 10,
+        marginBottom: 16,
     },
-    guaranteeTitle: {
-        color: COLORS.primary,
+    categoryCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.l,
+        padding: 14,
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        minHeight: 96,
+        justifyContent: 'space-between',
+        ...SHADOWS.subtle,
+    },
+    cardHalfWidth: {
+        width: '48.2%',
+        flexGrow: 1,
+    },
+    cardFullWidth: {
+        width: '100%',
+    },
+    categoryCardSelected: {
+        backgroundColor: '#FAF8FE',
+        borderColor: COLORS.accent,
+        borderWidth: 2,
+        ...SHADOWS.soft,
+    },
+    cardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 8,
+    },
+    iconWrap: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.surfaceHighlight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    iconWrapSelected: {
+        backgroundColor: '#EDE9FE',
+    },
+    radioCircle: {
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        borderWidth: 1.5,
+        borderColor: COLORS.borderLight,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    radioCircleSelected: {
+        backgroundColor: COLORS.accent,
+        borderColor: COLORS.accent,
+    },
+    cardTitle: {
+        fontSize: 15,
         fontWeight: '700',
-        marginBottom: 2,
+        color: COLORS.primary,
+        letterSpacing: -0.2,
     },
-    guaranteeDesc: {
+    cardTitleSelected: {
+        color: COLORS.accentDark,
+        fontWeight: '800',
+    },
+    cardDesc: {
+        fontSize: 11,
         color: COLORS.secondary,
-        lineHeight: 18,
+        marginTop: 2,
     },
-    divider: {
-        height: 1,
-        backgroundColor: COLORS.border,
-        marginVertical: SPACING.m,
+    continueBtn: {
+        height: TOUCH_TARGETS.button,
+        backgroundColor: COLORS.accent,
+        borderRadius: BORDER_RADIUS.button,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 6,
+        marginBottom: 12,
+        ...SHADOWS.medium,
     },
-    hint: {
+    continueBtnText: {
+        color: '#FFFFFF',
+        fontSize: FONT_SIZES.m,
+        fontWeight: '700',
+        marginRight: 8,
+    },
+    inventoryLink: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingVertical: 8,
+    },
+    inventoryLinkText: {
         color: COLORS.secondary,
-        paddingHorizontal: SPACING.l,
-        textAlign: 'center',
+        fontWeight: '600',
+        fontSize: FONT_SIZES.s,
     },
 });
 

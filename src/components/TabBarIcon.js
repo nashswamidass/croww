@@ -2,12 +2,12 @@ import React from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../constants/theme';
 
-const TabBarIcon = ({ focused, name }) => {
+const TabBarIcon = ({ focused, name, color, size = 22 }) => {
     return (
         <Ionicons
             name={name}
-            size={24}
-            color={focused ? COLORS.accent : COLORS.secondary}
+            size={size}
+            color={color || (focused ? COLORS.accent : COLORS.navInactive)}
         />
     );
 };

@@ -6,6 +6,7 @@ export const TABS = {
     Explore: 'Explore',
     Saved: 'Saved',
     Post: 'Post',
+    Areas: 'Areas',
     Messages: 'Messages',
     Profile: 'Profile',
 };

@@ -34,8 +34,7 @@ const POPULAR_LOCALITIES = {
 };
 
 const loadGoogleMapsScript = () => {
-    if (Platform.OS !== 'web') return Promise.resolve(false);
-    if (typeof window !== 'undefined' && window.google?.maps?.places) return Promise.resolve(true);
+    if (typeof window !== 'undefined' && (window.google?.maps || document.getElementById('google-map-script') || document.querySelector('script[src*="maps.googleapis.com"]'))) return Promise.resolve(true);
     if (typeof window !== 'undefined' && window.__googleMapsLoading) return window.__googleMapsLoading;
     if (typeof window === 'undefined' || !API_KEY) return Promise.resolve(false);
 

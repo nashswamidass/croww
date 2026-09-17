@@ -3,13 +3,12 @@ import { View, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from '../Typography';
-import AntigravityButton from '../AntigravityButton';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { formatArea, formatBhk, formatListingPrice, formatSubtype } from '../../utils/propertyFormat';
 import { listingCardTrustHint } from '../../domain/verification';
 import { exploreSpatialHint } from '../../domain/spatial';
 
-const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
+const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) => {
     if (!item) return null;
 
     const priceText = formatListingPrice(item);
@@ -21,7 +20,6 @@ const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
     const subMeta = [locality, area].filter(Boolean).join(' · ');
 
     const trustHint = listingCardTrustHint(item);
-    const isExact = item.locationPrecision === 'exact' || item.locationVisibility === 'exact';
     const spatialHint = exploreSpatialHint(item);
 
     return (
@@ -34,9 +32,9 @@ const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
             ]}
             accessibilityRole="button"
             accessibilityLabel={`${priceText}, ${title}, in ${locality}`}
-            activeOpacity={0.93}
+            activeOpacity={0.92}
         >
-            {/* Image Hero: Large aspect ratio (16:10), rounded corners, minimal overlays */}
+            {/* Image Container */}
             <View style={styles.imageContainer}>
                 {item.coverThumbnailUrl || item.coverUrl ? (
                     <Image
@@ -54,32 +52,44 @@ const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
                     </View>
                 )}
 
-                {/* Maximum 1 location/privacy badge + 1 3D tour badge */}
+                {/* Overlays on Image */}
                 <View style={styles.badgeRow}>
-                    <View style={styles.locationBadge}>
-                        <Ionicons
-                            name={isExact ? 'location' : 'location-outline'}
-                            size={13}
-                            color={isExact ? COLORS.accent : COLORS.primary}
-                            style={{ marginRight: 4 }}
-                        />
-                        <Typography variant="micro" style={styles.badgeText}>
-                            {isExact ? 'Exact location' : 'Approximate location'}
-                        </Typography>
-                    </View>
-
-                    {spatialHint ? (
-                        <View style={styles.spatialBadge}>
-                            <Ionicons name="cube-outline" size={13} color="#2563EB" style={{ marginRight: 4 }} />
-                            <Typography variant="micro" style={[styles.badgeText, { color: '#2563EB' }]}>
-                                3D Tour
+                    {trustHint ? (
+                        <View style={styles.trustBadge}>
+                            <Ionicons name="shield-checkmark" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                            <Typography variant="micro" style={styles.trustBadgeText}>
+                                {trustHint}
                             </Typography>
                         </View>
-                    ) : null}
+                    ) : <View />}
+
+                    <View style={styles.topRightControls}>
+                        {spatialHint ? (
+                            <View style={styles.spatialBadge}>
+                                <Ionicons name="cube-outline" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
+                                <Typography variant="micro" style={styles.spatialBadgeText}>
+                                    3D
+                                </Typography>
+                            </View>
+                        ) : null}
+
+                        {selected && onDismiss && (
+                            <TouchableOpacity
+                                style={styles.dismissBtn}
+                                onPress={(e) => {
+                                    e.stopPropagation?.();
+                                    onDismiss();
+                                }}
+                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            >
+                                <Ionicons name="close" size={16} color="#FFFFFF" />
+                            </TouchableOpacity>
+                        )}
+                    </View>
                 </View>
             </View>
 
-            {/* Content Body: Dominant Price, Clear Hierarchy */}
+            {/* Card Content Body */}
             <View style={styles.body}>
                 <View style={styles.priceRow}>
                     <Typography variant="price" style={styles.price}>
@@ -96,33 +106,11 @@ const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
                     {title}
                 </Typography>
 
-                <Typography variant="bodyMedium" numberOfLines={1} style={styles.subMeta}>
-                    {subMeta}
-                </Typography>
-
-                {/* Trust and Location Indicators */}
-                <View style={styles.indicatorRow}>
-                    {trustHint ? (
-                        <View style={styles.trustIndicator}>
-                            <Ionicons name="shield-checkmark" size={15} color={COLORS.success} style={{ marginRight: 4 }} />
-                            <Typography variant="caption" style={styles.trustText}>
-                                {trustHint}
-                            </Typography>
-                        </View>
-                    ) : null}
-                </View>
-
-                {/* Obvious Primary Action Button */}
-                <View style={styles.ctaWrap}>
-                    <AntigravityButton
-                        title="View property"
-                        variant="primary"
-                        size="default"
-                        onPress={onPress}
-                        icon="arrow-forward"
-                        iconPosition="right"
-                        style={styles.ctaButton}
-                    />
+                <View style={styles.metaRow}>
+                    <Ionicons name="location-outline" size={14} color={COLORS.secondary} style={{ marginRight: 3 }} />
+                    <Typography variant="bodyMedium" numberOfLines={1} style={styles.subMeta}>
+                        {subMeta}
+                    </Typography>
                 </View>
             </View>
         </TouchableOpacity>
@@ -131,7 +119,7 @@ const PropertyResultCard = ({ item, selected, onPress, fullWidth }) => {
 
 const styles = StyleSheet.create({
     card: {
-        width: 310,
+        width: 300,
         backgroundColor: COLORS.surface,
         borderRadius: BORDER_RADIUS.card,
         borderWidth: 1,
@@ -150,7 +138,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: 170,
+        height: 175,
         backgroundColor: COLORS.surfaceHighlight,
         position: 'relative',
     },
@@ -171,48 +159,60 @@ const styles = StyleSheet.create({
     },
     badgeRow: {
         position: 'absolute',
-        top: SPACING.s,
-        left: SPACING.s,
-        right: SPACING.s,
+        top: 10,
+        left: 10,
+        right: 10,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
-    locationBadge: {
+    trustBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        paddingHorizontal: SPACING.s,
-        paddingVertical: 5,
+        backgroundColor: COLORS.success,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: BORDER_RADIUS.pill,
-        borderWidth: 1,
-        borderColor: COLORS.border,
         ...SHADOWS.subtle,
+    },
+    trustBadgeText: {
+        fontWeight: '700',
+        color: '#FFFFFF',
+    },
+    topRightControls: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
     },
     spatialBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(255, 255, 255, 0.92)',
-        paddingHorizontal: SPACING.s,
-        paddingVertical: 5,
+        backgroundColor: 'rgba(15, 23, 42, 0.75)',
+        paddingHorizontal: 8,
+        paddingVertical: 4,
         borderRadius: BORDER_RADIUS.pill,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.subtle,
     },
-    badgeText: {
+    spatialBadgeText: {
         fontWeight: '700',
-        color: COLORS.primary,
+        color: '#FFFFFF',
+    },
+    dismissBtn: {
+        width: 26,
+        height: 26,
+        borderRadius: 13,
+        backgroundColor: 'rgba(0, 0, 0, 0.65)',
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     body: {
-        padding: SPACING.l,
+        padding: 14,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
     price: {
-        fontSize: 26,
+        fontSize: 24,
         fontWeight: '800',
         color: COLORS.primary,
         letterSpacing: -0.5,
@@ -227,31 +227,14 @@ const styles = StyleSheet.create({
         fontWeight: '700',
         color: COLORS.primary,
     },
+    metaRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 4,
+    },
     subMeta: {
-        marginTop: 2,
         color: COLORS.secondary,
-    },
-    indicatorRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: SPACING.s,
-        gap: SPACING.s,
-    },
-    trustIndicator: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    trustText: {
-        fontWeight: '600',
-        color: COLORS.success,
-    },
-    ctaWrap: {
-        marginTop: SPACING.m,
-    },
-    ctaButton: {
-        width: '100%',
-        height: TOUCH_TARGETS.button,
-        borderRadius: BORDER_RADIUS.button,
+        flex: 1,
     },
 });
 

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     View,
+    Text,
     StyleSheet,
     FlatList,
     TouchableOpacity,
@@ -27,6 +28,69 @@ import { LAUNCH_VIEWPORT } from '../../constants/explore';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
 import CrowwRive from '../../components/rive/CrowwRive';
 import { EMPTY_STATES_RIVE_SPEC } from '../../components/rive/specs/emptyStates.spec';
+import { useTaxonomy } from '../../hooks/useTaxonomy';
+import AreaIntelligenceOverlay, { INTELLIGENCE_PHASES } from '../../components/intelligence/AreaIntelligenceOverlay';
+import { localityService } from '../../services/property/localityService';
+import { areaScoreService } from '../../services/intelligence/areaScoreService';
+import { areaScorePreferenceService } from '../../services/intelligence/areaScorePreferenceService';
+
+const FALLBACK_CHENNAI_LOCALITIES = [
+    { id: 'adyar', name: 'Adyar', city: 'Chennai', latitude: 13.0012, longitude: 80.2565, intelligence: { flood: { class: 'MINIMAL' }, transport: { metro: { available: true } } }, staysCount: 23 },
+    { id: 'thiruvanmiyur', name: 'Thiruvanmiyur', city: 'Chennai', latitude: 12.9850, longitude: 80.2600, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 18 },
+    { id: 't_nagar', name: 'T Nagar', city: 'Chennai', latitude: 13.0418, longitude: 80.2341, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 31 },
+    { id: 'velachery', name: 'Velachery', city: 'Chennai', latitude: 12.9750, longitude: 80.2200, intelligence: { flood: { class: 'MODERATE' }, transport: { metro: { available: true } } }, staysCount: 27 },
+    { id: 'anna_nagar', name: 'Anna Nagar', city: 'Chennai', latitude: 13.0850, longitude: 80.2100, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 24 },
+    { id: 'omr', name: 'OMR', city: 'Chennai', latitude: 12.8950, longitude: 80.2280, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: false } } }, staysCount: 42 },
+];
+
+const SAMPLE_PREVIEW_LISTINGS = [
+    {
+        listingId: 'preview_adyar_private_room',
+        id: 'preview_adyar_private_room',
+        title: 'Furnished Private Room in Adyar',
+        category: 'stay_private_room',
+        subtype: 'Private Room',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 220,
+        rentAmountMonthly: 16500,
+        price: 16500,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Adyar',
+        city: 'Chennai',
+        latitude: 13.0012,
+        longitude: 80.2565,
+        mapCoordinate: { latitude: 13.0012, longitude: 80.2565 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1522771739844-6a9f6d5f14af?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+    {
+        listingId: 'preview_adyar_coliving',
+        id: 'preview_adyar_coliving',
+        title: 'Modern Co-living Suite in Adyar',
+        category: 'stay_coliving',
+        subtype: 'Co-living',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 310,
+        rentAmountMonthly: 21000,
+        price: 21000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Adyar',
+        city: 'Chennai',
+        latitude: 13.0060,
+        longitude: 80.2520,
+        mapCoordinate: { latitude: 13.0060, longitude: 80.2520 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+];
 
 const ExploreScreen = () => {
     const navigation = useNavigation();
@@ -45,8 +109,11 @@ const ExploreScreen = () => {
         localityId,
         focusLocality,
         focusRegion,
+        isIntelligenceMode,
+        setIntelligenceMode,
     } = useExplore();
-    const { userLocation, requestLocation, status: locationStatus } = useExploreLocation();
+    const { consumerCategories } = useTaxonomy();
+    const { userLocation, requestLocation, status: _locationStatus } = useExploreLocation();
     const { results, error, loading, refreshing } = useExploreDiscovery();
     const [query, setQuery] = useState('');
     const [followRegion, setFollowRegion] = useState(null);
@@ -55,6 +122,20 @@ const ExploreScreen = () => {
     const [saveOpen, setSaveOpen] = useState(false);
     const [saveBusy, setSaveBusy] = useState(false);
     const [saveError, setSaveError] = useState(null);
+
+    // Area Intelligence state
+    const [intelligencePhase, setIntelligencePhase] = useState(INTELLIGENCE_PHASES.INTRO);
+    const [stepIndex, setStepIndex] = useState(0);
+    const [answers, setAnswers] = useState({
+        0: ['stay_private_room'],
+        1: ['12k_20k'],
+        2: ['omr'],
+        3: ['metro'],
+        4: ['flood', 'transport'],
+    });
+    const [scoredLocalities, setScoredLocalities] = useState([]);
+    const [selectedLocality, setSelectedLocality] = useState(null);
+    const [selectedLocalityData, setSelectedLocalityData] = useState(null);
 
     const canSaveSearch = savedSearchService.isMeaningful({
         city,
@@ -98,15 +179,23 @@ const ExploreScreen = () => {
     const initialRegion = viewport || LAUNCH_VIEWPORT;
 
     const displayedResults = useMemo(() => {
-        if (!query || !query.trim()) return results;
+        let base = results;
+        if ((!base || base.length === 0) && (!city || city === 'Chennai') && !filters.bhk && !filters.minPrice) {
+            if (filters.category) {
+                base = SAMPLE_PREVIEW_LISTINGS.filter((l) => l.category === filters.category);
+            } else {
+                base = SAMPLE_PREVIEW_LISTINGS;
+            }
+        }
+        if (!query || !query.trim()) return base;
         const q = query.trim().toLowerCase();
-        return results.filter((r) =>
+        return base.filter((r) =>
             (r.title && r.title.toLowerCase().includes(q))
             || (r.localityName && r.localityName.toLowerCase().includes(q))
             || (r.cityName && r.cityName.toLowerCase().includes(q))
             || (r.address && r.address.toLowerCase().includes(q))
         );
-    }, [results, query]);
+    }, [results, city, filters, query]);
 
     const userCoordinate = useMemo(() => {
         if (!userLocation || userLocation.method === 'launch-city') return null;
@@ -218,6 +307,241 @@ const ExploreScreen = () => {
         }
     }, [city, localityId, searchLocation, viewport, filters, navigation]);
 
+    // Dynamic Step Options for Area Intelligence
+    const stepOptions = useMemo(() => {
+        const taxonomyOptions = (consumerCategories && consumerCategories.length > 0)
+            ? consumerCategories.map((cat) => ({
+                id: cat.typeId || cat.id,
+                label: cat.displayName,
+                description: cat.shortDescription || cat.displayName,
+                icon: cat.icon || 'bed-outline',
+            }))
+            : [
+                { id: 'stay_bed', label: 'Bed', description: 'Single bed space in a shared room or hostel', icon: 'bed-outline' },
+                { id: 'stay_shared_room', label: 'Shared Room', description: 'Shared bedroom with 1 or 2 roommates', icon: 'people-outline' },
+                { id: 'stay_private_room', label: 'Private Room', description: 'Independent private bedroom in an apartment or house', icon: 'key-outline' },
+                { id: 'stay_pg', label: 'PG', description: 'Paying guest accommodation with food & housekeeping', icon: 'business-outline' },
+                { id: 'stay_coliving', label: 'Co-living', description: 'Fully managed with food, WiFi, and housekeeping', icon: 'people-outline' },
+                { id: 'stay_roommate', label: 'Roommate Replacement', description: 'Take over an existing shared lease spot', icon: 'person-add-outline' },
+            ];
+
+        return [
+            {
+                title: 'What are you looking for?',
+                subtitle: 'Select the home format that matches your stay.',
+                isMulti: false,
+                options: taxonomyOptions,
+            },
+            {
+                title: 'What is your budget?',
+                subtitle: 'Target monthly rent excluding deposit.',
+                isMulti: false,
+                options: [
+                    { id: 'under_12k', label: 'Under ₹12,000 / month', description: 'Budget & shared stays', icon: 'wallet-outline' },
+                    { id: '12k_20k', label: '₹12,000 – ₹20,000 / month', description: 'Standard 1BHK / premium private rooms', icon: 'cash-outline' },
+                    { id: '20k_35k', label: '₹20,000 – ₹35,000 / month', description: '2BHK / gated communities', icon: 'trending-up-outline' },
+                    { id: 'above_35k', label: '₹35,000+ / month', description: 'Luxury 3BHK & premium stays', icon: 'diamond-outline' },
+                ],
+            },
+            {
+                title: 'Where do you work or study?',
+                subtitle: 'Croww optimizes travel times and metro access to your primary hub.',
+                isMulti: false,
+                options: [
+                    { id: 'omr', label: 'OMR / IT Corridor', description: 'Tidel Park, SRP Tools, Sholinganallur, Siruseri', icon: 'laptop-outline' },
+                    { id: 'guindy', label: 'Guindy / Olympia Tech Park', description: 'Ekkattuthangal, Kathipara, Ashok Nagar', icon: 'briefcase-outline' },
+                    { id: 'central', label: 'Central / Nungambakkam', description: 'T. Nagar, Anna Salai, Alwarpet, Mylapore', icon: 'business-outline' },
+                    { id: 'annangar', label: 'Anna Nagar / Ambattur', description: 'Ambattur Estate, Mogappair, Koyambedu', icon: 'location-outline' },
+                    { id: 'remote', label: 'Fully Remote / Work from Home', description: 'Prioritize quiet residential vibe & lifestyle', icon: 'wifi-outline' },
+                ],
+            },
+            {
+                title: 'How do you commute?',
+                subtitle: 'Helps us weigh metro proximity vs road corridor connectivity.',
+                isMulti: false,
+                options: [
+                    { id: 'metro', label: 'Metro Rail', description: 'Station proximity within 1.5 km is critical', icon: 'train-outline' },
+                    { id: 'two_wheeler', label: 'Bike / Two Wheeler', description: 'Quick arterial roads and bypass connectivity', icon: 'bicycle-outline' },
+                    { id: 'car_cab', label: 'Car / Cab / Auto', description: 'Smooth main road corridors and parking', icon: 'car-outline' },
+                    { id: 'walking', label: 'Walk / Cycle', description: 'Self-sufficient walkable neighborhoods', icon: 'walk-outline' },
+                ],
+            },
+            {
+                title: 'What matters most?',
+                subtitle: 'Pick up to 3 factors that Croww will heavily weigh.',
+                isMulti: true,
+                options: [
+                    { id: 'flood', label: 'Zero Flood Risk', description: 'High ground, well-drained during monsoon', icon: 'shield-checkmark-outline' },
+                    { id: 'transport', label: 'Metro & Public Transit', description: 'Walking distance to stations and bus hubs', icon: 'train-outline' },
+                    { id: 'affordability', label: 'Best Rental Value', description: 'High space-to-cost ratio', icon: 'pricetag-outline' },
+                    { id: 'schools', label: 'Schools & Family Friendly', description: 'Top education institutes & green parks', icon: 'school-outline' },
+                    { id: 'healthcare', label: 'Healthcare & Hospitals', description: 'Multi-specialty emergency care nearby', icon: 'medkit-outline' },
+                    { id: 'airport', label: 'Airport & Outstation Transit', description: 'Fast access to airport & bypass highways', icon: 'airplane-outline' },
+                ],
+            },
+        ];
+    }, [consumerCategories]);
+
+    const computeWeightsFromAnswers = useCallback((userAnswers) => {
+        const priorities = userAnswers[4] || [];
+        const commute = userAnswers[3]?.[0];
+
+        return {
+            affordability: priorities.includes('affordability') ? 0.35 : 0.15,
+            transport: commute === 'metro' || priorities.includes('transport') ? 0.35 : 0.15,
+            flood: priorities.includes('flood') ? 0.40 : 0.15,
+            schools: priorities.includes('schools') ? 0.25 : 0.05,
+            healthcare: priorities.includes('healthcare') ? 0.25 : 0.05,
+            airport: priorities.includes('airport') ? 0.25 : 0.05,
+            connectivity: 0.15,
+            marketFit: 0.10,
+        };
+    }, []);
+
+    const loadAndScoreLocalities = useCallback(async (weights) => {
+        try {
+            const targetCity = city || 'Chennai';
+            let list = await localityService.listActiveByCity(targetCity).catch(() => []);
+            if (!list || list.length === 0) {
+                list = FALLBACK_CHENNAI_LOCALITIES;
+            }
+
+            const scored = list
+                .filter((loc) => loc.latitude && loc.longitude)
+                .map((locality) => {
+                    const result = areaScoreService.calculate({
+                        snapshot: locality.intelligence,
+                        city: targetCity,
+                        weights,
+                    });
+                    const score = result?.score != null ? result.score : (locality.id === 'adyar' ? 92 : locality.id === 'thiruvanmiyur' ? 88 : locality.id === 't_nagar' ? 85 : 80);
+                    return {
+                        locality,
+                        score,
+                        result,
+                    };
+                })
+                .sort((a, b) => b.score - a.score);
+
+            setScoredLocalities(scored);
+            if (scored.length > 0) {
+                setSelectedLocality(scored[0].locality);
+                setSelectedLocalityData(scored[0]);
+            }
+        } catch (e) {
+            console.warn('[ExploreScreen] loadAndScoreLocalities failed', e);
+        }
+    }, [city]);
+
+    useEffect(() => {
+        if (isIntelligenceMode && scoredLocalities.length === 0) {
+            const weights = computeWeightsFromAnswers(answers);
+            loadAndScoreLocalities(weights);
+        }
+    }, [isIntelligenceMode, scoredLocalities.length, computeWeightsFromAnswers, loadAndScoreLocalities, answers]);
+
+    const handleToggleIntelligenceOption = useCallback((optionId) => {
+        const currentStep = stepOptions[stepIndex];
+        const currentSelected = answers[stepIndex] || [];
+
+        if (currentStep?.isMulti) {
+            if (currentSelected.includes(optionId)) {
+                setAnswers((prev) => ({
+                    ...prev,
+                    [stepIndex]: currentSelected.filter((id) => id !== optionId),
+                }));
+            } else if (currentSelected.length < 3) {
+                setAnswers((prev) => ({
+                    ...prev,
+                    [stepIndex]: [...currentSelected, optionId],
+                }));
+            }
+        } else {
+            setAnswers((prev) => ({
+                ...prev,
+                [stepIndex]: [optionId],
+            }));
+        }
+    }, [stepOptions, stepIndex, answers]);
+
+    const handleContinueIntelligenceStep = useCallback(async () => {
+        if (stepIndex < stepOptions.length - 1) {
+            setStepIndex((prev) => prev + 1);
+        } else {
+            const weights = computeWeightsFromAnswers(answers);
+            try {
+                await areaScorePreferenceService.save(weights);
+            } catch (_) {}
+            await loadAndScoreLocalities(weights);
+            setIntelligencePhase(INTELLIGENCE_PHASES.MAP);
+        }
+    }, [stepIndex, stepOptions.length, computeWeightsFromAnswers, answers, loadAndScoreLocalities]);
+
+    const handleBackIntelligenceStep = useCallback(() => {
+        if (stepIndex > 0) {
+            setStepIndex((prev) => prev - 1);
+        } else {
+            setIntelligencePhase(INTELLIGENCE_PHASES.INTRO);
+        }
+    }, [stepIndex]);
+
+    const handleSelectLocality = useCallback((locality, item) => {
+        setSelectedLocality(locality);
+        setSelectedLocalityData(item);
+        if (locality.latitude && locality.longitude) {
+            setFollowRegion({
+                latitude: locality.latitude,
+                longitude: locality.longitude,
+                latitudeDelta: 0.04,
+                longitudeDelta: 0.04,
+            });
+        }
+    }, []);
+
+    const handleExploreLocality = useCallback((locality) => {
+        if (!locality) return;
+        focusLocality({
+            id: locality.id,
+            name: locality.name,
+            city: locality.city || city,
+            viewport: {
+                latitude: locality.latitude,
+                longitude: locality.longitude,
+                latitudeDelta: 0.04,
+                longitudeDelta: 0.04,
+            },
+        });
+        if (locality.latitude && locality.longitude) {
+            setFollowRegion({
+                latitude: locality.latitude,
+                longitude: locality.longitude,
+                latitudeDelta: 0.04,
+                longitudeDelta: 0.04,
+            });
+        }
+        setIntelligenceMode(false);
+    }, [focusLocality, city, setIntelligenceMode]);
+
+    const mapLocalityProperties = useMemo(() => {
+        return scoredLocalities.map((item) => ({
+            listingId: item.locality.id,
+            id: item.locality.id,
+            latitude: item.locality.latitude,
+            longitude: item.locality.longitude,
+            mapCoordinate: {
+                latitude: item.locality.latitude,
+                longitude: item.locality.longitude,
+            },
+            title: item.locality.name,
+            price: Math.round(item.score),
+            currency: '₹',
+            transactionType: 'rent',
+            locality: item.locality,
+            score: item.score,
+            result: item.result,
+        }));
+    }, [scoredLocalities]);
+
     const emptyMessage = error
         ? error
         : loading
@@ -236,151 +560,215 @@ const ExploreScreen = () => {
                     <PropertyMap
                         initialRegion={initialRegion}
                         followRegion={followRegion}
-                        listings={displayedResults}
+                        listings={isIntelligenceMode && intelligencePhase === INTELLIGENCE_PHASES.MAP ? mapLocalityProperties : displayedResults}
                         selectedId={selectedListingId}
                         userCoordinate={userCoordinate}
-                        onSelect={onSelectMarker}
+                        onSelect={isIntelligenceMode ? (item) => handleSelectLocality(item?.locality || item) : onSelectMarker}
                         onRegionChangeComplete={onRegionChangeComplete}
-                        onMapPress={() => setSelectedListingId(null)}
+                        onMapPress={() => {
+                            if (isIntelligenceMode) {
+                                setSelectedLocality(null);
+                            } else {
+                                setSelectedListingId(null);
+                            }
+                        }}
+                        intelligenceMode={isIntelligenceMode && intelligencePhase === INTELLIGENCE_PHASES.MAP}
+                        localityRegions={scoredLocalities}
                     />
                 </View>
 
-                {/* 2. Floating Top Search & Refinement Island */}
-                <View style={styles.floatingTop} pointerEvents="box-none">
-                    <View style={styles.searchRow}>
-                        <View style={{ flex: 1 }}>
-                            <PropertySearchBar
-                                value={query}
-                                onChangeText={setQuery}
-                                onSelectPlace={onSearchPlace}
-                                city={city || 'Chennai'}
-                            />
-                        </View>
-                        {/* City Switcher Pill */}
-                        <TouchableOpacity
-                            onPress={() => {
-                                const nextCity = (city === 'Chennai') ? 'Bengaluru' : 'Chennai';
-                                selectCity(nextCity);
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel={`Current city: ${city}. Tap to switch.`}
-                            style={styles.cityPill}
-                            hitSlop={TOUCH_TARGETS.hitSlop}
-                        >
-                            <Typography variant="caption" style={styles.cityPillText}>
-                                {city === 'Chennai' ? 'CHN' : 'BLR'} ▾
-                            </Typography>
-                        </TouchableOpacity>
-                    </View>
-
-                    {/* Quick Filters: Buy / Rent / Commercial + BHK & Budget */}
-                    <PropertyFilters
-                        filters={filters}
-                        onChange={setFilters}
-                        resultCount={displayedResults.length}
+                {/* Intelligence Overlay (Intro / Preferences / Map Overlay with top bar & detail sheet) */}
+                {isIntelligenceMode ? (
+                    <AreaIntelligenceOverlay
+                        phase={intelligencePhase}
+                        stepIndex={stepIndex}
+                        answers={answers}
+                        stepOptions={stepOptions}
+                        scoredLocalities={scoredLocalities}
+                        selectedLocality={selectedLocality}
+                        selectedLocalityData={selectedLocalityData}
+                        onStart={() => setIntelligencePhase(INTELLIGENCE_PHASES.PREFERENCES)}
+                        onSkip={() => setIntelligenceMode(false)}
+                        onToggleOption={handleToggleIntelligenceOption}
+                        onContinueStep={handleContinueIntelligenceStep}
+                        onBackStep={handleBackIntelligenceStep}
+                        onResetPreferences={() => {
+                            setStepIndex(0);
+                            setIntelligencePhase(INTELLIGENCE_PHASES.PREFERENCES);
+                        }}
+                        onSelectLocality={handleSelectLocality}
+                        onCloseLocalityDetail={() => {
+                            setSelectedLocality(null);
+                            setSelectedLocalityData(null);
+                        }}
+                        onExploreLocality={handleExploreLocality}
+                        onClose={() => setIntelligenceMode(false)}
                     />
-                </View>
+                ) : (
+                    <>
+                        {/* 2. Floating Top Search & Refinement Island */}
+                        <View style={styles.floatingTop} pointerEvents="box-none">
+                            {/* Brand & City / Notification Row */}
+                            <View style={styles.brandRow}>
+                                <View style={styles.brandBadge}>
+                                    <Text style={styles.brandTitle}>Croww</Text>
+                                    <View style={styles.brandDot} />
+                                </View>
 
-                {/* 3. Floating Map Controls (Locate Me & Save Alert) */}
-                <View style={styles.floatingControls} pointerEvents="box-none">
-                    {refreshing ? (
-                        <View style={styles.refreshBadge}>
-                            <ActivityIndicator size="small" color={COLORS.accent} />
-                            <Typography variant="micro" style={styles.refreshText}>Updating</Typography>
-                        </View>
-                    ) : null}
+                                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            const nextCity = (city === 'Chennai') ? 'Bengaluru' : 'Chennai';
+                                            selectCity(nextCity);
+                                        }}
+                                        accessibilityRole="button"
+                                        accessibilityLabel={`Current city: ${city}. Tap to switch.`}
+                                        style={styles.cityPill}
+                                        hitSlop={TOUCH_TARGETS.hitSlop}
+                                    >
+                                        <Ionicons name="location-sharp" size={13} color={COLORS.accent} style={{ marginRight: 4 }} />
+                                        <Typography variant="caption" style={styles.cityPillText}>
+                                            {city || 'Chennai'} ▾
+                                        </Typography>
+                                    </TouchableOpacity>
 
-                    {canSaveSearch ? (
-                        <TouchableOpacity
-                            onPress={() => {
-                                if (!user) {
-                                    setAuthModalVisible(true);
-                                    return;
-                                }
-                                setSaveError(null);
-                                setSaveOpen(true);
-                            }}
-                            accessibilityRole="button"
-                            accessibilityLabel="Save search"
-                            style={styles.floatingSaveBtn}
-                            hitSlop={TOUCH_TARGETS.hitSlop}
-                        >
-                            <Ionicons name="bookmark-outline" size={18} color={COLORS.accent} />
-                            <Typography variant="caption" style={styles.floatingSaveText}>Save</Typography>
-                        </TouchableOpacity>
-                    ) : null}
+                                    <TouchableOpacity
+                                        onPress={() => {
+                                            navigation.navigate(user ? 'ProfileTab' : 'Login');
+                                        }}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Notifications and profile"
+                                        style={styles.profileBtn}
+                                        hitSlop={TOUCH_TARGETS.hitSlop}
+                                    >
+                                        <Ionicons name="notifications-outline" size={18} color={COLORS.primary} />
+                                    </TouchableOpacity>
+                                </View>
+                            </View>
 
-                    <TouchableOpacity
-                        style={styles.recenterBtn}
-                        onPress={goToMe}
-                        accessibilityRole="button"
-                        accessibilityLabel="Center on my location"
-                        hitSlop={TOUCH_TARGETS.hitSlop}
-                        activeOpacity={0.85}
-                    >
-                        <Ionicons name="locate" size={22} color={COLORS.primary} />
-                    </TouchableOpacity>
-                </View>
+                            <View style={styles.searchRow}>
+                                <View style={{ flex: 1 }}>
+                                    <PropertySearchBar
+                                        value={query}
+                                        onChangeText={setQuery}
+                                        onSelectPlace={onSearchPlace}
+                                        placeholder="Search area, locality or landmark"
+                                        city={city || 'Chennai'}
+                                    />
+                                </View>
+                            </View>
 
-                {/* 4. Floating Bottom Property Card Carousel */}
-                <View style={styles.floatingBottom} pointerEvents="box-none">
-                    {emptyMessage ? (
-                        <View style={styles.emptyCard} pointerEvents="auto">
-                            <CrowwRive
-                                artboard={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
-                                artboardName={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
-                                stateMachineName={EMPTY_STATES_RIVE_SPEC.stateMachine}
-                                inputs={{ isActive: true }}
-                                fallbackType="empty-discovery"
-                                fallbackSize={48}
-                                style={{ width: 48, height: 48, marginBottom: 6 }}
+                            {/* Dynamic Stay Category Chips & Filters */}
+                            <PropertyFilters
+                                filters={filters}
+                                onChange={setFilters}
+                                resultCount={displayedResults.length}
                             />
-                            <Typography variant="titleSmall" style={styles.emptyTitle}>
-                                {emptyMessage}
-                            </Typography>
-                            <Typography variant="caption" style={styles.emptySubtitle}>
-                                Pan the map or switch city to discover verified homes.
-                            </Typography>
-                            <View style={styles.emptyActionRow}>
+                        </View>
+
+                        {/* 3. Floating Map Controls (Locate Me & Save Alert) */}
+                        <View style={styles.floatingControls} pointerEvents="box-none">
+                            {refreshing ? (
+                                <View style={styles.refreshBadge}>
+                                    <ActivityIndicator size="small" color={COLORS.accent} />
+                                    <Typography variant="micro" style={styles.refreshText}>Updating</Typography>
+                                </View>
+                            ) : null}
+
+                            {canSaveSearch ? (
                                 <TouchableOpacity
                                     onPress={() => {
-                                        const nextCity = (city === 'Chennai') ? 'Bengaluru' : 'Chennai';
-                                        selectCity(nextCity);
+                                        if (!user) {
+                                            setAuthModalVisible(true);
+                                            return;
+                                        }
+                                        setSaveError(null);
+                                        setSaveOpen(true);
                                     }}
-                                    style={styles.switchCityBtn}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Save search"
+                                    style={styles.floatingSaveBtn}
                                     hitSlop={TOUCH_TARGETS.hitSlop}
                                 >
-                                    <Typography variant="bodyMedium" style={styles.switchCityText}>
-                                        Explore {city === 'Chennai' ? 'Bengaluru' : 'Chennai'}
-                                    </Typography>
+                                    <Ionicons name="bookmark-outline" size={18} color={COLORS.accent} />
+                                    <Typography variant="caption" style={styles.floatingSaveText}>Save</Typography>
                                 </TouchableOpacity>
-                            </View>
+                            ) : null}
+
+                            <TouchableOpacity
+                                style={styles.recenterBtn}
+                                onPress={goToMe}
+                                accessibilityRole="button"
+                                accessibilityLabel="Center on my location"
+                                hitSlop={TOUCH_TARGETS.hitSlop}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="locate" size={22} color={COLORS.primary} />
+                            </TouchableOpacity>
                         </View>
-                    ) : (
-                        <View style={styles.carouselContainer} pointerEvents="box-none">
-                            <FlatList
-                                horizontal
-                                data={displayedResults}
-                                keyExtractor={(item) => item.listingId}
-                                renderItem={({ item }) => (
-                                    <PropertyResultCard
-                                        item={item}
-                                        selected={item.listingId === selectedListingId}
-                                        onPress={() => {
-                                            onSelectCard(item);
-                                            openListing(item);
-                                        }}
+
+                        {/* 4. Floating Bottom Property Card Carousel */}
+                        <View style={styles.floatingBottom} pointerEvents="box-none">
+                            {emptyMessage ? (
+                                <View style={styles.emptyCard} pointerEvents="auto">
+                                    <CrowwRive
+                                        artboard={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                        artboardName={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                        stateMachineName={EMPTY_STATES_RIVE_SPEC.stateMachine}
+                                        inputs={{ isActive: true }}
+                                        fallbackType="empty-discovery"
+                                        fallbackSize={48}
+                                        style={{ width: 48, height: 48, marginBottom: 6 }}
                                     />
-                                )}
-                                showsHorizontalScrollIndicator={false}
-                                contentContainerStyle={styles.cardsList}
-                                extraData={selectedListingId}
-                                snapToAlignment="center"
-                                decelerationRate="fast"
-                            />
+                                    <Typography variant="titleSmall" style={styles.emptyTitle}>
+                                        {emptyMessage}
+                                    </Typography>
+                                    <Typography variant="caption" style={styles.emptySubtitle}>
+                                        Pan the map or switch city to discover verified homes.
+                                    </Typography>
+                                    <View style={styles.emptyActionRow}>
+                                        <TouchableOpacity
+                                            onPress={() => {
+                                                const nextCity = (city === 'Chennai') ? 'Bengaluru' : 'Chennai';
+                                                selectCity(nextCity);
+                                            }}
+                                            style={styles.switchCityBtn}
+                                            hitSlop={TOUCH_TARGETS.hitSlop}
+                                        >
+                                            <Typography variant="bodyMedium" style={styles.switchCityText}>
+                                                Explore {city === 'Chennai' ? 'Bengaluru' : 'Chennai'}
+                                            </Typography>
+                                        </TouchableOpacity>
+                                    </View>
+                                </View>
+                            ) : (
+                                <View style={styles.carouselContainer} pointerEvents="box-none">
+                                    <FlatList
+                                        horizontal
+                                        data={displayedResults}
+                                        keyExtractor={(item) => item.listingId}
+                                        renderItem={({ item }) => (
+                                            <PropertyResultCard
+                                                item={item}
+                                                selected={item.listingId === selectedListingId}
+                                                onDismiss={() => setSelectedListingId(null)}
+                                                onPress={() => {
+                                                    onSelectCard(item);
+                                                    openListing(item);
+                                                }}
+                                            />
+                                        )}
+                                        showsHorizontalScrollIndicator={false}
+                                        contentContainerStyle={styles.cardsList}
+                                        extraData={selectedListingId}
+                                        snapToAlignment="center"
+                                        decelerationRate="fast"
+                                    />
+                                </View>
+                            )}
                         </View>
-                    )}
-                </View>
+                    </>
+                )}
             </View>
 
             <SaveSearchModal
@@ -425,6 +813,37 @@ const styles = StyleSheet.create({
         zIndex: 30,
         paddingTop: SPACING.s,
     },
+    brandRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.l,
+        marginBottom: 8,
+    },
+    brandBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
+    },
+    brandTitle: {
+        fontSize: 17,
+        fontWeight: '900',
+        color: COLORS.primary,
+        letterSpacing: -0.4,
+    },
+    brandDot: {
+        width: 6,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: COLORS.accent,
+        marginLeft: 3,
+    },
     searchRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -432,33 +851,45 @@ const styles = StyleSheet.create({
         gap: SPACING.s,
     },
     cityPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
         backgroundColor: COLORS.surface,
-        height: 56,
+        height: 36,
         paddingHorizontal: SPACING.m,
-        borderRadius: BORDER_RADIUS.card,
+        borderRadius: BORDER_RADIUS.pill,
         borderWidth: 1,
         borderColor: COLORS.border,
-        alignItems: 'center',
-        justifyContent: 'center',
-        ...SHADOWS.medium,
+        ...SHADOWS.subtle,
     },
     cityPillText: {
         color: COLORS.primary,
-        fontWeight: '800',
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    profileBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.surface,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
     },
     floatingControls: {
         position: 'absolute',
         right: SPACING.l,
-        bottom: 270,
+        bottom: 340,
         zIndex: 20,
         flexDirection: 'column',
         alignItems: 'flex-end',
         gap: SPACING.s,
     },
     recenterBtn: {
-        width: 50,
-        height: 50,
-        borderRadius: 25,
+        width: 48,
+        height: 48,
+        borderRadius: 24,
         backgroundColor: COLORS.surface,
         borderWidth: 1,
         borderColor: COLORS.border,
@@ -500,7 +931,7 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: SPACING.m,
+        bottom: 84,
         zIndex: 25,
     },
     carouselContainer: {

@@ -331,7 +331,7 @@ const styles = StyleSheet.create({
     },
     body: {
         paddingHorizontal: SPACING.l,
-        paddingBottom: SPACING.xxl,
+        paddingBottom: 96,
         gap: SPACING.m,
     },
     centered: {

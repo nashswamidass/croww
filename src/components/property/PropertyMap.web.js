@@ -11,19 +11,22 @@ const libraries = ['places'];
 const containerStyle = { width: '100%', height: '100%' };
 
 const PropertyMap = ({
-    initialRegion,
+    initialRegion = { latitude: 13.0827, longitude: 80.2707, latitudeDelta: 0.1, longitudeDelta: 0.1 },
     followRegion,
-    listings,
+    listings = [],
     selectedId,
     userCoordinate,
     onSelect,
     onRegionChangeComplete,
     onMapPress,
+    intelligenceMode = false,
+    localityRegions = [],
 }) => {
     const mapRef = useRef(null);
+    const circlesRef = useRef([]);
     const defaultCenter = useRef({
-        lat: initialRegion.latitude,
-        lng: initialRegion.longitude,
+        lat: initialRegion?.latitude || 13.0827,
+        lng: initialRegion?.longitude || 80.2707,
     });
     const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
     const { isLoaded, loadError } = useJsApiLoader({
@@ -40,8 +43,64 @@ const PropertyMap = ({
         if (followRegion && mapRef.current) {
             mapRef.current.panTo({ lat: followRegion.latitude, lng: followRegion.longitude });
             mapRef.current.setZoom(14);
+            if (typeof window !== 'undefined' && window.google?.maps?.event) {
+                setTimeout(() => {
+                    if (mapRef.current) {
+                        window.google.maps.event.trigger(mapRef.current, 'resize');
+                    }
+                }, 80);
+            }
         }
     }, [followRegion]);
+
+    // Manage translucent purple intelligence circles on the map
+    useEffect(() => {
+        // Clear previous circles
+        circlesRef.current.forEach((c) => {
+            try { c.setMap(null); } catch (_) {}
+        });
+        circlesRef.current = [];
+
+        if (!mapRef.current || typeof window === 'undefined' || !window.google?.maps || !intelligenceMode) {
+            return;
+        }
+
+        if (localityRegions && localityRegions.length > 0) {
+            localityRegions.forEach((item) => {
+                const lat = item.locality?.latitude;
+                const lng = item.locality?.longitude;
+                if (!lat || !lng) return;
+                const isSelected = item.locality?.id === selectedId;
+
+                try {
+                    const circle = new window.google.maps.Circle({
+                        map: mapRef.current,
+                        center: { lat, lng },
+                        radius: 1700,
+                        fillColor: '#7C3AED',
+                        fillOpacity: isSelected ? 0.28 : 0.16,
+                        strokeColor: '#7C3AED',
+                        strokeOpacity: isSelected ? 0.85 : 0.5,
+                        strokeWeight: isSelected ? 2.5 : 1.5,
+                        clickable: true,
+                    });
+                    circle.addListener('click', () => {
+                        onSelect && onSelect(item);
+                    });
+                    circlesRef.current.push(circle);
+                } catch (err) {
+                    console.warn('[PropertyMap.web] Failed to add circle', err);
+                }
+            });
+        }
+
+        return () => {
+            circlesRef.current.forEach((c) => {
+                try { c.setMap(null); } catch (_) {}
+            });
+            circlesRef.current = [];
+        };
+    }, [intelligenceMode, localityRegions, selectedId, onSelect]);
 
     const handleIdle = () => {
         const map = mapRef.current;
@@ -94,24 +153,48 @@ const PropertyMap = ({
                     title="You"
                 />
             ) : null}
-            {markers.map((item) => {
-                const selected = item.listingId === selectedId;
-                const pos = item.mapCoordinate;
-                if (!pos) return null;
-                return (
-                    <MarkerF
-                        key={item.listingId}
-                        position={{ lat: pos.latitude, lng: pos.longitude }}
-                        label={{
-                            text: formatListingPrice(item),
-                            color: selected ? '#FFFFFF' : '#111827',
-                            fontSize: '12px',
-                            fontWeight: '700',
-                        }}
-                        onClick={() => onSelect(item)}
-                    />
-                );
-            })}
+
+            {intelligenceMode && localityRegions && localityRegions.length > 0 ? (
+                localityRegions.map((item) => {
+                    const lat = item.locality?.latitude;
+                    const lng = item.locality?.longitude;
+                    if (!lat || !lng) return null;
+                    const isSelected = item.locality?.id === selectedId;
+                    const score = Math.round(item.score || 75);
+                    return (
+                        <MarkerF
+                            key={`loc_${item.locality.id}`}
+                            position={{ lat, lng }}
+                            label={{
+                                text: `${item.locality.name}  ${score}`,
+                                color: isSelected ? '#7C3AED' : '#0F0F0F',
+                                fontSize: '13px',
+                                fontWeight: '800',
+                            }}
+                            onClick={() => onSelect && onSelect(item)}
+                        />
+                    );
+                })
+            ) : (
+                markers.map((item) => {
+                    const selected = item.listingId === selectedId;
+                    const pos = item.mapCoordinate;
+                    if (!pos) return null;
+                    return (
+                        <MarkerF
+                            key={item.listingId}
+                            position={{ lat: pos.latitude, lng: pos.longitude }}
+                            label={{
+                                text: formatListingPrice(item),
+                                color: selected ? '#FFFFFF' : '#111827',
+                                fontSize: '12px',
+                                fontWeight: '700',
+                            }}
+                            onClick={() => onSelect && onSelect(item)}
+                        />
+                    );
+                })
+            )}
         </GoogleMap>
     );
 };

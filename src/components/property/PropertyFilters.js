@@ -55,129 +55,77 @@ const PropertyFilters = ({ filters, onChange, resultCount = 0 }) => {
 
     return (
         <View style={styles.container}>
-            {/* Row 1: Primary Intent [ Rent / Stays ] [ Buy ] [ Commercial ] */}
-            <View style={styles.primaryRow}>
+            {/* Server-Driven Category Strip (Bed, Shared Room, Private Room, PG, Co-living, Roommate Replacement) */}
+            <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={styles.categoryScroll}
+            >
                 <TouchableOpacity
-                    style={[styles.primaryPill, (filters.transactionType === 'rent' || !filters.transactionType) && styles.primaryPillActive]}
-                    onPress={() => onChange({ transactionType: 'rent', minPrice: null, maxPrice: null })}
+                    style={[
+                        styles.categoryChip,
+                        !filters.listingTypeId && !filters.subtype && styles.categoryChipActive,
+                    ]}
+                    onPress={() => onChange({ listingTypeId: null, subtype: null })}
                     activeOpacity={0.8}
                 >
                     <Typography
-                        variant="bodyMedium"
-                        style={[styles.primaryPillText, (filters.transactionType === 'rent' || !filters.transactionType) && styles.primaryPillTextActive]}
+                        variant="caption"
+                        style={[
+                            styles.categoryChipText,
+                            !filters.listingTypeId && !filters.subtype && styles.categoryChipTextActive,
+                        ]}
                     >
-                        Rent
+                        All Stays
                     </Typography>
                 </TouchableOpacity>
 
-                <TouchableOpacity
-                    style={[styles.primaryPill, filters.transactionType === 'buy' && styles.primaryPillActive]}
-                    onPress={() => onChange({ transactionType: 'buy', minPrice: null, maxPrice: null })}
-                    activeOpacity={0.8}
-                >
-                    <Typography
-                        variant="bodyMedium"
-                        style={[styles.primaryPillText, filters.transactionType === 'buy' && styles.primaryPillTextActive]}
-                    >
-                        Buy
-                    </Typography>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.primaryPill, filters.category === 'commercial' && styles.primaryPillActive]}
-                    onPress={() => onChange({ category: filters.category === 'commercial' ? null : 'commercial', subtype: null, listingTypeId: null })}
-                    activeOpacity={0.8}
-                >
-                    <Typography
-                        variant="bodyMedium"
-                        style={[styles.primaryPillText, filters.category === 'commercial' && styles.primaryPillTextActive]}
-                    >
-                        Commercial
-                    </Typography>
-                </TouchableOpacity>
-            </View>
-
-            {/* Server-Driven Category Chips (Stay / Co-living / Rooms / PG) */}
-            {consumerCategories && consumerCategories.length > 0 ? (
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.categoryScroll}
-                >
-                    {consumerCategories.map((cat) => {
-                        const isSelected = filters.listingTypeId === cat.typeId || filters.subtype === cat.typeId;
-                        return (
-                            <TouchableOpacity
-                                key={cat.typeId}
-                                style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
-                                onPress={() => {
-                                    if (isSelected) {
-                                        onChange({ listingTypeId: null, subtype: null });
-                                    } else {
-                                        onChange({ listingTypeId: cat.typeId, subtype: cat.typeId });
-                                    }
-                                }}
-                                activeOpacity={0.8}
+                {consumerCategories && consumerCategories.map((cat) => {
+                    const isSelected = filters.listingTypeId === cat.typeId || filters.subtype === cat.typeId;
+                    return (
+                        <TouchableOpacity
+                            key={cat.typeId}
+                            style={[styles.categoryChip, isSelected && styles.categoryChipActive]}
+                            onPress={() => {
+                                if (isSelected) {
+                                    onChange({ listingTypeId: null, subtype: null });
+                                } else {
+                                    onChange({ listingTypeId: cat.typeId, subtype: cat.typeId });
+                                }
+                            }}
+                            activeOpacity={0.8}
+                        >
+                            <Typography
+                                variant="caption"
+                                style={[styles.categoryChipText, isSelected && styles.categoryChipTextActive]}
                             >
-                                <Typography
-                                    variant="caption"
-                                    style={[styles.categoryChipText, isSelected && styles.categoryChipTextActive]}
-                                >
-                                    {cat.displayName}
-                                </Typography>
-                            </TouchableOpacity>
-                        );
-                    })}
-                </ScrollView>
-            ) : null}
+                                {cat.displayName}
+                            </Typography>
+                        </TouchableOpacity>
+                    );
+                })}
 
-            {/* Row 2: Calm Refinements [ Type / BHK ] [ Budget ] [ More Filters ▾ ] */}
-            <View style={styles.secondaryRow}>
                 <TouchableOpacity
-                    style={[styles.refinePill, (selectedTaxonomyItem || filters.bhk) && styles.refinePillActive]}
+                    style={[styles.categoryChip, activeFilterCount > 0 && styles.categoryChipActive]}
                     onPress={() => setSheetVisible(true)}
                     activeOpacity={0.8}
                 >
-                    <Typography
-                        variant="caption"
-                        style={[styles.refinePillText, (selectedTaxonomyItem || filters.bhk) && styles.refinePillTextActive]}
-                    >
-                        {selectedTaxonomyItem ? selectedTaxonomyItem.displayName : (filters.bhk ? `${filters.bhk} BHK` : 'All Stays')}
-                    </Typography>
+                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                        <Ionicons
+                            name="options-outline"
+                            size={13}
+                            color={activeFilterCount > 0 ? '#FFFFFF' : COLORS.primary}
+                            style={{ marginRight: 4 }}
+                        />
+                        <Typography
+                            variant="caption"
+                            style={[styles.categoryChipText, activeFilterCount > 0 && styles.categoryChipTextActive]}
+                        >
+                            {activeFilterCount > 0 ? `Filters (${activeFilterCount})` : 'Filters'}
+                        </Typography>
+                    </View>
                 </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.refinePill, (filters.minPrice != null || filters.maxPrice != null) && styles.refinePillActive]}
-                    onPress={() => setSheetVisible(true)}
-                    activeOpacity={0.8}
-                >
-                    <Typography
-                        variant="caption"
-                        style={[styles.refinePillText, (filters.minPrice != null || filters.maxPrice != null) && styles.refinePillTextActive]}
-                    >
-                        {currentBudgetId !== 'any' ? budgets.find(b => b.id === currentBudgetId)?.label : 'Budget'}
-                    </Typography>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.refinePill, activeFilterCount > 0 && styles.refinePillActive]}
-                    onPress={() => setSheetVisible(true)}
-                    activeOpacity={0.8}
-                >
-                    <Ionicons
-                        name="options-outline"
-                        size={14}
-                        color={activeFilterCount > 0 ? '#FFFFFF' : COLORS.secondary}
-                        style={{ marginRight: 4 }}
-                    />
-                    <Typography
-                        variant="caption"
-                        style={[styles.refinePillText, activeFilterCount > 0 && styles.refinePillTextActive]}
-                    >
-                        {activeFilterCount > 0 ? `${activeFilterCount} Active` : 'Filters'}
-                    </Typography>
-                </TouchableOpacity>
-            </View>
+            </ScrollView>
 
             {/* Clean Consumer Filter Bottom Sheet */}
             <Modal
@@ -368,8 +316,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     primaryPillActive: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
+        backgroundColor: COLORS.accent,
+        borderColor: COLORS.accent,
     },
     primaryPillText: {
         color: COLORS.primary,
@@ -395,8 +343,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     categoryChipActive: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
+        backgroundColor: COLORS.accent,
+        borderColor: COLORS.accent,
     },
     categoryChipText: {
         color: COLORS.primary,

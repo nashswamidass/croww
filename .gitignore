@@ -50,6 +50,7 @@ lint_*.txt
 test_cashfree.js
 test_event_creation.js
 check_error.js
+scripts/capture*.js
 
 # typescript
 *.tsbuildinfo

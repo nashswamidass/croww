@@ -1,10 +1,11 @@
 import React, { useEffect, useRef } from 'react';
 import { Platform, StyleSheet } from 'react-native';
 import Constants, { ExecutionEnvironment } from 'expo-constants';
-import MapView, { PROVIDER_GOOGLE, Marker } from 'react-native-maps';
+import MapView, { PROVIDER_GOOGLE, Marker, Circle } from 'react-native-maps';
 import { LIGHT_MAP_STYLE } from '../../constants/mapStyle';
 import { EXPLORE_MAX_MARKERS } from '../../constants/explore';
 import PropertyMarker from './PropertyMarker';
+import LocalityScoreBubble from '../intelligence/LocalityScoreBubble';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const mapProvider = Platform.OS === 'android'
@@ -14,12 +15,14 @@ const mapProvider = Platform.OS === 'android'
 const PropertyMap = ({
     initialRegion,
     followRegion,
-    listings,
+    listings = [],
     selectedId,
     userCoordinate,
     onSelect,
     onRegionChangeComplete,
     onMapPress,
+    intelligenceMode = false,
+    localityRegions = [],
 }) => {
     const mapRef = useRef(null);
 
@@ -58,14 +61,39 @@ const PropertyMap = ({
                     identifier="user-location"
                 />
             ) : null}
-            {markers.map((item) => (
-                <PropertyMarker
-                    key={item.listingId}
-                    item={item}
-                    selected={item.listingId === selectedId}
-                    onPress={onSelect}
-                />
-            ))}
+
+            {intelligenceMode && localityRegions && localityRegions.length > 0 ? (
+                localityRegions.map((item) => (
+                    <React.Fragment key={`region_${item.locality.id}`}>
+                        <Circle
+                            center={{ latitude: item.locality.latitude, longitude: item.locality.longitude }}
+                            radius={1600}
+                            fillColor={item.locality.id === selectedId ? 'rgba(124, 58, 237, 0.26)' : 'rgba(124, 58, 237, 0.14)'}
+                            strokeColor="rgba(124, 58, 237, 0.6)"
+                            strokeWidth={1.5}
+                        />
+                        <Marker
+                            coordinate={{ latitude: item.locality.latitude, longitude: item.locality.longitude }}
+                            onPress={() => onSelect && onSelect(item)}
+                        >
+                            <LocalityScoreBubble
+                                name={item.locality.name}
+                                score={item.score}
+                                selected={item.locality.id === selectedId}
+                            />
+                        </Marker>
+                    </React.Fragment>
+                ))
+            ) : (
+                markers.map((item) => (
+                    <PropertyMarker
+                        key={item.listingId}
+                        item={item}
+                        selected={item.listingId === selectedId}
+                        onPress={onSelect}
+                    />
+                ))
+            )}
         </MapView>
     );
 };
