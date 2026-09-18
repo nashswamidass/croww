@@ -43,7 +43,10 @@ const PropertyMarker = ({ item, selected, onPress }) => {
                     </View>
                 ) : (
                     <View style={[styles.pricePill, selected && styles.pricePillSelected]}>
-                        <Text style={[styles.priceText, selected && styles.priceTextSelected]}>
+                        <Text
+                            style={[styles.priceText, selected && styles.priceTextSelected]}
+                            numberOfLines={1}
+                        >
                             {label}
                         </Text>
                     </View>
@@ -61,14 +64,16 @@ const styles = StyleSheet.create({
     },
     // Compact floating price pill (Airbnb-style, Croww brand)
     pricePill: {
-        height: 34,
-        paddingHorizontal: 12,
-        borderRadius: 18,
+        height: 32,
+        minWidth: 48,
+        paddingHorizontal: 10,
+        borderRadius: 16,
         backgroundColor: '#FFFFFF',
         borderColor: '#E5E7EB',
         borderWidth: 1.5,
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'row',
         // Zero Android elevation inside Marker to eliminate gray bitmap bounding box artifacts
         elevation: 0,
         shadowColor: '#000000',
@@ -87,6 +92,7 @@ const styles = StyleSheet.create({
         fontSize: 13,
         fontWeight: '700',
         includeFontPadding: false,
+        textAlign: 'center',
     },
     priceTextSelected: {
         color: '#FFFFFF',
