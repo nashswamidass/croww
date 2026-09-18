@@ -13,7 +13,7 @@ const mapProvider = Platform.OS === 'android'
     ? PROVIDER_GOOGLE
     : (isExpoGo ? undefined : PROVIDER_GOOGLE);
 
-const CLUSTER_ZOOM_THRESHOLD = 0.09;
+const CLUSTER_ZOOM_THRESHOLD = 0.18;
 
 const PropertyMap = ({
     initialRegion,

@@ -320,13 +320,18 @@ const ExploreScreen = () => {
     const initialRegion = viewport || LAUNCH_VIEWPORT;
 
     const displayedResults = useMemo(() => {
-        let base = results;
-        if ((!base || base.length === 0) && (!city || city === 'Chennai') && !filters.bhk && !filters.minPrice) {
-            if (filters.category) {
-                base = SAMPLE_PREVIEW_LISTINGS.filter((l) => l.category === filters.category);
-            } else {
-                base = SAMPLE_PREVIEW_LISTINGS;
-            }
+        const remoteListings = results || [];
+        const combined = [...remoteListings];
+        if (!city || city === 'Chennai') {
+            SAMPLE_PREVIEW_LISTINGS.forEach((preview) => {
+                if (!combined.some((item) => (item.id === preview.id || item.listingId === preview.listingId))) {
+                    combined.push(preview);
+                }
+            });
+        }
+        let base = combined;
+        if (filters.category) {
+            base = base.filter((l) => l.category === filters.category);
         }
         if (!query || !query.trim()) return base;
         const q = query.trim().toLowerCase();
