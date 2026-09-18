@@ -260,6 +260,14 @@ export type LocalityRecord = {
         east: number;
         west: number;
     } | null;
+    /**
+     * Canonical municipal boundary GeoJSON (Polygon or MultiPolygon).
+     * Sourced from verified administrative spatial data. Null when unverified.
+     */
+    boundaryGeoJSON?: {
+        type: 'Polygon' | 'MultiPolygon';
+        coordinates: number[][][] | number[][][][];
+    } | null;
     status: LocalityStatus;
     source: DataSource;
     /**

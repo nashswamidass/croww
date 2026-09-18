@@ -64,6 +64,32 @@ export function formatListingPrice(item) {
     return formatInrCompact(value) || 'Price on request';
 }
 
+/**
+ * Standard Croww map price pill formatter.
+ * Compact format without suffixes:
+ * ₹8,500 -> ₹8.5K
+ * ₹12,000 -> ₹12K
+ * ₹17,500 -> ₹17.5K
+ * ₹1,00,000 -> ₹1L
+ */
+export function formatMarkerPrice(itemOrAmount) {
+    const amount = typeof itemOrAmount === 'object' && itemOrAmount !== null
+        ? (itemOrAmount.price ?? itemOrAmount.askingPrice ?? itemOrAmount.rentMonthly ?? itemOrAmount.rentAmountMonthly)
+        : itemOrAmount;
+    if (amount == null || !Number.isFinite(Number(amount))) return '₹--';
+    const value = Number(amount);
+    if (value >= 10000000) {
+        return `₹${trimDecimals(value / 10000000, 1)}Cr`;
+    }
+    if (value >= 100000) {
+        return `₹${trimDecimals(value / 100000, 1)}L`;
+    }
+    if (value >= 1000) {
+        return `₹${trimDecimals(value / 1000, 1)}K`;
+    }
+    return `₹${Math.round(value)}`;
+}
+
 export function formatBhk(bedrooms) {
     if (bedrooms == null) return null;
     if (bedrooms >= 5) return '5+ BHK';

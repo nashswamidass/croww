@@ -7,7 +7,6 @@ const linking = {
         'crowwapp://',
         'https://croww.ai',
         'https://croww-app.web.app',
-        'https://croww-staging-2026.web.app',
     ],
 
     config: {

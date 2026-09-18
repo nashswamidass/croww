@@ -13,6 +13,12 @@ function isLegacyMumbaiDefault(coords) {
         && Math.abs(coords.longitude - MUMBAI_DEFAULT.longitude) < 0.0002;
 }
 
+function isWithinIndia(coords) {
+    if (!coords || typeof coords.latitude !== 'number' || typeof coords.longitude !== 'number') return false;
+    return coords.latitude >= 6.5 && coords.latitude <= 37.5
+        && coords.longitude >= 68.0 && coords.longitude <= 97.5;
+}
+
 function toViewport(coords, delta = 0.08) {
     return {
         latitude: coords.latitude,
@@ -95,6 +101,10 @@ export function useExploreLocation() {
     }, [city, searchLocation, setCity, setUserLocation, setViewport]);
 
     const applyCoords = useCallback(async (coords, method, permission) => {
+        if (!isWithinIndia(coords)) {
+            await applyDefaultLocation(permission);
+            return;
+        }
         setUsingLaunchCity(false);
         let cityName = null;
         try {
@@ -118,7 +128,7 @@ export function useExploreLocation() {
             setViewport(toViewport(coords, 0.08));
             centeredRef.current = true;
         }
-    }, [setCity, setUserLocation, setViewport]);
+    }, [applyDefaultLocation, setCity, setUserLocation, setViewport]);
 
     useEffect(() => {
         let cancelled = false;
@@ -126,7 +136,7 @@ export function useExploreLocation() {
             setStatus('loading');
             try {
                 const cached = await locationService.getCachedLocation();
-                if (!cancelled && cached.coords && !isLegacyMumbaiDefault(cached.coords)) {
+                if (!cancelled && cached.coords && !isLegacyMumbaiDefault(cached.coords) && isWithinIndia(cached.coords)) {
                     await applyCoords(cached.coords, 'cache', 'unknown');
                     setStatus('ready');
                 }
@@ -134,8 +144,8 @@ export function useExploreLocation() {
                 const result = await locationService.getLocation();
                 if (cancelled) return;
 
-                if (!result || result.method === 'default') {
-                    await applyDefaultLocation(cached?.coords ? 'unknown' : 'denied');
+                if (!result || result.method === 'default' || !isWithinIndia(result?.coords)) {
+                    await applyDefaultLocation(cached?.coords && isWithinIndia(cached.coords) ? 'unknown' : 'denied');
                     setStatus('ready');
                     return;
                 }
@@ -171,7 +181,7 @@ export function useExploreLocation() {
                 return null;
             }
             const result = await locationService.getLocation();
-            if (result?.coords && result.method !== 'default') {
+            if (result?.coords && result.method !== 'default' && isWithinIndia(result.coords)) {
                 centeredRef.current = false;
                 await applyCoords(result.coords, result.method || 'gps', 'granted');
                 setStatus('ready');

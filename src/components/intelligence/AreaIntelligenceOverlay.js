@@ -7,10 +7,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CrowwAreaIntelligenceIcon from '../icons/CrowwAreaIntelligenceIcon';
 import PreferenceStep from './PreferenceStep';
 import IntelligenceMapOverlay from './IntelligenceMapOverlay';
 import LocalityDetailSheet from './LocalityDetailSheet';
 import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import { getFloatingNavbarClearance } from '../../constants/layout';
 
 export const INTELLIGENCE_PHASES = {
     INTRO: 'INTRO',
@@ -48,12 +50,12 @@ export default function AreaIntelligenceOverlay({
                 <View
                     style={[
                         styles.introSheet,
-                        { paddingBottom: Math.max(insets.bottom, 24) + 72 },
+                        { paddingBottom: Math.max(insets.bottom, 12) + 84 },
                     ]}
                 >
                     <View style={styles.introContent}>
                         <View style={styles.symbolWrap}>
-                            <Ionicons name="sparkles" size={26} color={COLORS.accent} />
+                            <CrowwAreaIntelligenceIcon size={32} color={COLORS.accent} focused />
                         </View>
 
                         <Text style={styles.introTitle}>Find your best area</Text>
@@ -103,6 +105,9 @@ export default function AreaIntelligenceOverlay({
     // ─────────────────────────────────────────────────────────────
     if (phase === INTELLIGENCE_PHASES.PREFERENCES && stepOptions[stepIndex]) {
         const currentStep = stepOptions[stepIndex];
+        const stepSelected = answers[stepIndex] || [];
+        const canContinue = stepSelected.length > 0;
+
         return (
             <View style={styles.preferencesOverlay}>
                 <PreferenceStep
@@ -111,7 +116,9 @@ export default function AreaIntelligenceOverlay({
                     title={currentStep.title}
                     subtitle={currentStep.subtitle}
                     options={currentStep.options}
-                    selectedIds={answers[stepIndex] || []}
+                    selectedValues={stepSelected}
+                    canContinue={canContinue}
+                    continueLabel={stepIndex === stepOptions.length - 1 ? 'Find My Best Area' : 'Continue'}
                     isMulti={currentStep.isMulti}
                     onToggleOption={onToggleOption}
                     onContinue={onContinueStep}
@@ -141,7 +148,7 @@ export default function AreaIntelligenceOverlay({
                     <View
                         style={[
                             styles.detailSheetContainer,
-                            { paddingBottom: Math.max(insets.bottom, 12) + 72 },
+                            { paddingBottom: getFloatingNavbarClearance(insets, 8) },
                         ]}
                         pointerEvents="box-none"
                     >

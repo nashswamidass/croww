@@ -1,27 +1,36 @@
 import React from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS, SHADOWS } from '../../constants/theme';
+import { BORDER_RADIUS, COLORS, SHADOWS } from '../../constants/theme';
 
 /**
- * Floating purple score bubble representing an analyzed locality.
- * Matches reference styling: high-contrast dark/purple pill with numeric score.
+ * Clean, single rounded score bubble representing an analyzed locality.
+ *
+ * Designed to eliminate Android Google Maps marker rectangular shadow artifacts:
+ * - When used as a map marker (variant="marker"), disables elevation/shadows
+ *   which otherwise cause Android Maps SDK to render a gray square bitmap bounding box.
+ * - When used in floating carousels (variant="card"), applies a single, subtle
+ *   cross-platform shadow to the outermost pill container without nested shadow layers.
  */
 export default function LocalityScoreBubble({
     name,
     score,
     selected = false,
     onPress,
+    variant = 'card', // 'card' | 'marker'
     size = 'regular', // 'compact' | 'regular' | 'large'
 }) {
+    const isMarker = variant === 'marker';
     const isLarge = size === 'large';
     const isCompact = size === 'compact';
 
     return (
         <TouchableOpacity
-            activeOpacity={0.85}
+            activeOpacity={onPress ? 0.85 : 1}
             onPress={onPress}
+            disabled={!onPress}
             style={[
                 styles.bubble,
+                isMarker ? styles.markerBubble : styles.cardBubble,
                 selected && styles.bubbleSelected,
                 isLarge && styles.bubbleLarge,
                 isCompact && styles.bubbleCompact,
@@ -46,43 +55,53 @@ const styles = StyleSheet.create({
     bubble: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
-        borderRadius: 24,
-        paddingVertical: 6,
-        paddingHorizontal: 10,
+        backgroundColor: '#FFFFFF',
+        borderRadius: BORDER_RADIUS.pill,
         borderWidth: 1.5,
         borderColor: COLORS.border,
-        ...SHADOWS.floating,
+        paddingVertical: 5,
+        paddingHorizontal: 9,
+    },
+    // Map markers must NOT use elevation or shadows to avoid Android Maps bitmap box artifacts
+    markerBubble: {
+        elevation: 0,
+        shadowOpacity: 0,
+        shadowRadius: 0,
+        shadowOffset: { width: 0, height: 0 },
+        borderColor: 'rgba(0, 0, 0, 0.12)',
+    },
+    // In-carousel card uses single soft shadow on the pill surface
+    cardBubble: {
+        ...SHADOWS.soft,
     },
     bubbleCompact: {
         paddingVertical: 4,
         paddingHorizontal: 8,
-        borderRadius: 18,
     },
     bubbleLarge: {
-        paddingVertical: 8,
-        paddingHorizontal: 14,
-        borderRadius: 28,
+        paddingVertical: 7,
+        paddingHorizontal: 12,
     },
     bubbleSelected: {
-        backgroundColor: COLORS.surface,
         borderColor: COLORS.accent,
+        backgroundColor: '#FFFFFF',
         borderWidth: 2,
-        transform: [{ scale: 1.05 }],
     },
     scoreBadge: {
         backgroundColor: COLORS.accentMuted,
-        borderRadius: 14,
+        borderRadius: BORDER_RADIUS.pill,
         paddingHorizontal: 7,
-        paddingVertical: 3,
+        paddingVertical: 2,
         marginRight: 6,
+        alignItems: 'center',
+        justifyContent: 'center',
     },
     scoreBadgeSelected: {
         backgroundColor: COLORS.accent,
     },
     scoreText: {
-        fontSize: 12,
-        fontWeight: '700',
+        fontSize: 11,
+        fontWeight: '800',
         color: COLORS.accent,
         letterSpacing: -0.2,
     },
@@ -90,13 +109,12 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
     },
     nameText: {
-        fontSize: 13,
-        fontWeight: '600',
+        fontSize: 12,
+        fontWeight: '700',
         color: COLORS.primary,
-        maxWidth: 120,
+        maxWidth: 110,
     },
     nameTextSelected: {
         color: COLORS.accent,
-        fontWeight: '700',
     },
 });

@@ -12,6 +12,7 @@ import { useExplore } from '../context/ExploreContext';
 import ExploreScreen from '../screens/property/ExploreScreen';
 import SavedScreen from '../screens/property/SavedScreen';
 import PostScreen from '../screens/property/PostScreen';
+import CrowwAreaIntelligenceIcon from '../components/icons/CrowwAreaIntelligenceIcon';
 import ProfileScreen from '../screens/main/ProfileScreen';
 
 const Tab = createBottomTabNavigator();
@@ -95,14 +96,25 @@ const PropertyTabNavigator = () => {
                                 </View>
                             );
                         }
-                        const pair = TAB_ICONS[route.name] || ['ellipse-outline', 'ellipse'];
                         const effectiveFocused = isExploreTab
                             ? (focused && !isIntelligenceMode)
                             : isAreasTab
                                 ? isIntelligenceMode
                                 : focused;
-                        const iconName = effectiveFocused ? pair[1] : pair[0];
                         const iconColor = effectiveFocused ? COLORS.accent : 'rgba(255, 255, 255, 0.55)';
+
+                        if (route.name === TABS.Areas) {
+                            return (
+                                <CrowwAreaIntelligenceIcon
+                                    size={22}
+                                    color={iconColor}
+                                    focused={effectiveFocused}
+                                />
+                            );
+                        }
+
+                        const pair = TAB_ICONS[route.name] || ['ellipse-outline', 'ellipse'];
+                        const iconName = effectiveFocused ? pair[1] : pair[0];
 
                         return (
                             <TabBarIcon

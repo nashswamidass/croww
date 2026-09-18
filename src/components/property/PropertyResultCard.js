@@ -1,23 +1,63 @@
 import React, { memo } from 'react';
-import { View, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
-import Typography from '../Typography';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
+import { COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import { formatArea, formatBhk, formatListingPrice, formatSubtype } from '../../utils/propertyFormat';
 import { listingCardTrustHint } from '../../domain/verification';
 import { exploreSpatialHint } from '../../domain/spatial';
 
+/**
+ * Compact Property Result Card for launch:
+ * Prioritizes:
+ * 1. Image (compact ratio)
+ * 2. Price (prominent hierarchy)
+ * 3. Stay type (Bed, Private Room, PG, etc.)
+ * 4. Locality
+ * 5. 1-2 important facts (e.g. Furnished · Immediate)
+ *
+ * Sized conservatively to sit cleanly above the floating navbar with zero overlap.
+ */
 const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) => {
     if (!item) return null;
 
     const priceText = formatListingPrice(item);
-    const bhk = formatBhk(item.bedrooms);
-    const area = formatArea(item);
-    const subtype = formatSubtype(item.subtype) || (item.category === 'land' ? 'Plot' : 'Property');
-    const title = [bhk, subtype].filter(Boolean).join(' ');
-    const locality = item.localityName || item.city || 'Chennai';
-    const subMeta = [locality, area].filter(Boolean).join(' · ');
+
+    // Stay Type: use category displayName / stay type, fallback to bhk/subtype
+    const stayType = item.categoryDisplayName
+        || item.categoryName
+        || item.stayType
+        || [formatBhk(item.bedrooms), formatSubtype(item.subtype)].filter(Boolean).join(' ')
+        || (item.category === 'land' ? 'Plot' : 'Stay');
+
+    // Locality & City
+    const locality = item.localityName || item.locality || 'Adyar';
+    const city = item.city || 'Chennai';
+    const locationText = locality.toLowerCase().includes(city.toLowerCase())
+        ? locality
+        : `${locality}, ${city}`;
+
+    // 1-2 important facts
+    const facts = [];
+    if (item.furnishing) {
+        facts.push(item.furnishing.charAt(0).toUpperCase() + item.furnishing.slice(1));
+    } else if (item.furnished === true) {
+        facts.push('Furnished');
+    } else if (item.areaSqFt) {
+        facts.push(`${item.areaSqFt} sq.ft`);
+    }
+
+    if (item.availableFrom) {
+        facts.push(`Available ${item.availableFrom}`);
+    } else if (item.immediate === true || item.availability === 'immediate') {
+        facts.push('Immediate');
+    } else if (item.bathrooms) {
+        facts.push(`${item.bathrooms} Bath`);
+    } else {
+        facts.push('Verified');
+    }
+
+    const factsText = facts.slice(0, 2).join(' · ');
 
     const trustHint = listingCardTrustHint(item);
     const spatialHint = exploreSpatialHint(item);
@@ -31,45 +71,39 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
                 selected && styles.cardSelected,
             ]}
             accessibilityRole="button"
-            accessibilityLabel={`${priceText}, ${title}, in ${locality}`}
+            accessibilityLabel={`${priceText}, ${stayType}, in ${locationText}`}
             activeOpacity={0.92}
         >
-            {/* Image Container */}
+            {/* 1. Compact Image Container */}
             <View style={styles.imageContainer}>
                 {item.coverThumbnailUrl || item.coverUrl ? (
                     <Image
                         source={{ uri: item.coverThumbnailUrl || item.coverUrl }}
                         style={styles.image}
                         contentFit="cover"
-                        transition={200}
+                        transition={150}
                     />
                 ) : (
                     <View style={styles.imagePlaceholder}>
-                        <Ionicons name="home-outline" size={36} color={COLORS.tertiary} />
-                        <Typography variant="caption" style={styles.placeholderText}>
-                            Photo coming soon
-                        </Typography>
+                        <Ionicons name="home-outline" size={26} color={COLORS.tertiary} />
+                        <Text style={styles.placeholderText}>Photo coming soon</Text>
                     </View>
                 )}
 
-                {/* Overlays on Image */}
-                <View style={styles.badgeRow}>
+                {/* Badges on Image */}
+                <View style={styles.badgeRow} pointerEvents="box-none">
                     {trustHint ? (
                         <View style={styles.trustBadge}>
-                            <Ionicons name="shield-checkmark" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                            <Typography variant="micro" style={styles.trustBadgeText}>
-                                {trustHint}
-                            </Typography>
+                            <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                            <Text style={styles.trustBadgeText}>{trustHint}</Text>
                         </View>
                     ) : <View />}
 
                     <View style={styles.topRightControls}>
                         {spatialHint ? (
                             <View style={styles.spatialBadge}>
-                                <Ionicons name="cube-outline" size={13} color="#FFFFFF" style={{ marginRight: 4 }} />
-                                <Typography variant="micro" style={styles.spatialBadgeText}>
-                                    3D
-                                </Typography>
+                                <Ionicons name="cube-outline" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                                <Text style={styles.spatialBadgeText}>3D</Text>
                             </View>
                         ) : null}
 
@@ -81,37 +115,40 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
                                     onDismiss();
                                 }}
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                accessibilityLabel="Deselect property"
                             >
-                                <Ionicons name="close" size={16} color="#FFFFFF" />
+                                <Ionicons name="close" size={13} color="#FFFFFF" />
                             </TouchableOpacity>
                         )}
                     </View>
                 </View>
             </View>
 
-            {/* Card Content Body */}
+            {/* 2. Compact Body with Strong Price Hierarchy */}
             <View style={styles.body}>
                 <View style={styles.priceRow}>
-                    <Typography variant="price" style={styles.price}>
-                        {priceText}
-                    </Typography>
-                    {item.transactionType === 'rent' ? (
-                        <Typography variant="caption" style={styles.rentPeriod}>
-                            /month
-                        </Typography>
+                    <Text style={styles.price}>{priceText}</Text>
+                    {item.transactionType === 'rent' && !priceText.includes('/mo') && !priceText.includes('/month') ? (
+                        <Text style={styles.rentPeriod}>/month</Text>
                     ) : null}
                 </View>
 
-                <Typography variant="titleMedium" numberOfLines={1} style={styles.title}>
-                    {title}
-                </Typography>
+                <Text numberOfLines={1} style={styles.stayType}>
+                    {stayType}
+                </Text>
 
                 <View style={styles.metaRow}>
-                    <Ionicons name="location-outline" size={14} color={COLORS.secondary} style={{ marginRight: 3 }} />
-                    <Typography variant="bodyMedium" numberOfLines={1} style={styles.subMeta}>
-                        {subMeta}
-                    </Typography>
+                    <Ionicons name="location-outline" size={12} color={COLORS.secondary} style={{ marginRight: 2 }} />
+                    <Text numberOfLines={1} style={styles.locationText}>
+                        {locationText}
+                    </Text>
                 </View>
+
+                {factsText ? (
+                    <Text numberOfLines={1} style={styles.factsText}>
+                        {factsText}
+                    </Text>
+                ) : null}
             </View>
         </TouchableOpacity>
     );
@@ -119,13 +156,13 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
 
 const styles = StyleSheet.create({
     card: {
-        width: 300,
+        width: 275,
         backgroundColor: COLORS.surface,
         borderRadius: BORDER_RADIUS.card,
         borderWidth: 1,
         borderColor: COLORS.border,
         overflow: 'hidden',
-        marginRight: SPACING.m,
+        marginRight: 10,
         ...SHADOWS.floating,
     },
     fullWidth: {
@@ -138,7 +175,7 @@ const styles = StyleSheet.create({
     },
     imageContainer: {
         width: '100%',
-        height: 175,
+        height: 108,
         backgroundColor: COLORS.surfaceHighlight,
         position: 'relative',
     },
@@ -154,14 +191,16 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.surfaceSubtle,
     },
     placeholderText: {
-        marginTop: SPACING.xs,
+        fontSize: 10,
+        marginTop: 3,
         color: COLORS.secondary,
+        fontWeight: '500',
     },
     badgeRow: {
         position: 'absolute',
-        top: 10,
-        left: 10,
-        right: 10,
+        top: 6,
+        left: 6,
+        right: 6,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -170,71 +209,84 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.success,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        paddingHorizontal: 6,
+        paddingVertical: 2.5,
         borderRadius: BORDER_RADIUS.pill,
         ...SHADOWS.subtle,
     },
     trustBadgeText: {
         fontWeight: '700',
+        fontSize: 10,
         color: '#FFFFFF',
     },
     topRightControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 6,
+        gap: 5,
     },
     spatialBadge: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: 'rgba(15, 23, 42, 0.75)',
-        paddingHorizontal: 8,
-        paddingVertical: 4,
+        backgroundColor: 'rgba(15, 23, 42, 0.78)',
+        paddingHorizontal: 6,
+        paddingVertical: 2.5,
         borderRadius: BORDER_RADIUS.pill,
     },
     spatialBadgeText: {
         fontWeight: '700',
+        fontSize: 10,
         color: '#FFFFFF',
     },
     dismissBtn: {
-        width: 26,
-        height: 26,
-        borderRadius: 13,
+        width: 20,
+        height: 20,
+        borderRadius: 10,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     body: {
-        padding: 14,
+        paddingHorizontal: 10,
+        paddingVertical: 8,
     },
     priceRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
     },
     price: {
-        fontSize: 24,
+        fontSize: 17,
         fontWeight: '800',
         color: COLORS.primary,
-        letterSpacing: -0.5,
+        letterSpacing: -0.3,
     },
     rentPeriod: {
-        marginLeft: 4,
+        marginLeft: 3,
+        fontSize: 11,
         color: COLORS.secondary,
         fontWeight: '600',
     },
-    title: {
-        marginTop: 4,
+    stayType: {
+        marginTop: 1,
+        fontSize: 13,
         fontWeight: '700',
         color: COLORS.primary,
     },
     metaRow: {
         flexDirection: 'row',
         alignItems: 'center',
-        marginTop: 4,
+        marginTop: 2,
     },
-    subMeta: {
+    locationText: {
+        fontSize: 11.5,
         color: COLORS.secondary,
+        fontWeight: '500',
         flex: 1,
+    },
+    factsText: {
+        marginTop: 2,
+        fontSize: 11,
+        color: COLORS.accentDark,
+        fontWeight: '600',
     },
 });
 

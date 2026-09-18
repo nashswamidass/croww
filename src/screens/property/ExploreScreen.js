@@ -8,6 +8,7 @@ import {
     ActivityIndicator,
     Platform,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -33,6 +34,7 @@ import AreaIntelligenceOverlay, { INTELLIGENCE_PHASES } from '../../components/i
 import { localityService } from '../../services/property/localityService';
 import { areaScoreService } from '../../services/intelligence/areaScoreService';
 import { areaScorePreferenceService } from '../../services/intelligence/areaScorePreferenceService';
+import { getFloatingNavbarClearance } from '../../constants/layout';
 
 const FALLBACK_CHENNAI_LOCALITIES = [
     { id: 'adyar', name: 'Adyar', city: 'Chennai', latitude: 13.0012, longitude: 80.2565, intelligence: { flood: { class: 'MINIMAL' }, transport: { metro: { available: true } } }, staysCount: 23 },
@@ -44,6 +46,75 @@ const FALLBACK_CHENNAI_LOCALITIES = [
 ];
 
 const SAMPLE_PREVIEW_LISTINGS = [
+    {
+        listingId: 'preview_egmore_stay',
+        id: 'preview_egmore_stay',
+        title: 'Central 1 BHK Private Stay in Egmore',
+        category: 'stay_private_room',
+        subtype: 'Private Room',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 240,
+        rentAmountMonthly: 17000,
+        price: 17000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Egmore',
+        city: 'Chennai',
+        latitude: 13.0780,
+        longitude: 80.2600,
+        mapCoordinate: { latitude: 13.0780, longitude: 80.2600 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+    {
+        listingId: 'preview_anna_nagar_room',
+        id: 'preview_anna_nagar_room',
+        title: 'Premium Independent Room in Anna Nagar',
+        category: 'stay_private_room',
+        subtype: 'Private Room',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 280,
+        rentAmountMonthly: 28000,
+        price: 28000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Anna Nagar',
+        city: 'Chennai',
+        latitude: 13.0850,
+        longitude: 80.2100,
+        mapCoordinate: { latitude: 13.0850, longitude: 80.2100 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+    {
+        listingId: 'preview_t_nagar_shared',
+        id: 'preview_t_nagar_shared',
+        title: 'Spacious 2 BHK Shared Space in T Nagar',
+        category: 'stay_shared_room',
+        subtype: 'Shared Room',
+        bedrooms: 2,
+        bathrooms: 2,
+        carpetAreaSqFt: 350,
+        rentAmountMonthly: 24000,
+        price: 24000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'T Nagar',
+        city: 'Chennai',
+        latitude: 13.0418,
+        longitude: 80.2341,
+        mapCoordinate: { latitude: 13.0418, longitude: 80.2341 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
     {
         listingId: 'preview_adyar_private_room',
         id: 'preview_adyar_private_room',
@@ -90,9 +161,79 @@ const SAMPLE_PREVIEW_LISTINGS = [
         verified: true,
         verificationStatus: 'VERIFIED',
     },
+    {
+        listingId: 'preview_thiruvanmiyur_studio',
+        id: 'preview_thiruvanmiyur_studio',
+        title: 'Coastal Studio Stay in Thiruvanmiyur',
+        category: 'stay_private_room',
+        subtype: 'Private Room',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 260,
+        rentAmountMonthly: 18000,
+        price: 18000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Thiruvanmiyur',
+        city: 'Chennai',
+        latitude: 12.9850,
+        longitude: 80.2600,
+        mapCoordinate: { latitude: 12.9850, longitude: 80.2600 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+    {
+        listingId: 'preview_velachery_flat',
+        id: 'preview_velachery_flat',
+        title: 'Bed Space in Velachery Connected Hub',
+        category: 'stay_bed',
+        subtype: 'Bed',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 180,
+        rentAmountMonthly: 14000,
+        price: 14000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'Velachery',
+        city: 'Chennai',
+        latitude: 12.9750,
+        longitude: 80.2200,
+        mapCoordinate: { latitude: 12.9750, longitude: 80.2200 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
+    {
+        listingId: 'preview_omr_coliving',
+        id: 'preview_omr_coliving',
+        title: 'Tech-Hub Co-living Suite on OMR',
+        category: 'stay_coliving',
+        subtype: 'Co-living',
+        bedrooms: 1,
+        bathrooms: 1,
+        carpetAreaSqFt: 290,
+        rentAmountMonthly: 12000,
+        price: 12000,
+        currency: '₹',
+        transactionType: 'rent',
+        localityName: 'OMR',
+        city: 'Chennai',
+        latitude: 12.8950,
+        longitude: 80.2280,
+        mapCoordinate: { latitude: 12.8950, longitude: 80.2280 },
+        coverThumbnailUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&auto=format&fit=crop&q=80',
+        coverUrl: 'https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=1200&auto=format&fit=crop&q=80',
+        verified: true,
+        verificationStatus: 'VERIFIED',
+    },
 ];
 
 const ExploreScreen = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const route = useRoute();
     const {
@@ -105,6 +246,7 @@ const ExploreScreen = () => {
         setSearchLocation,
         searchLocation,
         city,
+        setCity,
         selectCity,
         localityId,
         focusLocality,
@@ -310,18 +452,24 @@ const ExploreScreen = () => {
     // Dynamic Step Options for Area Intelligence
     const stepOptions = useMemo(() => {
         const taxonomyOptions = (consumerCategories && consumerCategories.length > 0)
-            ? consumerCategories.map((cat) => ({
-                id: cat.typeId || cat.id,
-                label: cat.displayName,
-                description: cat.shortDescription || cat.displayName,
-                icon: cat.icon || 'bed-outline',
-            }))
+            ? consumerCategories.map((cat) => {
+                let icon = cat.icon || 'bed-outline';
+                if (icon === 'sparkles-outline' || icon === 'sparkles') {
+                    icon = 'people-circle-outline';
+                }
+                return {
+                    id: cat.typeId || cat.id,
+                    label: cat.displayName,
+                    description: cat.shortDescription || cat.displayName,
+                    icon,
+                };
+            })
             : [
                 { id: 'stay_bed', label: 'Bed', description: 'Single bed space in a shared room or hostel', icon: 'bed-outline' },
                 { id: 'stay_shared_room', label: 'Shared Room', description: 'Shared bedroom with 1 or 2 roommates', icon: 'people-outline' },
                 { id: 'stay_private_room', label: 'Private Room', description: 'Independent private bedroom in an apartment or house', icon: 'key-outline' },
                 { id: 'stay_pg', label: 'PG', description: 'Paying guest accommodation with food & housekeeping', icon: 'business-outline' },
-                { id: 'stay_coliving', label: 'Co-living', description: 'Fully managed with food, WiFi, and housekeeping', icon: 'people-outline' },
+                { id: 'stay_coliving', label: 'Co-living', description: 'Fully managed with food, WiFi, and housekeeping', icon: 'people-circle-outline' },
                 { id: 'stay_roommate', label: 'Roommate Replacement', description: 'Take over an existing shared lease spot', icon: 'person-add-outline' },
             ];
 
@@ -500,10 +648,13 @@ const ExploreScreen = () => {
 
     const handleExploreLocality = useCallback((locality) => {
         if (!locality) return;
+        const targetCity = locality.city || city || 'Chennai';
+        setCity(targetCity);
+        setQuery(locality.name || '');
         focusLocality({
             id: locality.id,
             name: locality.name,
-            city: locality.city || city,
+            city: targetCity,
             viewport: {
                 latitude: locality.latitude,
                 longitude: locality.longitude,
@@ -512,15 +663,19 @@ const ExploreScreen = () => {
             },
         });
         if (locality.latitude && locality.longitude) {
-            setFollowRegion({
+            const next = {
                 latitude: locality.latitude,
                 longitude: locality.longitude,
                 latitudeDelta: 0.04,
                 longitudeDelta: 0.04,
-            });
+            };
+            setViewport(next);
+            setFollowRegion(next);
         }
+        setSelectedLocality(null);
+        setSelectedLocalityData(null);
         setIntelligenceMode(false);
-    }, [focusLocality, city, setIntelligenceMode]);
+    }, [focusLocality, city, setCity, setViewport, setIntelligenceMode]);
 
     const mapLocalityProperties = useMemo(() => {
         return scoredLocalities.map((item) => ({
@@ -551,6 +706,9 @@ const ExploreScreen = () => {
                     ? 'No properties match these filters in view.'
                     : `No published properties in this part of ${city || 'the city'} yet.`)
                 : null;
+
+    const cardCarouselBottom = getFloatingNavbarClearance(insets, 12);
+    const floatingControlsBottom = cardCarouselBottom + (emptyMessage ? 175 : 205);
 
     return (
         <ScreenWrapper edges={['top']}>
@@ -667,7 +825,7 @@ const ExploreScreen = () => {
                         </View>
 
                         {/* 3. Floating Map Controls (Locate Me & Save Alert) */}
-                        <View style={styles.floatingControls} pointerEvents="box-none">
+                        <View style={[styles.floatingControls, { bottom: floatingControlsBottom }]} pointerEvents="box-none">
                             {refreshing ? (
                                 <View style={styles.refreshBadge}>
                                     <ActivityIndicator size="small" color={COLORS.accent} />
@@ -708,7 +866,7 @@ const ExploreScreen = () => {
                         </View>
 
                         {/* 4. Floating Bottom Property Card Carousel */}
-                        <View style={styles.floatingBottom} pointerEvents="box-none">
+                        <View style={[styles.floatingBottom, { bottom: cardCarouselBottom }]} pointerEvents="box-none">
                             {emptyMessage ? (
                                 <View style={styles.emptyCard} pointerEvents="auto">
                                     <CrowwRive
@@ -880,7 +1038,6 @@ const styles = StyleSheet.create({
     floatingControls: {
         position: 'absolute',
         right: SPACING.l,
-        bottom: 340,
         zIndex: 20,
         flexDirection: 'column',
         alignItems: 'flex-end',
@@ -931,7 +1088,6 @@ const styles = StyleSheet.create({
         position: 'absolute',
         left: 0,
         right: 0,
-        bottom: 84,
         zIndex: 25,
     },
     carouselContainer: {
@@ -947,7 +1103,7 @@ const styles = StyleSheet.create({
         borderRadius: BORDER_RADIUS.card,
         borderWidth: 1,
         borderColor: COLORS.border,
-        padding: SPACING.l,
+        padding: SPACING.m,
         alignItems: 'center',
         textAlign: 'center',
         ...SHADOWS.floating,

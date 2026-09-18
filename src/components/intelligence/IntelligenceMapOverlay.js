@@ -7,7 +7,10 @@ import {
     View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS } from '../../constants/theme';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CrowwAreaIntelligenceIcon from '../icons/CrowwAreaIntelligenceIcon';
+import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import { getFloatingNavbarClearance } from '../../constants/layout';
 import LocalityScoreBubble from './LocalityScoreBubble';
 
 export default function IntelligenceMapOverlay({
@@ -17,47 +20,63 @@ export default function IntelligenceMapOverlay({
     onResetPreferences,
     onClose,
 }) {
+    const insets = useSafeAreaInsets();
+
     if (!scoredLocalities || scoredLocalities.length === 0) {
         return null;
     }
 
+    const topPadding = Math.max(insets.top, 16) + 10;
+    const bottomClearance = getFloatingNavbarClearance(insets, 12);
+
     return (
-        <View style={styles.container} pointerEvents="box-none">
-            {/* Top header pill: "Croww Intelligence" + tune & close actions */}
-            <View style={styles.headerRow}>
+        <View style={[styles.container, { paddingTop: topPadding }]} pointerEvents="box-none">
+            {/* Top header control bar: Area Intelligence + Tune + Exit */}
+            <View style={styles.headerRow} pointerEvents="box-none">
                 <View style={styles.brandPill}>
-                    <Ionicons name="sparkles" size={14} color={COLORS.accent} style={styles.sparkleIcon} />
-                    <Text style={styles.brandText}>Area Intelligence Active</Text>
+                    <CrowwAreaIntelligenceIcon size={16} color={COLORS.accent} style={{ marginRight: 7 }} focused />
+                    <Text style={styles.brandText}>Area Intelligence</Text>
                 </View>
 
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <View style={styles.controlsGroup}>
                     {onResetPreferences && (
                         <TouchableOpacity
-                            style={styles.filterPill}
+                            style={styles.actionPill}
                             onPress={onResetPreferences}
-                            activeOpacity={0.8}
+                            activeOpacity={0.82}
+                            hitSlop={TOUCH_TARGETS.hitSlop}
+                            accessibilityRole="button"
                             accessibilityLabel="Tune preferences"
                         >
-                            <Ionicons name="options-outline" size={14} color={COLORS.primary} />
-                            <Text style={styles.filterText}>Tune</Text>
+                            <Ionicons name="options-outline" size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
+                            <Text style={styles.actionText}>Tune</Text>
                         </TouchableOpacity>
                     )}
 
                     {onClose && (
                         <TouchableOpacity
-                            style={styles.closePill}
+                            style={styles.actionPill}
                             onPress={onClose}
-                            activeOpacity={0.8}
+                            activeOpacity={0.82}
+                            hitSlop={TOUCH_TARGETS.hitSlop}
+                            accessibilityRole="button"
                             accessibilityLabel="Exit intelligence mode"
                         >
-                            <Ionicons name="close" size={16} color={COLORS.primary} />
+                            <Ionicons name="close" size={15} color={COLORS.primary} style={{ marginRight: 3 }} />
+                            <Text style={styles.actionText}>Exit</Text>
                         </TouchableOpacity>
                     )}
                 </View>
             </View>
 
-            {/* Bottom horizontal strip of top ranked areas */}
-            <View style={styles.bottomSection} pointerEvents="box-none">
+            {/* Bottom horizontal carousel of top ranked areas */}
+            <View
+                style={[
+                    styles.bottomSection,
+                    { paddingBottom: bottomClearance },
+                ]}
+                pointerEvents="box-none"
+            >
                 <Text style={styles.stripTitle}>TOP AREAS FOR YOU</Text>
                 <ScrollView
                     horizontal
@@ -72,6 +91,7 @@ export default function IntelligenceMapOverlay({
                                     name={item.locality.name}
                                     score={item.score}
                                     selected={isSelected}
+                                    variant="card"
                                     onPress={() => onSelectLocality(item.locality, item)}
                                 />
                             </View>
@@ -87,8 +107,6 @@ const styles = StyleSheet.create({
     container: {
         ...StyleSheet.absoluteFillObject,
         justifyContent: 'space-between',
-        paddingTop: 54,
-        paddingBottom: 96,
     },
     headerRow: {
         flexDirection: 'row',
@@ -97,60 +115,50 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
     },
     brandPill: {
+        height: 38,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: '#FFFFFF',
         borderRadius: BORDER_RADIUS.pill,
-        paddingVertical: 8,
-        paddingHorizontal: 14,
+        paddingHorizontal: 13,
         borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.medium,
-    },
-    sparkleIcon: {
-        marginRight: 6,
+        borderColor: COLORS.borderSubtle,
+        ...SHADOWS.soft,
     },
     brandText: {
         fontSize: FONT_SIZES.xs,
         fontWeight: '700',
         color: COLORS.primary,
-        letterSpacing: 0.2,
+        letterSpacing: 0.1,
     },
-    filterPill: {
+    controlsGroup: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.surface,
-        borderRadius: BORDER_RADIUS.pill,
-        paddingVertical: 8,
-        paddingHorizontal: 12,
-        borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.medium,
+        gap: 8,
     },
-    closePill: {
-        width: 34,
-        height: 34,
-        borderRadius: 17,
+    actionPill: {
+        height: 38,
+        flexDirection: 'row',
         alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: COLORS.surface,
+        backgroundColor: '#FFFFFF',
+        borderRadius: BORDER_RADIUS.pill,
+        paddingHorizontal: 13,
         borderWidth: 1,
-        borderColor: COLORS.border,
-        ...SHADOWS.medium,
+        borderColor: COLORS.borderSubtle,
+        ...SHADOWS.soft,
     },
-    filterText: {
+    actionText: {
         fontSize: FONT_SIZES.xs,
         fontWeight: '600',
         color: COLORS.primary,
-        marginLeft: 4,
     },
     bottomSection: {
         paddingHorizontal: 16,
     },
     stripTitle: {
-        fontSize: 11,
+        fontSize: 10,
         fontWeight: '800',
-        color: COLORS.primary,
+        color: COLORS.secondary,
         letterSpacing: 0.8,
         marginBottom: 8,
         textShadowColor: 'rgba(255, 255, 255, 0.9)',
@@ -158,8 +166,7 @@ const styles = StyleSheet.create({
         textShadowRadius: 3,
     },
     bubbleScroll: {
-        paddingRight: 16,
-        gap: 8,
+        paddingRight: 24,
     },
     bubbleWrapper: {
         marginRight: 8,

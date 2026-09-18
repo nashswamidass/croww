@@ -9,6 +9,7 @@ import {
 import { useNavigation } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import CrowwAreaIntelligenceIcon from '../../components/icons/CrowwAreaIntelligenceIcon';
 import PropertyMap from '../../components/property/PropertyMap';
 import PreferenceStep from '../../components/intelligence/PreferenceStep';
 import IntelligenceMapOverlay from '../../components/intelligence/IntelligenceMapOverlay';
@@ -288,7 +289,7 @@ export default function AreasScreen() {
                     <View style={styles.introContent}>
                         {/* Network/Intelligence Icon */}
                         <View style={styles.symbolWrap}>
-                            <Ionicons name="sparkles" size={28} color={COLORS.accent} />
+                            <CrowwAreaIntelligenceIcon size={32} color={COLORS.accent} focused />
                         </View>
 
                         <Text style={styles.introTitle}>Find your best area</Text>

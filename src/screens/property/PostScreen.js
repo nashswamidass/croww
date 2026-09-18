@@ -31,7 +31,7 @@ const getCategoryIcon = (item) => {
     if (id.includes('shared') || name.includes('shared')) return 'people-outline';
     if (id.includes('private') || name.includes('private')) return 'person-outline';
     if (id.includes('pg') || name.includes('pg')) return 'business-outline';
-    if (id.includes('coliving') || name.includes('co-living') || name.includes('coliving')) return 'sparkles-outline';
+    if (id.includes('coliving') || name.includes('co-living') || name.includes('coliving')) return 'people-circle-outline';
     if (id.includes('roommate') || name.includes('roommate')) return 'swap-horizontal-outline';
     if (item.icon && item.icon !== 'key-outline') return item.icon;
     return 'home-outline';
@@ -95,7 +95,7 @@ const PostScreen = () => {
                 {/* 1. Header — Launch-Oriented Focus */}
                 <View style={styles.header}>
                     <View style={styles.badge}>
-                        <Ionicons name="sparkles" size={13} color={COLORS.accent} />
+                        <Ionicons name="flash" size={13} color={COLORS.accent} />
                         <Text style={styles.badgeText}>COMMUNITY SHARING</Text>
                     </View>
                     <Typography variant="display" style={styles.title}>

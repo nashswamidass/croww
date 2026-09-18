@@ -89,7 +89,7 @@ const RAW_DEFAULT_ITEMS: Omit<ListingTaxonomyItem, 'typeId'>[] = [
         section: 'rent',
         displayName: 'Co-living',
         shortDescription: 'Fully managed community living with modern amenities',
-        icon: 'sparkles-outline',
+        icon: 'people-circle-outline',
         status: 'ACTIVE',
         displayOrder: 5,
         consumerEnabled: true,

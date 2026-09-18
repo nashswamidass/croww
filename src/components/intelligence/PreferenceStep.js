@@ -7,6 +7,7 @@ import {
     View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
 
 export default function PreferenceStep({
@@ -22,6 +23,7 @@ export default function PreferenceStep({
     continueLabel = 'Continue',
     customContent = null,
 }) {
+    const insets = useSafeAreaInsets();
     return (
         <View style={styles.container}>
             {/* Step indicator header */}
@@ -112,7 +114,7 @@ export default function PreferenceStep({
             </ScrollView>
 
             {/* Continue CTA */}
-            <View style={styles.footer}>
+            <View style={[styles.footer, { paddingBottom: Math.max(insets.bottom, 12) + 84 }]}>
                 <TouchableOpacity
                     style={[
                         styles.continueBtn,
