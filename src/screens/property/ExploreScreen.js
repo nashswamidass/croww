@@ -231,6 +231,14 @@ const SAMPLE_PREVIEW_LISTINGS = [
     },
 ];
 
+// Preview inventory is strictly allowed ONLY in development (__DEV__) or explicit QA/production-preview builds.
+// In a normal production build, this evaluates to false at compile/bundle time, completely eliminating synthetic listings and preview UI.
+const IS_PREVIEW_ENV = Boolean(
+    __DEV__ ||
+    process.env.EXPO_PUBLIC_APP_ENV === 'production-preview' ||
+    process.env.EXPO_PUBLIC_APP_ENV === 'qa'
+);
+
 const ExploreScreen = () => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
@@ -319,11 +327,12 @@ const ExploreScreen = () => {
 
     const initialRegion = viewport || LAUNCH_VIEWPORT;
 
-    const [qaPreviewEnabled, setQaPreviewEnabled] = useState(false);
+    const [qaPreviewEnabled, setQaPreviewEnabled] = useState(IS_PREVIEW_ENV);
     const brandTapCountRef = useRef(0);
     const brandTapTimeoutRef = useRef(null);
 
     const handleBrandPress = useCallback(() => {
+        if (!IS_PREVIEW_ENV) return;
         brandTapCountRef.current += 1;
         if (brandTapTimeoutRef.current) clearTimeout(brandTapTimeoutRef.current);
         if (brandTapCountRef.current >= 5) {
@@ -339,12 +348,9 @@ const ExploreScreen = () => {
     const displayedResults = useMemo(() => {
         const remoteListings = results || [];
         const combined = [...remoteListings];
-        // Production: zero fabricated inventory or placeholder listings.
-        // Preview inventory is strictly scoped to development (__DEV__), explicit preview environments, or QA toggle.
-        const isPreviewAllowed = Boolean(
-            __DEV__ || process.env.EXPO_PUBLIC_APP_ENV === 'production-preview' || qaPreviewEnabled
-        );
-        if (isPreviewAllowed && (!city || city === 'Chennai')) {
+        // Production safety: preview inventory is strictly gated by build/environment flag (IS_PREVIEW_ENV).
+        // In a normal production build, IS_PREVIEW_ENV is false, ensuring ZERO synthetic listings or backdoor injection.
+        if (IS_PREVIEW_ENV && qaPreviewEnabled && (!city || city === 'Chennai')) {
             SAMPLE_PREVIEW_LISTINGS.forEach((preview) => {
                 if (!combined.some((item) => (item.id === preview.id || item.listingId === preview.listingId))) {
                     combined.push(preview);
@@ -794,16 +800,23 @@ const ExploreScreen = () => {
                         <View style={styles.floatingTop} pointerEvents="box-none">
                             {/* Brand & City / Notification Row */}
                             <View style={styles.brandRow}>
-                                <TouchableOpacity
-                                    activeOpacity={0.85}
-                                    onPress={handleBrandPress}
-                                    style={styles.brandBadge}
-                                    accessibilityRole="button"
-                                    accessibilityLabel="Croww brand"
-                                >
-                                    <Text style={styles.brandTitle}>Croww</Text>
-                                    <View style={[styles.brandDot, qaPreviewEnabled && { backgroundColor: COLORS.accent }]} />
-                                </TouchableOpacity>
+                                {IS_PREVIEW_ENV ? (
+                                    <TouchableOpacity
+                                        activeOpacity={0.85}
+                                        onPress={handleBrandPress}
+                                        style={styles.brandBadge}
+                                        accessibilityRole="button"
+                                        accessibilityLabel="Croww brand preview toggle"
+                                    >
+                                        <Text style={styles.brandTitle}>Croww</Text>
+                                        <View style={[styles.brandDot, qaPreviewEnabled && { backgroundColor: COLORS.accent }]} />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <View style={styles.brandBadge}>
+                                        <Text style={styles.brandTitle}>Croww</Text>
+                                        <View style={styles.brandDot} />
+                                    </View>
+                                )}
 
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <TouchableOpacity
@@ -929,15 +942,17 @@ const ExploreScreen = () => {
                                                 Explore {city === 'Chennai' ? 'Bengaluru' : 'Chennai'}
                                             </Typography>
                                         </TouchableOpacity>
-                                        <TouchableOpacity
-                                            onPress={() => setQaPreviewEnabled(true)}
-                                            style={{ marginTop: 8, paddingVertical: 4, alignItems: 'center' }}
-                                            accessibilityLabel="Preview Sample Map Inventory"
-                                        >
-                                            <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600' }}>
-                                                Preview Sample Map Inventory
-                                            </Typography>
-                                        </TouchableOpacity>
+                                        {IS_PREVIEW_ENV && !qaPreviewEnabled ? (
+                                            <TouchableOpacity
+                                                onPress={() => setQaPreviewEnabled(true)}
+                                                style={{ marginTop: 8, paddingVertical: 4, alignItems: 'center' }}
+                                                accessibilityLabel="Preview Sample Map Inventory"
+                                            >
+                                                <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600' }}>
+                                                    Preview Sample Map Inventory
+                                                </Typography>
+                                            </TouchableOpacity>
+                                        ) : null}
                                     </View>
                                 </View>
                             ) : (
