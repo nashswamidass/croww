@@ -86,8 +86,8 @@ const styles = StyleSheet.create({
     },
     // Selected state ONLY changes colors - NO transform/scale changes
     pricePillSelected: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
+        backgroundColor: COLORS.accent,
+        borderColor: COLORS.accent,
     },
     priceText: {
         color: '#111827',
@@ -105,7 +105,7 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         backgroundColor: '#FFFFFF',
-        borderColor: COLORS.primary,
+        borderColor: COLORS.accent,
         borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
         shadowRadius: 0,
     },
     clusterText: {
-        color: COLORS.primary,
+        color: COLORS.accent,
         fontSize: 13,
         fontWeight: '800',
         includeFontPadding: false,

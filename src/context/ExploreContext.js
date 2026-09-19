@@ -9,7 +9,7 @@ import { CITY_COORDINATES } from '../constants/location';
  * USER LOCATION ≠ SEARCH LOCATION ≠ MAP VIEWPORT ≠ FILTERS ≠ SELECTED RESULT
  */
 export const DEFAULT_EXPLORE_FILTERS = {
-    transactionType: 'buy',
+    transactionType: 'rent',
     category: null,
     subtype: null,
     bhk: null,

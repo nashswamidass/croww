@@ -1,5 +1,5 @@
 diff --git a/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java b/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
-index 3e0250f..09278e7 100644
+index b755f9b..40a1e5d 100644
 --- a/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
 +++ b/node_modules/react-native-maps/android/src/main/java/com/rnmaps/maps/MapMarker.java
 @@ -9,6 +9,7 @@ import android.graphics.drawable.Animatable;
@@ -10,7 +10,7 @@ index 3e0250f..09278e7 100644
  import android.widget.LinearLayout;
  import android.animation.ObjectAnimator;
  import android.util.Property;
-@@ -520,6 +521,22 @@ public class MapMarker extends MapFeature {
+@@ -517,6 +518,22 @@ public class MapMarker extends MapFeature {
  
    private Bitmap mLastBitmapCreated = null;
  
@@ -33,10 +33,11 @@ index 3e0250f..09278e7 100644
    private void clearDrawableCache() {
      mLastBitmapCreated = null;
    }
-@@ -528,6 +545,27 @@ public class MapMarker extends MapFeature {
+@@ -524,6 +541,28 @@ public class MapMarker extends MapFeature {
+   private Bitmap createDrawable() {
      int width = this.width <= 0 ? 100 : this.width;
      int height = this.height <= 0 ? 100 : this.height;
- 
++
 +    // Bitmap must cover laid-out custom-marker subtree; Yoga box alone can be too small (Fabric).
 +    if (hasCustomMarkerView) {
 +      int[] expanded = new int[] { width, height };

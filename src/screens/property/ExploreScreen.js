@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
     View,
     Text,
@@ -319,10 +319,32 @@ const ExploreScreen = () => {
 
     const initialRegion = viewport || LAUNCH_VIEWPORT;
 
+    const [qaPreviewEnabled, setQaPreviewEnabled] = useState(false);
+    const brandTapCountRef = useRef(0);
+    const brandTapTimeoutRef = useRef(null);
+
+    const handleBrandPress = useCallback(() => {
+        brandTapCountRef.current += 1;
+        if (brandTapTimeoutRef.current) clearTimeout(brandTapTimeoutRef.current);
+        if (brandTapCountRef.current >= 5) {
+            brandTapCountRef.current = 0;
+            setQaPreviewEnabled((prev) => !prev);
+        } else {
+            brandTapTimeoutRef.current = setTimeout(() => {
+                brandTapCountRef.current = 0;
+            }, 1500);
+        }
+    }, []);
+
     const displayedResults = useMemo(() => {
         const remoteListings = results || [];
         const combined = [...remoteListings];
-        if (!city || city === 'Chennai') {
+        // Production: zero fabricated inventory or placeholder listings.
+        // Preview inventory is strictly scoped to development (__DEV__), explicit preview environments, or QA toggle.
+        const isPreviewAllowed = Boolean(
+            __DEV__ || process.env.EXPO_PUBLIC_APP_ENV === 'production-preview' || qaPreviewEnabled
+        );
+        if (isPreviewAllowed && (!city || city === 'Chennai')) {
             SAMPLE_PREVIEW_LISTINGS.forEach((preview) => {
                 if (!combined.some((item) => (item.id === preview.id || item.listingId === preview.listingId))) {
                     combined.push(preview);
@@ -341,7 +363,7 @@ const ExploreScreen = () => {
             || (r.cityName && r.cityName.toLowerCase().includes(q))
             || (r.address && r.address.toLowerCase().includes(q))
         );
-    }, [results, city, filters, query]);
+    }, [results, city, filters, query, qaPreviewEnabled]);
 
     const userCoordinate = useMemo(() => {
         if (!userLocation || userLocation.method === 'launch-city') return null;
@@ -772,10 +794,16 @@ const ExploreScreen = () => {
                         <View style={styles.floatingTop} pointerEvents="box-none">
                             {/* Brand & City / Notification Row */}
                             <View style={styles.brandRow}>
-                                <View style={styles.brandBadge}>
+                                <TouchableOpacity
+                                    activeOpacity={0.85}
+                                    onPress={handleBrandPress}
+                                    style={styles.brandBadge}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Croww brand"
+                                >
                                     <Text style={styles.brandTitle}>Croww</Text>
-                                    <View style={styles.brandDot} />
-                                </View>
+                                    <View style={[styles.brandDot, qaPreviewEnabled && { backgroundColor: COLORS.accent }]} />
+                                </TouchableOpacity>
 
                                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                                     <TouchableOpacity
@@ -899,6 +927,15 @@ const ExploreScreen = () => {
                                         >
                                             <Typography variant="bodyMedium" style={styles.switchCityText}>
                                                 Explore {city === 'Chennai' ? 'Bengaluru' : 'Chennai'}
+                                            </Typography>
+                                        </TouchableOpacity>
+                                        <TouchableOpacity
+                                            onPress={() => setQaPreviewEnabled(true)}
+                                            style={{ marginTop: 8, paddingVertical: 4, alignItems: 'center' }}
+                                            accessibilityLabel="Preview Sample Map Inventory"
+                                        >
+                                            <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600' }}>
+                                                Preview Sample Map Inventory
                                             </Typography>
                                         </TouchableOpacity>
                                     </View>
