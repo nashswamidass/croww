@@ -13,6 +13,12 @@ if (APP_ENV === "production-preview" && FIREBASE_PROJECT_ID !== "croww-live-2026
   );
 }
 
+if (APP_ENV === "production" && FIREBASE_PROJECT_ID !== "croww-live-2026") {
+  throw new Error(
+    "Production mode must set EXPO_PUBLIC_FIREBASE_PROJECT_ID=croww-live-2026. Refusing non-production project."
+  );
+}
+
 export default {
   "expo": {
     "name": "Croww",
