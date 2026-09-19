@@ -332,7 +332,7 @@ const ChatScreen = ({ route, navigation }) => {
                         if (navigation.canGoBack()) {
                             navigation.goBack();
                         } else {
-                            navigation.navigate('Tabs', { screen: 'Messages' });
+                            navigation.navigate('ChatList');
                         }
                     }} 
                     style={styles.backButton}

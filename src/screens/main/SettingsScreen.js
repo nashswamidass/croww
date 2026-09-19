@@ -10,14 +10,11 @@ import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
-import { pushNotificationService } from '../../services/pushNotificationService';
 
 const SETTINGS_KEY = '@croww_user_settings';
 
 const SettingsScreen = ({ navigation }) => {
     const { user: currentUser } = useAuth();
-    const [pushNotifications, setPushNotifications] = useState(false);
-    const [emailNotifications, setEmailNotifications] = useState(false);
     const [locationServices, setLocationServices] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
 
@@ -31,15 +28,13 @@ const SettingsScreen = ({ navigation }) => {
         if (settingsLoaded) {
             saveSettings();
         }
-    }, [pushNotifications, emailNotifications, locationServices, settingsLoaded]);
+    }, [locationServices, settingsLoaded]);
 
     const loadSettings = async () => {
         try {
             const stored = await AsyncStorage.getItem(SETTINGS_KEY);
             if (stored) {
                 const parsed = JSON.parse(stored);
-                setPushNotifications(parsed.pushNotifications ?? false);
-                setEmailNotifications(parsed.emailNotifications ?? false);
                 setLocationServices(parsed.locationServices ?? true);
             }
         } catch (err) {
@@ -51,9 +46,10 @@ const SettingsScreen = ({ navigation }) => {
 
     const saveSettings = async () => {
         try {
+            const stored = await AsyncStorage.getItem(SETTINGS_KEY);
+            const parsed = stored ? JSON.parse(stored) : {};
             await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({
-                pushNotifications,
-                emailNotifications,
+                ...parsed,
                 locationServices,
             }));
         } catch (err) {
@@ -61,35 +57,7 @@ const SettingsScreen = ({ navigation }) => {
         }
     };
 
-    const handleTogglePushNotifications = async (value) => {
-        if (value) {
-            // Requesting consent/registration when toggled on
-            const token = await pushNotificationService.registerForPushNotificationsAsync();
-            if (token) {
-                setPushNotifications(true);
-                showAlert('Push Notifications', 'Push notifications have been enabled.');
-            } else {
-                // If user denies or it fails, keep it off
-                setPushNotifications(false);
-                showAlert(
-                    'Notifications Disabled', 
-                    'To receive push notifications, please enable them in your device settings.'
-                );
-            }
-        } else {
-            setPushNotifications(false);
-            showAlert('Push Notifications', 'Push notifications have been disabled. You can re-enable them anytime.');
-        }
-    };
 
-    const handleToggleEmailNotifications = (value) => {
-        setEmailNotifications(value);
-        if (value) {
-            showAlert('Email Notifications', 'You will now receive email updates about events and your account.');
-        } else {
-            showAlert('Email Notifications', 'Email notifications have been turned off.');
-        }
-    };
 
     const handleToggleLocationServices = (value) => {
         setLocationServices(value);
@@ -235,30 +203,9 @@ const SettingsScreen = ({ navigation }) => {
                     <NotionCard style={styles.card}>
                         <SettingItem
                             icon="notifications-outline"
-                            title="Push Notifications"
-                            subtitle="Get notified about events and updates"
-                            rightElement={
-                                <Switch
-                                    value={pushNotifications}
-                                    onValueChange={handleTogglePushNotifications}
-                                    trackColor={{ false: COLORS.border, true: COLORS.accent }}
-                                    thumbColor={COLORS.primary}
-                                />
-                            }
-                        />
-                        <View style={styles.divider} />
-                        <SettingItem
-                            icon="mail-outline"
-                            title="Email Notifications"
-                            subtitle="Receive updates via email"
-                            rightElement={
-                                <Switch
-                                    value={emailNotifications}
-                                    onValueChange={handleToggleEmailNotifications}
-                                    trackColor={{ false: COLORS.border, true: COLORS.accent }}
-                                    thumbColor={COLORS.primary}
-                                />
-                            }
+                            title="Notification Preferences"
+                            subtitle="Push alerts, messages, listings & searches"
+                            onPress={() => navigation.navigate('NotificationSettings')}
                         />
                     </NotionCard>
                 </View>

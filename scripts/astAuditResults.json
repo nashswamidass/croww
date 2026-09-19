@@ -1,0 +1,4526 @@
+{
+  "navigationCalls": [
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 92,
+      "action": "navigate",
+      "target": "Login",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 151,
+      "action": "navigate",
+      "target": "Login",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 44,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 187,
+      "action": "navigate",
+      "target": "ForgotPassword",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 211,
+      "action": "navigate",
+      "target": "Signup",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 218,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 222,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 61,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 209,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 217,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 235,
+      "action": "navigate",
+      "target": "Login",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 154,
+      "action": "replace",
+      "target": "Tabs",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 312,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 110,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 135,
+      "action": "replace",
+      "target": "Tabs",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 284,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 225,
+      "action": "navigate",
+      "target": "InquiryList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 239,
+      "action": "navigate",
+      "target": "Profile",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 274,
+      "action": "navigate",
+      "target": "VerifyIdentity",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 304,
+      "action": "navigate",
+      "target": "BusinessVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 366,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 382,
+      "action": "navigate",
+      "target": "BusinessVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 411,
+      "action": "navigate",
+      "target": "InquiryList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 429,
+      "action": "navigate",
+      "target": "EventList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 439,
+      "action": "navigate",
+      "target": "EditProfile",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 447,
+      "action": "navigate",
+      "target": "TicketScanner",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 464,
+      "action": "navigate",
+      "target": "Settings",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 472,
+      "action": "navigate",
+      "target": "ManagePackages",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 481,
+      "action": "navigate",
+      "target": "Search",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 92,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 180,
+      "action": "navigate",
+      "target": "Auth",
+      "nestedScreen": "Login"
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 221,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 291,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 335,
+      "action": "navigate",
+      "target": "ChatList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 346,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 373,
+      "action": "navigate",
+      "target": "Listing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 265,
+      "action": "navigate",
+      "target": "WebPayment",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 89,
+      "action": "navigate",
+      "target": "BusinessVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 98,
+      "action": "navigate",
+      "target": "VerifyIdentity",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 301,
+      "action": "replace",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 137,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 148,
+      "action": "navigate",
+      "target": "BuddyRequestDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 152,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 245,
+      "action": "navigate",
+      "target": "CreateBuddyRequest",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 323,
+      "action": "navigate",
+      "target": "Login",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 351,
+      "action": "navigate",
+      "target": "WebPayment",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 455,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 473,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 609,
+      "action": "navigate",
+      "target": "EventBuddy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 655,
+      "action": "navigate",
+      "target": "EventBuddy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventListScreen.js",
+      "line": 67,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventSearchScreen.js",
+      "line": 103,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventSearchScreen.js",
+      "line": 105,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventStatsScreen.js",
+      "line": 167,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/EventTicketsScreen.js",
+      "line": 68,
+      "action": "navigate",
+      "target": "TicketDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 70,
+      "action": "push",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 107,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 331,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 342,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 353,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 364,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 258,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 293,
+      "action": "navigate",
+      "target": "Notifications",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 299,
+      "action": "navigate",
+      "target": "EventSearch",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 305,
+      "action": "navigate",
+      "target": "ChatList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 347,
+      "action": "navigate",
+      "target": "EventList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 429,
+      "action": "navigate",
+      "target": "EventList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 493,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/InquiryListScreen.js",
+      "line": 77,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/InquiryListScreen.js",
+      "line": 88,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/LandingScreen.js",
+      "line": 102,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 120,
+      "action": "navigate",
+      "target": "EventStats",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 161,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 211,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 320,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 596,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 322,
+      "action": "navigate",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 597,
+      "action": "navigate",
+      "target": "CreateEvent",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 127,
+      "action": "navigate",
+      "target": "EventTickets",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 153,
+      "action": "navigate",
+      "target": "BookingDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 256,
+      "action": "navigate",
+      "target": "BookingDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 357,
+      "action": "navigate",
+      "target": "EventList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 373,
+      "action": "navigate",
+      "target": "Search",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 135,
+      "action": "replace",
+      "target": "Tabs",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 68,
+      "action": "navigate",
+      "target": "Auth",
+      "nestedScreen": "Login"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 74,
+      "action": "navigate",
+      "target": "Auth",
+      "nestedScreen": "Signup"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 119,
+      "action": "navigate",
+      "target": "InventoryDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 127,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Saved"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 135,
+      "action": "navigate",
+      "target": "ChatList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 143,
+      "action": "navigate",
+      "target": "TrustOverview",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 151,
+      "action": "navigate",
+      "target": "Settings",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 170,
+      "action": "navigate",
+      "target": "BusinessDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 288,
+      "action": "navigate",
+      "target": "BookingDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 320,
+      "action": "navigate",
+      "target": "BookingDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 298,
+      "action": "navigate",
+      "target": "Map",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 307,
+      "action": "navigate",
+      "target": "Profile",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 329,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 370,
+      "action": "navigate",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 405,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 417,
+      "action": "navigate",
+      "target": "CreateBooking",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 561,
+      "action": "push",
+      "target": "EventDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 614,
+      "action": "navigate",
+      "target": "CreateBooking",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 674,
+      "action": "push",
+      "target": "ServiceDetail",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 699,
+      "action": "navigate",
+      "target": "ReviewList",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 174,
+      "action": "navigate",
+      "target": "EditProfile",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 181,
+      "action": "navigate",
+      "target": "TrustOverview",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 191,
+      "action": "navigate",
+      "target": "BusinessDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 208,
+      "action": "navigate",
+      "target": "NotificationSettings",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 237,
+      "action": "navigate",
+      "target": "BlockedUsers",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 252,
+      "action": "navigate",
+      "target": "HelpCenter",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 259,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 266,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 273,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 280,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 293,
+      "action": "navigate",
+      "target": "LegalPolicy",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 118,
+      "action": "replace",
+      "target": "EventStats",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 229,
+      "action": "replace",
+      "target": "EventStats",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/main/WebPaymentScreen.js",
+      "line": 86,
+      "action": "navigate",
+      "target": "MyTickets",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 401,
+      "action": "navigate",
+      "target": "Listing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 465,
+      "action": "navigate",
+      "target": "SavedSearch",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 174,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Post"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 180,
+      "action": "navigate",
+      "target": "PostListing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 183,
+      "action": "navigate",
+      "target": "Listing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 189,
+      "action": "navigate",
+      "target": "InventoryMedia",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 294,
+      "action": "navigate",
+      "target": "Property",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 332,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 407,
+      "action": "navigate",
+      "target": "PostListing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 49,
+      "action": "navigate",
+      "target": "InventoryDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 132,
+      "action": "navigate",
+      "target": "SpatialTour",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 75,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 180,
+      "action": "navigate",
+      "target": "Chat",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 189,
+      "action": "navigate",
+      "target": "Locality",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 194,
+      "action": "navigate",
+      "target": "Property",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 250,
+      "action": "navigate",
+      "target": "SpatialTour",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 290,
+      "action": "navigate",
+      "target": "SubmitVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/LocalityScreen.js",
+      "line": 26,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/LocalityScreen.js",
+      "line": 74,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/PostScreen.js",
+      "line": 83,
+      "action": "navigate",
+      "target": "PostListing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/PostScreen.js",
+      "line": 207,
+      "action": "navigate",
+      "target": "InventoryDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 50,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 134,
+      "action": "navigate",
+      "target": "SubmitVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 150,
+      "action": "navigate",
+      "target": "SpatialTour",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 161,
+      "action": "navigate",
+      "target": "Locality",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 178,
+      "action": "navigate",
+      "target": "Listing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 65,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 124,
+      "action": "navigate",
+      "target": "Auth",
+      "nestedScreen": "Login"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 196,
+      "action": "navigate",
+      "target": "Property",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 199,
+      "action": "navigate",
+      "target": "Listing",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 213,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 223,
+      "action": "navigate",
+      "target": "Property",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 236,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 247,
+      "action": "navigate",
+      "target": "SavedSearch",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 258,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 30,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Saved"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 37,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Saved"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 45,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 64,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Saved"
+    },
+    {
+      "file": "screens/property/SpatialTourScreen.js",
+      "line": 20,
+      "action": "navigate",
+      "target": "InventoryDashboard",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/SubmitVerificationScreen.js",
+      "line": 50,
+      "action": "navigate",
+      "target": "TrustOverview",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/property/TrustOverviewScreen.js",
+      "line": 50,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Profile"
+    },
+    {
+      "file": "screens/property/TrustOverviewScreen.js",
+      "line": 94,
+      "action": "navigate",
+      "target": "SubmitVerification",
+      "nestedScreen": null
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 113,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 158,
+      "action": "navigate",
+      "target": "Tabs",
+      "nestedScreen": "Explore"
+    }
+  ],
+  "invalidNavigationCalls": [],
+  "allInteractiveElements": [
+    {
+      "file": "components/AntigravityButton.js",
+      "line": 50,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/AppDownloadPopup.js",
+      "line": 82,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/AppDownloadPopup.js",
+      "line": 99,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyActionCard.js",
+      "line": 17,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 45,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 47,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 100,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 141,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 144,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 156,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/BuddyRequestCard.js",
+      "line": 180,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/EventSummaryCard.js",
+      "line": 75,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/EventSummaryCard.js",
+      "line": 127,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/GenderPreferenceSelector.js",
+      "line": 25,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/GooglePlacesInput.js",
+      "line": 190,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/ImagePickerButton.js",
+      "line": 47,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/LocationSelectorModal.js",
+      "line": 36,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/LocationSelectorModal.js",
+      "line": 74,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/LocationSelectorModal.js",
+      "line": 115,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/MultiDocumentPicker.js",
+      "line": 163,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/MultiDocumentPicker.js",
+      "line": 173,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/PhoneInput.js",
+      "line": 44,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/PhoneInput.js",
+      "line": 71,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/PhoneInput.js",
+      "line": 82,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/PolicyAcceptanceModal.js",
+      "line": 102,
+      "tag": "AntigravityButton",
+      "label": "Accept & Continue",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/ProductionPreviewBanner.js",
+      "line": 27,
+      "tag": "TouchableOpacity",
+      "label": "Dismiss preview banner",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/StickerPicker.js",
+      "line": 109,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/StickerPicker.js",
+      "line": 139,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/StickerPicker.js",
+      "line": 157,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/StickerPicker.js",
+      "line": 186,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 56,
+      "tag": "TouchableWithoutFeedback",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 58,
+      "tag": "TouchableWithoutFeedback",
+      "label": "[no label]",
+      "status": "MISSING_ONPRESS",
+      "handlerType": "NONE"
+    },
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 78,
+      "tag": "AntigravityButton",
+      "label": "Continue with Email",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 85,
+      "tag": "AntigravityButton",
+      "label": "Create account",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 93,
+      "tag": "TouchableOpacity",
+      "label": "Maybe later",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/AreaIntelligenceOverlay.js",
+      "line": 81,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/AreaIntelligenceOverlay.js",
+      "line": 90,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/IntelligenceMapOverlay.js",
+      "line": 43,
+      "tag": "TouchableOpacity",
+      "label": "Tune preferences",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/IntelligenceMapOverlay.js",
+      "line": 57,
+      "tag": "TouchableOpacity",
+      "label": "Exit intelligence mode",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/LocalityDetailSheet.js",
+      "line": 50,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/LocalityDetailSheet.js",
+      "line": 108,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/LocalityScoreBubble.js",
+      "line": 27,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/PreferenceStep.js",
+      "line": 60,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/intelligence/PreferenceStep.js",
+      "line": 118,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/AreaScorePriorityEditor.js",
+      "line": 18,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/AreaScorePriorityEditor.js",
+      "line": 37,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/AreaScorePriorityEditor.js",
+      "line": 46,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/AreaScorePriorityEditor.js",
+      "line": 57,
+      "tag": "TouchableOpacity",
+      "label": "Reset to default priorities",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/CrowwAreaScoreCard.js",
+      "line": 37,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DSection.js",
+      "line": 41,
+      "tag": "AntigravityButton",
+      "label": "Open 3D tour",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DSection.js",
+      "line": 62,
+      "tag": "TouchableOpacity",
+      "label": "Add 3D tour",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DSection.js",
+      "line": 75,
+      "tag": "TouchableOpacity",
+      "label": "Close",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.js",
+      "line": 53,
+      "tag": "TouchableOpacity",
+      "label": "Reset 3D view",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.js",
+      "line": 57,
+      "tag": "TouchableOpacity",
+      "label": "View photos",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.js",
+      "line": 62,
+      "tag": "TouchableOpacity",
+      "label": "Close 3D viewer",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.web.js",
+      "line": 42,
+      "tag": "TouchableOpacity",
+      "label": "Reset 3D view",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.web.js",
+      "line": 47,
+      "tag": "TouchableOpacity",
+      "label": "View photos",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/Property3DViewer.web.js",
+      "line": 52,
+      "tag": "TouchableOpacity",
+      "label": "Close 3D viewer",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 64,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 86,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 108,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 149,
+      "tag": "TouchableOpacity",
+      "label": "Close filters",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 170,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 192,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 207,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 231,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 254,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 273,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyFilters.js",
+      "line": 283,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyLocation.js",
+      "line": 56,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyLocation.js",
+      "line": 114,
+      "tag": "AntigravityButton",
+      "label": "Request exact location",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyMediaGallery.js",
+      "line": 55,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyMediaGallery.js",
+      "line": 97,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyMediaGallery.js",
+      "line": 118,
+      "tag": "Pressable",
+      "label": "Close photo",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyResultCard.js",
+      "line": 66,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertyResultCard.js",
+      "line": 111,
+      "tag": "TouchableOpacity",
+      "label": "Deselect property",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 158,
+      "tag": "TouchableOpacity",
+      "label": "Search localities in Chennai or Bengaluru",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 175,
+      "tag": "TouchableOpacity",
+      "label": "Clear search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 217,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 227,
+      "tag": "TouchableOpacity",
+      "label": "Close search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 254,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/PropertySearchBar.js",
+      "line": 280,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/post/PostChoiceChips.js",
+      "line": 22,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SaveSearchModal.js",
+      "line": 63,
+      "tag": "TouchableOpacity",
+      "label": "Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SaveSearchModal.js",
+      "line": 66,
+      "tag": "TouchableOpacity",
+      "label": "Save search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedListingCard.js",
+      "line": 44,
+      "tag": "TouchableOpacity",
+      "label": "Remove saved listing",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedPropertyCard.js",
+      "line": 21,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedPropertyCard.js",
+      "line": 53,
+      "tag": "TouchableOpacity",
+      "label": "Remove saved property",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedSearchCard.js",
+      "line": 27,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedSearchCard.js",
+      "line": 40,
+      "tag": "TouchableOpacity",
+      "label": "Open this search in Explore",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedSearchCard.js",
+      "line": 43,
+      "tag": "TouchableOpacity",
+      "label": "Edit saved search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedSearchCard.js",
+      "line": 46,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/property/saved/SavedSearchCard.js",
+      "line": 54,
+      "tag": "TouchableOpacity",
+      "label": "Delete saved search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/rive/CrowwBrandLogo.js",
+      "line": 42,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/rive/CrowwEmptyState.js",
+      "line": 55,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "components/rive/CrowwSaveButton.js",
+      "line": 49,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/BlockedScreen.js",
+      "line": 40,
+      "tag": "AntigravityButton",
+      "label": "Logout",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 64,
+      "tag": "TouchableOpacity",
+      "label": "Go back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 90,
+      "tag": "AntigravityButton",
+      "label": "Back to Sign in",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 142,
+      "tag": "AntigravityButton",
+      "label": "Send reset link",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/ForgotPasswordScreen.js",
+      "line": 150,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LegalPolicyScreen.js",
+      "line": 411,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 84,
+      "tag": "TouchableOpacity",
+      "label": "Close",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 160,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 177,
+      "tag": "AntigravityButton",
+      "label": "Sign in",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 186,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 208,
+      "tag": "AntigravityButton",
+      "label": "Create new account",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 218,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/LoginScreen.js",
+      "line": 222,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 96,
+      "tag": "TouchableOpacity",
+      "label": "Go back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 187,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 224,
+      "tag": "AntigravityButton",
+      "label": "Create account",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/auth/SignupScreen.js",
+      "line": 234,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/intelligence/AreasScreen.js",
+      "line": 315,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/intelligence/AreasScreen.js",
+      "line": 324,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/intelligence/AreasScreen.js",
+      "line": 339,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BlockedUsersScreen.js",
+      "line": 34,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BlockedUsersScreen.js",
+      "line": 79,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 148,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 162,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 257,
+      "tag": "AntigravityButton",
+      "label": "Accept Request",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 262,
+      "tag": "AntigravityButton",
+      "label": "Decline",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 294,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 300,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 307,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BookingDetailScreen.js",
+      "line": 318,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 130,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 156,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 206,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 229,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 237,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 243,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 261,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BuddyRequestDetailScreen.js",
+      "line": 282,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 224,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 239,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 273,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 303,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 366,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 371,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 399,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 409,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 427,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 437,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 445,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 454,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 464,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 470,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/BusinessDashboardScreen.js",
+      "line": 479,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 89,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 146,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 178,
+      "tag": "AntigravityButton",
+      "label": "Sign in to Croww",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatListScreen.js",
+      "line": 194,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 291,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 330,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 342,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 372,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 400,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 423,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 443,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 452,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ChatScreen.js",
+      "line": 478,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 298,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 380,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 392,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 410,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 429,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBookingScreen.js",
+      "line": 457,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBuddyRequestScreen.js",
+      "line": 61,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBuddyRequestScreen.js",
+      "line": 101,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateBuddyRequestScreen.js",
+      "line": 191,
+      "tag": "AntigravityButton",
+      "label": "Create Buddy Request",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 353,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 379,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 404,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 439,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 458,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 511,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 522,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 596,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 639,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 671,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 692,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 721,
+      "tag": "AntigravityButton",
+      "label": "Get Verified",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 731,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/CreateEventScreen.js",
+      "line": 739,
+      "tag": "AntigravityButton",
+      "label": "Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 277,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 332,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 462,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 492,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 509,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 569,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EditProfileScreen.js",
+      "line": 679,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 160,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 188,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 197,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventBuddyScreen.js",
+      "line": 243,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 231,
+      "tag": "AntigravityButton",
+      "label": "Go Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 451,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 469,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 527,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 548,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 556,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 605,
+      "tag": "AntigravityButton",
+      "label": "View Buddy Group",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 612,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 625,
+      "tag": "AntigravityButton",
+      "label": "Invite Friends",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 636,
+      "tag": "AntigravityButton",
+      "label": "Invite Friends",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 719,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 727,
+      "tag": "AntigravityButton",
+      "label": "Delete Event",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 744,
+      "tag": "TouchableOpacity",
+      "label": "Close Event",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventDetailScreen.js",
+      "line": 753,
+      "tag": "TouchableOpacity",
+      "label": "Share Event",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventListScreen.js",
+      "line": 63,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventListScreen.js",
+      "line": 103,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventSearchScreen.js",
+      "line": 70,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventSearchScreen.js",
+      "line": 98,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventStatsScreen.js",
+      "line": 153,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventStatsScreen.js",
+      "line": 157,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventStatsScreen.js",
+      "line": 167,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventStatsScreen.js",
+      "line": 171,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventTicketsScreen.js",
+      "line": 17,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/EventTicketsScreen.js",
+      "line": 64,
+      "tag": "AntigravityButton",
+      "label": "View QR Code",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendRequestsScreen.js",
+      "line": 78,
+      "tag": "AntigravityButton",
+      "label": "Approve",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendRequestsScreen.js",
+      "line": 84,
+      "tag": "AntigravityButton",
+      "label": "Ignore",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendRequestsScreen.js",
+      "line": 98,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 85,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 105,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 123,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/FriendsListScreen.js",
+      "line": 134,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 203,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 228,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 251,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 282,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 305,
+      "tag": "AntigravityButton",
+      "label": "Contact Support",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 329,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 340,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 351,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HelpCenterScreen.js",
+      "line": 362,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 281,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 291,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 297,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 303,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 347,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 369,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 429,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 437,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/HomeScreen.js",
+      "line": 490,
+      "tag": "AntigravityButton",
+      "label": "+",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/InquiryListScreen.js",
+      "line": 76,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/InquiryListScreen.js",
+      "line": 86,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/InquiryListScreen.js",
+      "line": 146,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/LandingScreen.js",
+      "line": 78,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/LandingScreen.js",
+      "line": 99,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 119,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 153,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 159,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 167,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 196,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageEventsScreen.js",
+      "line": 209,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManagePackagesScreen.js",
+      "line": 102,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManagePackagesScreen.js",
+      "line": 106,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManagePackagesScreen.js",
+      "line": 145,
+      "tag": "AntigravityButton",
+      "label": "Save Package",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManagePackagesScreen.js",
+      "line": 171,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageStaffScreen.js",
+      "line": 103,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageStaffScreen.js",
+      "line": 128,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ManageStaffScreen.js",
+      "line": 148,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 470,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 490,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 510,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 527,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 548,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 585,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.js",
+      "line": 593,
+      "tag": "AntigravityButton",
+      "label": "+",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 475,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 492,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 510,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 527,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 548,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 586,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MapScreen.web.js",
+      "line": 594,
+      "tag": "AntigravityButton",
+      "label": "+",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 217,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 254,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 316,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 354,
+      "tag": "AntigravityButton",
+      "label": "Explore Events",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/MyTicketsScreen.js",
+      "line": 370,
+      "tag": "AntigravityButton",
+      "label": "Find Services",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationSettingsScreen.js",
+      "line": 195,
+      "tag": "TouchableOpacity",
+      "label": "Back to Settings",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationSettingsScreen.js",
+      "line": 308,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 130,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 143,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 167,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 196,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/NotificationsScreen.js",
+      "line": 206,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/PrivacyScreen.js",
+      "line": 44,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 14,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 66,
+      "tag": "AntigravityButton",
+      "label": "Sign in to Croww",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 71,
+      "tag": "AntigravityButton",
+      "label": "Create account",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 156,
+      "tag": "TouchableOpacity",
+      "label": "Sign out of Croww",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProfileScreen.js",
+      "line": 169,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 202,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 225,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 239,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 245,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 286,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ProviderBookingsScreen.js",
+      "line": 318,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ReviewListScreen.js",
+      "line": 86,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 169,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 184,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 208,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 215,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 251,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 265,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 296,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 305,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 368,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 456,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SearchScreen.js",
+      "line": 469,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 27,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 236,
+      "tag": "AntigravityButton",
+      "label": "Go Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 261,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 265,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 299,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 304,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 309,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 314,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 393,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 401,
+      "tag": "AntigravityButton",
+      "label": "Message",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 413,
+      "tag": "AntigravityButton",
+      "label": "Book",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 452,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 458,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 464,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 470,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 476,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 518,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 559,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 612,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 637,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 672,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 697,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 759,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/ServiceDetailScreen.js",
+      "line": 764,
+      "tag": "AntigravityButton",
+      "label": "Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 119,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 150,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 321,
+      "tag": "AntigravityButton",
+      "label": "Log Out",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/SettingsScreen.js",
+      "line": 328,
+      "tag": "AntigravityButton",
+      "label": "Delete Account",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketDetailScreen.js",
+      "line": 139,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketDetailScreen.js",
+      "line": 149,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 261,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 275,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 334,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 367,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 377,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/TicketScannerScreen.js",
+      "line": 386,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/WebPaymentScreen.js",
+      "line": 167,
+      "tag": "AntigravityButton",
+      "label": "Open Secure Checkout",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/WebPaymentScreen.js",
+      "line": 225,
+      "tag": "AntigravityButton",
+      "label": "Try Again",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/WebPaymentScreen.js",
+      "line": 230,
+      "tag": "AntigravityButton",
+      "label": "Go Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/main/WebPaymentScreen.js",
+      "line": 248,
+      "tag": "AntigravityButton",
+      "label": "Close / Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 804,
+      "tag": "TouchableOpacity",
+      "label": "Croww brand preview toggle",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 822,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 838,
+      "tag": "TouchableOpacity",
+      "label": "Notifications and profile",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 882,
+      "tag": "TouchableOpacity",
+      "label": "Save search",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 901,
+      "tag": "TouchableOpacity",
+      "label": "Center on my location",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 933,
+      "tag": "TouchableOpacity",
+      "label": "[no label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ExploreScreen.js",
+      "line": 946,
+      "tag": "TouchableOpacity",
+      "label": "Preview Sample Map Inventory",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 228,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 276,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 293,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 331,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 369,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 404,
+      "tag": "AntigravityButton",
+      "label": "Add listing",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 423,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 439,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 475,
+      "tag": "TouchableOpacity",
+      "label": "Share exact location",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryDashboardScreen.js",
+      "line": 483,
+      "tag": "TouchableOpacity",
+      "label": "Decline location request",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 97,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 121,
+      "tag": "AntigravityButton",
+      "label": "Add photos",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 129,
+      "tag": "AntigravityButton",
+      "label": "3D tour",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 150,
+      "tag": "TouchableOpacity",
+      "label": "Set as cover",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 158,
+      "tag": "TouchableOpacity",
+      "label": "Move photo earlier",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 166,
+      "tag": "TouchableOpacity",
+      "label": "Move photo later",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/InventoryMediaScreen.js",
+      "line": 174,
+      "tag": "TouchableOpacity",
+      "label": "Hide photo",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 287,
+      "tag": "AntigravityButton",
+      "label": "Submit representation evidence",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 302,
+      "tag": "TouchableOpacity",
+      "label": "View property details",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 321,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 350,
+      "tag": "TouchableOpacity",
+      "label": "Share listing",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/ListingScreen.js",
+      "line": 407,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/LocalityScreen.js",
+      "line": 83,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/LocalityScreen.js",
+      "line": 110,
+      "tag": "AntigravityButton",
+      "label": "Explore this area",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/LocalityScreen.js",
+      "line": 115,
+      "tag": "AntigravityButton",
+      "label": "View properties in this area",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 987,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1001,
+      "tag": "AntigravityButton",
+      "label": "Add photos",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1074,
+      "tag": "AntigravityButton",
+      "label": "Save anyway",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1103,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1124,
+      "tag": "AntigravityButton",
+      "label": "Save draft",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1131,
+      "tag": "AntigravityButton",
+      "label": "Request review",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostListingScreen.js",
+      "line": 1139,
+      "tag": "AntigravityButton",
+      "label": "Next",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostScreen.js",
+      "line": 128,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostScreen.js",
+      "line": 186,
+      "tag": "TouchableOpacity",
+      "label": "Continue to listing details",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PostScreen.js",
+      "line": 198,
+      "tag": "TouchableOpacity",
+      "label": "Manage existing listings",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 131,
+      "tag": "AntigravityButton",
+      "label": "Submit verification",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 176,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 203,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/PropertyScreen.js",
+      "line": 220,
+      "tag": "TouchableOpacity",
+      "label": "Share property",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 122,
+      "tag": "AntigravityButton",
+      "label": "Sign in to Croww",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedScreen.js",
+      "line": 148,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 73,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 92,
+      "tag": "TouchableOpacity",
+      "label": "Save name and alerts",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 95,
+      "tag": "TouchableOpacity",
+      "label": "Open in Explore",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SavedSearchScreen.js",
+      "line": 98,
+      "tag": "TouchableOpacity",
+      "label": "Replace criteria from current Explore filters",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SpatialTourScreen.js",
+      "line": 80,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SpatialTourScreen.js",
+      "line": 90,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SpatialTourScreen.js",
+      "line": 101,
+      "tag": "TouchableOpacity",
+      "label": "Retry 3D processing",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SpatialTourScreen.js",
+      "line": 115,
+      "tag": "TouchableOpacity",
+      "label": "Archive 3D asset",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SubmitVerificationScreen.js",
+      "line": 82,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SubmitVerificationScreen.js",
+      "line": 95,
+      "tag": "TouchableOpacity",
+      "label": "[dynamic label]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/SubmitVerificationScreen.js",
+      "line": 112,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/TrustOverviewScreen.js",
+      "line": 62,
+      "tag": "TouchableOpacity",
+      "label": "Back",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/TrustOverviewScreen.js",
+      "line": 82,
+      "tag": "AntigravityButton",
+      "label": "Verify identity",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/property/TrustOverviewScreen.js",
+      "line": 90,
+      "tag": "AntigravityButton",
+      "label": "Submit evidence",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/BusinessVerificationScreen.js",
+      "line": 117,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/BusinessVerificationScreen.js",
+      "line": 125,
+      "tag": "AntigravityButton",
+      "label": "Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 156,
+      "tag": "AntigravityButton",
+      "label": "Done",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 180,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 188,
+      "tag": "AntigravityButton",
+      "label": "[dynamic title]",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    },
+    {
+      "file": "screens/verification/VerifyIdentityScreen.js",
+      "line": 204,
+      "tag": "AntigravityButton",
+      "label": "Cancel",
+      "status": "PASS",
+      "handlerType": "HANDLER_EXISTS"
+    }
+  ],
+  "problemElements": [
+    {
+      "file": "components/auth/AuthPromptModal.js",
+      "line": 58,
+      "tag": "TouchableWithoutFeedback",
+      "label": "[no label]",
+      "status": "MISSING_ONPRESS",
+      "handlerType": "NONE"
+    }
+  ]
+}

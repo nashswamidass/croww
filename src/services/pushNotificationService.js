@@ -39,6 +39,97 @@ export const pushNotificationService = {
     },
 
     /**
+     * Inspect current notification permission status from the OS.
+     */
+    getPermissionStatus: async () => {
+        try {
+            if (Platform.OS === 'web' || !pushNotificationService.isNativeModuleAvailable()) {
+                return { status: 'denied', granted: false, canAskAgain: false };
+            }
+            const result = await withTimeout(
+                Notifications.getPermissionsAsync(),
+                5000,
+                'getPermissionsAsync'
+            );
+            return {
+                status: result.status,
+                granted: result.status === 'granted',
+                canAskAgain: result.canAskAgain,
+            };
+        } catch (e) {
+            console.warn('[pushNotification] getPermissionStatus error:', e?.message);
+            return { status: 'undetermined', granted: false, canAskAgain: true };
+        }
+    },
+
+    /**
+     * Request notification permissions from the OS using genuine platform mechanism.
+     */
+    requestPermissions: async () => {
+        try {
+            if (Platform.OS === 'web' || !pushNotificationService.isNativeModuleAvailable()) {
+                return { status: 'denied', granted: false };
+            }
+
+            const result = await withTimeout(
+                Notifications.requestPermissionsAsync(),
+                8000,
+                'requestPermissionsAsync'
+            );
+
+            if (Platform.OS === 'android' && result.status === 'granted') {
+                await Notifications.setNotificationChannelAsync('default', {
+                    name: 'default',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
+
+            return {
+                status: result.status,
+                granted: result.status === 'granted',
+                canAskAgain: result.canAskAgain,
+            };
+        } catch (e) {
+            console.warn('[pushNotification] requestPermissions error:', e?.message);
+            return { status: 'denied', granted: false, canAskAgain: false };
+        }
+    },
+
+    /**
+     * Deliver a local notification immediately for testing or local alert flows.
+     */
+    sendLocalNotification: async ({ title, body, data = {} }) => {
+        try {
+            if (Platform.OS === 'web' || !pushNotificationService.isNativeModuleAvailable()) {
+                return null;
+            }
+            if (Platform.OS === 'android') {
+                await Notifications.setNotificationChannelAsync('default', {
+                    name: 'default',
+                    importance: Notifications.AndroidImportance.MAX,
+                    vibrationPattern: [0, 250, 250, 250],
+                    lightColor: '#FF231F7C',
+                });
+            }
+            const id = await Notifications.scheduleNotificationAsync({
+                content: {
+                    title,
+                    body,
+                    data,
+                    sound: true,
+                },
+                trigger: null, // deliver immediately
+            });
+            return id;
+        } catch (e) {
+            console.warn('[pushNotification] sendLocalNotification error:', e?.message);
+            return null;
+        }
+    },
+
+    /**
      * Register for push notifications and get the token.
      * All async operations are wrapped in timeouts to prevent post-login freezes
      * on iPad review devices with restrictive IPv6 network configurations.
@@ -54,12 +145,7 @@ export const pushNotificationService = {
                 return null;
             }
 
-            if (!Device.isDevice) {
-                console.warn('Must use physical device for Push Notifications');
-                return null;
-            }
-
-            // Wrap permission check in timeout — can hang on iPad sandbox/review environments
+            // Check and request OS permissions
             let existingStatus;
             try {
                 const result = await withTimeout(
@@ -74,7 +160,6 @@ export const pushNotificationService = {
             }
 
             let finalStatus = existingStatus;
-
             if (existingStatus !== 'granted') {
                 try {
                     const result = await withTimeout(
@@ -90,7 +175,7 @@ export const pushNotificationService = {
             }
 
             if (finalStatus !== 'granted') {
-                console.warn('Failed to get push token for push notification!');
+                console.warn('Notification permission not granted by user.');
                 return null;
             }
 
@@ -103,7 +188,13 @@ export const pushNotificationService = {
                 });
             }
 
-            // Get the token from Expo — this makes a network request and can hang on slow networks
+            // If not a physical device, return a development/emulator indicator rather than failing permission setup
+            if (!Device.isDevice) {
+                console.log('[pushNotification] OS permissions granted on emulator/non-physical device.');
+                return 'emulator-token-active';
+            }
+
+            // Get the token from Expo — this makes a network request
             const projectId = Constants?.expoConfig?.extra?.eas?.projectId ?? Constants?.easConfig?.projectId;
 
             let token;

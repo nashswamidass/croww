@@ -106,6 +106,20 @@ export const navigateFromNotification = (navigation, data = {}) => {
             }
             break;
 
+        case 'listing_status':
+        case 'listing_update':
+            if (data.listingId) {
+                navigate('Listing', { listingId: data.listingId });
+            } else {
+                navigate('InventoryDashboard');
+            }
+            break;
+
+        case 'verification_update':
+        case 'verification':
+            navigate('TrustOverview');
+            break;
+
         default:
             // Booking notifications sometimes carry bookingId but no explicit type
             if (bookingId) {

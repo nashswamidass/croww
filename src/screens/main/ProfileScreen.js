@@ -76,6 +76,23 @@ const ProfileScreen = ({ navigation }) => {
                             />
                         </View>
                     </FloatingCard>
+
+                    <View style={styles.cardsSection}>
+                        <ProfileCard
+                            icon="settings-outline"
+                            iconColor="#4B5563"
+                            title="Settings"
+                            subtitle="Preferences, security & notifications"
+                            onPress={() => navigation.navigate('Settings')}
+                        />
+                        <ProfileCard
+                            icon="help-circle-outline"
+                            iconColor="#0284C7"
+                            title="Help Center"
+                            subtitle="Support, FAQs & contact"
+                            onPress={() => navigation.navigate('HelpCenter')}
+                        />
+                    </View>
                 </ScrollView>
             </ScreenWrapper>
         );
@@ -132,7 +149,7 @@ const ProfileScreen = ({ navigation }) => {
                         iconColor="#0D9488"
                         title="Messages"
                         subtitle="Chats, inquiries, and location requests"
-                        onPress={() => navigation.navigate('Tabs', { screen: 'Messages' })}
+                        onPress={() => navigation.navigate('ChatList')}
                     />
 
                     <ProfileCard

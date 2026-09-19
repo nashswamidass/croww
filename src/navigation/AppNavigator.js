@@ -36,6 +36,7 @@ import EventBuddyScreen from '../screens/main/EventBuddyScreen';
 import CreateBuddyRequestScreen from '../screens/main/CreateBuddyRequestScreen';
 import EditProfileScreen from '../screens/main/EditProfileScreen';
 import SettingsScreen from '../screens/main/SettingsScreen';
+import NotificationSettingsScreen from '../screens/main/NotificationSettingsScreen';
 import PrivacyScreen from '../screens/main/PrivacyScreen';
 import BlockedUsersScreen from '../screens/main/BlockedUsersScreen';
 import HelpCenterScreen from '../screens/main/HelpCenterScreen';
@@ -94,6 +95,11 @@ const MainNavigator = () => {
     return (
         <Stack.Navigator screenOptions={{ headerShown: false }}>
             <Stack.Screen name="Tabs" component={PropertyTabNavigator} />
+            <Stack.Screen
+                name="Auth"
+                component={AuthNavigator}
+                options={{ presentation: 'modal' }}
+            />
             <Stack.Screen name="Home" component={HomeScreen} />
             <Stack.Screen name="Map" component={MapScreen} />
             <Stack.Screen name="Search" component={SearchScreen} />
@@ -111,6 +117,8 @@ const MainNavigator = () => {
             <Stack.Screen name="BusinessDashboard" component={BusinessDashboardScreen} />
             <Stack.Screen name="EventSearch" component={EventSearchScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
+            <Stack.Screen name="ChatList" component={ChatListScreen} />
+            <Stack.Screen name="Messages" component={ChatListScreen} />
             <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <Stack.Screen name="EventDetail" component={EventDetailScreen} />
             <Stack.Screen name="CreateEvent" component={CreateEventScreen} />
@@ -120,6 +128,7 @@ const MainNavigator = () => {
             <Stack.Screen name="CreateBuddyRequest" component={CreateBuddyRequestScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
             <Stack.Screen name="Settings" component={SettingsScreen} />
+            <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
             <Stack.Screen name="Privacy" component={PrivacyScreen} />
             <Stack.Screen name="BlockedUsers" component={BlockedUsersScreen} />
             <Stack.Screen name="HelpCenter" component={HelpCenterScreen} />
@@ -138,7 +147,6 @@ const MainNavigator = () => {
             <Stack.Screen name="WebPayment" component={WebPaymentScreen} />
             <Stack.Screen name="CreateBooking" component={CreateBookingScreen} />
             <Stack.Screen name="ProviderBookings" component={ProviderBookingsScreen} />
-            <Stack.Screen name="ChatList" component={ChatListScreen} />
             <Stack.Screen name="BookingDetail" component={BookingDetailScreen} />
             <Stack.Screen name="EventList" component={EventListScreen} />
             <Stack.Screen name="BuddyRequestDetail" component={BuddyRequestDetailScreen} />
@@ -151,8 +159,7 @@ const MainNavigator = () => {
     );
 };
 
-const SETTINGS_KEY = '@croww_user_settings';
-const LAST_ASK_KEY = '@croww_last_notification_ask';
+const NOTIFICATION_PROMPTED_KEY = '@croww_notifications_prompted';
 
 const AppNavigator = () => {
     const { user, loading, isBlocked, isAuthenticated } = useAuth();
@@ -176,80 +183,48 @@ const AppNavigator = () => {
         };
     }, []);
 
+    // Notification lifecycle: Genuine OS permission prompt on appropriate first-run moment
     useEffect(() => {
-        if (isAuthenticated && user) {
-            // CRITICAL FIX FOR iPADOS: Defer push notification registration by 3 seconds.
-            // Calling registerForPushNotificationsAsync() immediately on auth fires the
-            // iOS permission sheet during the navigation transition render window, which
-            // can block ALL touch input on iPad even after JS-side has moved on.
-            const pushDelay = setTimeout(async () => {
-                try {
-                    // REQUIRE CONSENT: Check if user has explicitly enabled push notifications
-                    const stored = await AsyncStorage.getItem(SETTINGS_KEY);
-                    const parsed = stored ? JSON.parse(stored) : {};
+        const initNotifications = setTimeout(async () => {
+            try {
+                const prompted = await AsyncStorage.getItem(NOTIFICATION_PROMPTED_KEY);
+                const perm = await pushNotificationService.getPermissionStatus();
 
-                    if (parsed.pushNotifications === true) {
-                        console.log('[AppNavigator] Push notifications enabled in settings, registering...');
-                        pushNotificationService.registerForPushNotificationsAsync();
-                    } else {
-                        console.log('[AppNavigator] Push notifications disabled in settings, checking for daily prompt...');
-                        
-                        // DAILY PROMPT LOGIC
-                        const lastAsk = await AsyncStorage.getItem(LAST_ASK_KEY);
-                        const today = new Date().toISOString().split('T')[0];
-
-                        if (lastAsk !== today) {
-                            showAlert(
-                                'Enable Notifications',
-                                'Stay updated! Switch on notifications to get your messages and booking updates faster.',
-                                [
-                                    { text: 'Later', style: 'cancel' },
-                                    { 
-                                        text: 'Turn On', 
-                                        onPress: async () => {
-                                            const token = await pushNotificationService.registerForPushNotificationsAsync();
-                                            if (token) {
-                                                // Update settings so we don't ask again and start registering tokens
-                                                await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify({
-                                                    ...parsed,
-                                                    pushNotifications: true
-                                                }));
-                                                showAlert('Success', 'Push notifications have been enabled.');
-                                            } else {
-                                                showAlert('Permission Required', 'To enable notifications, please allow them in your device settings.');
-                                            }
-                                        }
-                                    }
-                                ]
-                            );
-                            await AsyncStorage.setItem(LAST_ASK_KEY, today);
-                        }
+                if (!prompted && perm.status === 'undetermined') {
+                    // First-run moment: Request real OS notification permission directly
+                    console.log('[AppNavigator] First run detected: requesting native OS notification permissions...');
+                    await AsyncStorage.setItem(NOTIFICATION_PROMPTED_KEY, 'true');
+                    const req = await pushNotificationService.requestPermissions();
+                    if (req.granted) {
+                        pushNotificationService.registerForPushNotificationsAsync().catch(() => {});
                     }
-                } catch (e) {
-                    console.error('[AppNavigator] Error in notification logic:', e);
+                } else if (perm.granted) {
+                    // Already granted: ensure token is active
+                    pushNotificationService.registerForPushNotificationsAsync().catch(() => {});
                 }
-            }, 3000);
+            } catch (e) {
+                console.warn('[AppNavigator] Notification initialization error:', e);
+            }
+        }, 2500);
 
-            // Add listener for when user interacts with notification
-            const cleanup = pushNotificationService.addNotificationListeners(
-                (notification) => {
-                    console.log('Notification Received in Foreground:', notification);
-                },
-                (response) => {
-                    // User tapped a push notification — deep link to the relevant screen
-                    const data = response?.notification?.request?.content?.data || {};
-                    console.log('Push notification tapped, navigating with data:', data);
-                    if (navigationRef.isReady()) {
-                        navigateFromNotification(navigationRef, data);
-                    }
+        // Global notification listeners for foreground reception and tap deep-linking
+        const cleanupListeners = pushNotificationService.addNotificationListeners(
+            (notification) => {
+                console.log('[AppNavigator] Foreground Notification Received:', notification);
+            },
+            (response) => {
+                const data = response?.notification?.request?.content?.data || {};
+                console.log('[AppNavigator] Notification tapped, navigating with payload:', data);
+                if (navigationRef.isReady()) {
+                    navigateFromNotification(navigationRef, data);
                 }
-            );
+            }
+        );
 
-            return () => {
-                clearTimeout(pushDelay);
-                if (cleanup) cleanup();
-            };
-        }
+        return () => {
+            clearTimeout(initNotifications);
+            if (cleanupListeners) cleanupListeners();
+        };
     }, [isAuthenticated, user?.id]);
 
     if (loading) {
