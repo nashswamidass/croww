@@ -58,10 +58,8 @@ export function validateTaxonomyPosting({
             val = payload.rentMonthly;
         } else if (val === undefined && field === 'rentMonthly') {
             val = payload.monthlyRent;
-        } else if (val === undefined && field === 'deposit') {
-            val = payload.securityDeposit;
-        } else if (val === undefined && field === 'securityDeposit') {
-            val = payload.deposit;
+        } else if (field === 'deposit' || field === 'securityDeposit') {
+            val = payload.deposit ?? payload.securityDeposit ?? 0;
         }
         if (val === undefined || val === null || val === '') {
             missingFields.push(field);

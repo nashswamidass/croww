@@ -13,7 +13,7 @@ import ExploreScreen from '../screens/property/ExploreScreen';
 import SavedScreen from '../screens/property/SavedScreen';
 import PostScreen from '../screens/property/PostScreen';
 import CrowwAreaIntelligenceIcon from '../components/icons/CrowwAreaIntelligenceIcon';
-import ProfileScreen from '../screens/main/ProfileScreen';
+import ChatListScreen from '../screens/main/ChatListScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -22,7 +22,7 @@ const TAB_ICONS = {
     [TABS.Saved]: ['bookmark-outline', 'bookmark'],
     [TABS.Post]: ['add', 'add'],
     [TABS.Areas]: ['sparkles-outline', 'sparkles'],
-    [TABS.Profile]: ['person-outline', 'person'],
+    [TABS.Messages]: ['chatbubbles-outline', 'chatbubbles'],
 };
 
 const TAB_LABELS = {
@@ -30,18 +30,19 @@ const TAB_LABELS = {
     [TABS.Saved]: 'Saved',
     [TABS.Post]: 'Post',
     [TABS.Areas]: 'Areas',
-    [TABS.Profile]: 'Profile',
+    [TABS.Messages]: 'Messages',
 };
 
 /**
  * Primary consumer shell with floating black pill navigation.
- * Matches reference aesthetic: high contrast, minimal chrome, prominent center action.
+ * Tabs: Home | Saved | Post | Areas | Messages
+ * Profile is accessible via the main stack (Settings button, ChatList nav, deep link).
  */
 const PropertyTabNavigator = () => {
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
     const isDesktop = width >= 960;
-    const { isIntelligenceMode, setIntelligenceMode } = useExplore();
+    const { isIntelligenceMode, setIntelligenceMode, openAreasMode } = useExplore();
 
     return (
         <Tab.Navigator
@@ -51,8 +52,8 @@ const PropertyTabNavigator = () => {
 
                 return {
                     headerShown: false,
-                    tabBarActiveTintColor: COLORS.accent,
-                    tabBarInactiveTintColor: 'rgba(255, 255, 255, 0.55)',
+                    tabBarActiveTintColor: COLORS.navActive || '#FFFFFF',
+                    tabBarInactiveTintColor: COLORS.navInactive || 'rgba(255, 255, 255, 0.60)',
                     tabBarStyle: [
                         styles.tabBar,
                         {
@@ -81,7 +82,7 @@ const PropertyTabNavigator = () => {
                             <Text
                                 style={[
                                     styles.tabBarLabel,
-                                    { color: effectiveFocused ? COLORS.accent : 'rgba(255, 255, 255, 0.55)' },
+                                    { color: effectiveFocused ? (COLORS.navActive || '#FFFFFF') : (COLORS.navInactive || 'rgba(255, 255, 255, 0.60)') },
                                 ]}
                             >
                                 {TAB_LABELS[route.name] || route.name}
@@ -92,7 +93,7 @@ const PropertyTabNavigator = () => {
                         if (route.name === TABS.Post) {
                             return (
                                 <View style={styles.postButtonCircle}>
-                                    <Ionicons name="add" size={24} color="#FFFFFF" />
+                                    <Ionicons name="add" size={24} color="#111111" />
                                 </View>
                             );
                         }
@@ -101,7 +102,7 @@ const PropertyTabNavigator = () => {
                             : isAreasTab
                                 ? isIntelligenceMode
                                 : focused;
-                        const iconColor = effectiveFocused ? COLORS.accent : 'rgba(255, 255, 255, 0.55)';
+                        const iconColor = effectiveFocused ? (COLORS.navActive || '#FFFFFF') : (COLORS.navInactive || 'rgba(255, 255, 255, 0.60)');
 
                         if (route.name === TABS.Areas) {
                             return (
@@ -157,14 +158,14 @@ const PropertyTabNavigator = () => {
                 listeners={({ navigation }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
-                        setIntelligenceMode(true);
                         navigation.navigate(TABS.Explore);
+                        openAreasMode(true);
                     },
                 })}
             />
             <Tab.Screen
-                name={TABS.Profile}
-                component={ProfileScreen}
+                name={TABS.Messages}
+                component={ChatListScreen}
                 listeners={() => ({
                     tabPress: () => {
                         if (isIntelligenceMode) {
@@ -205,15 +206,15 @@ const styles = StyleSheet.create({
         width: 38,
         height: 38,
         borderRadius: 19,
-        backgroundColor: COLORS.accent,
+        backgroundColor: '#FFFFFF',
         alignItems: 'center',
         justifyContent: 'center',
         marginTop: -4,
-        shadowColor: COLORS.accent,
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.45,
-        shadowRadius: 6,
-        elevation: 6,
+        shadowColor: '#000000',
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.25,
+        shadowRadius: 5,
+        elevation: 5,
     },
 });
 

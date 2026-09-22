@@ -7,7 +7,7 @@ const TabBarIcon = ({ focused, name, color, size = 22 }) => {
         <Ionicons
             name={name}
             size={size}
-            color={color || (focused ? COLORS.accent : COLORS.navInactive)}
+            color={color || (focused ? (COLORS.navActive || '#FFFFFF') : COLORS.navInactive)}
         />
     );
 };

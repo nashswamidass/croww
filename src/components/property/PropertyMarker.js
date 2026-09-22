@@ -8,15 +8,23 @@ const PropertyMarker = ({ item, selected, onPress }) => {
     const isCluster = item?.isCluster === true;
     const label = isCluster ? String(item.count) : formatMarkerPrice(item);
 
-    // On Android, react-native-maps requires tracksViewChanges=true initially to snapshot
+    // On Android, react-native-maps requires tracksViewChanges=true briefly to snapshot
     // the custom React view into a bitmap, then false for smooth map panning performance.
     const [tracksViewChanges, setTracksViewChanges] = useState(true);
+    const prevSelectedRef = React.useRef(selected);
+    const prevLabelRef = React.useRef(label);
 
     useEffect(() => {
-        setTracksViewChanges(true);
+        const hasVisualChange = prevSelectedRef.current !== selected || prevLabelRef.current !== label;
+        prevSelectedRef.current = selected;
+        prevLabelRef.current = label;
+
+        if (hasVisualChange) {
+            setTracksViewChanges(true);
+        }
         const timer = setTimeout(() => {
             setTracksViewChanges(false);
-        }, 300);
+        }, 220);
         return () => clearTimeout(timer);
     }, [selected, label]);
 
@@ -86,8 +94,8 @@ const styles = StyleSheet.create({
     },
     // Selected state ONLY changes colors - NO transform/scale changes
     pricePillSelected: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: '#111827',
+        borderColor: '#111827',
     },
     priceText: {
         color: '#111827',
@@ -105,7 +113,7 @@ const styles = StyleSheet.create({
         height: 36,
         borderRadius: 18,
         backgroundColor: '#FFFFFF',
-        borderColor: COLORS.accent,
+        borderColor: '#111827',
         borderWidth: 2,
         justifyContent: 'center',
         alignItems: 'center',
@@ -116,11 +124,24 @@ const styles = StyleSheet.create({
         shadowRadius: 0,
     },
     clusterText: {
-        color: COLORS.accent,
+        color: '#111827',
         fontSize: 13,
         fontWeight: '800',
         includeFontPadding: false,
     },
 });
 
-export default memo(PropertyMarker);
+function areMarkerPropsEqual(prevProps, nextProps) {
+    if (prevProps.selected !== nextProps.selected) return false;
+    if (prevProps.item?.listingId !== nextProps.item?.listingId) return false;
+    if (prevProps.item?.isCluster !== nextProps.item?.isCluster) return false;
+    if (prevProps.item?.count !== nextProps.item?.count) return false;
+    if (prevProps.item?.price !== nextProps.item?.price) return false;
+    if (prevProps.item?.pricing?.expectedPrice !== nextProps.item?.pricing?.expectedPrice) return false;
+    const prevCoord = prevProps.item?.mapCoordinate || prevProps.item;
+    const nextCoord = nextProps.item?.mapCoordinate || nextProps.item;
+    if (prevCoord?.latitude !== nextCoord?.latitude || prevCoord?.longitude !== nextCoord?.longitude) return false;
+    return true;
+}
+
+export default memo(PropertyMarker, areMarkerPropsEqual);

@@ -66,3 +66,6 @@ app-example
 firebase-debug*.log
 .secret.local
 
+# scratch screenshots
+scratch_*.png
+

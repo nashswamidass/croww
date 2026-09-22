@@ -9,6 +9,8 @@
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "dev:lan": "expo start --dev-client --lan",
+    "dev:android": "expo run:android --device",
     "build:preview": "eas build --platform android --profile preview",
     "build:production": "eas build --platform android --profile production",
     "set-env:staging": "cp .env.staging .env && echo 'Switched to STAGING'",

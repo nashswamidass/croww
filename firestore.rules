@@ -555,6 +555,28 @@ service cloud.firestore {
         );
         allow delete: if isAdmin();
       }
+
+      match /availability_history/{historyId} {
+        allow read: if isSignedIn() && (
+          isAdmin()
+          || get(/databases/$(database)/documents/listings/$(listingId)).data.listedByUid == request.auth.uid
+          || get(/databases/$(database)/documents/listings/$(listingId)).data.ownerUid == request.auth.uid
+        );
+        allow create: if isSignedIn() && (
+          isAdmin()
+          || (
+            get(/databases/$(database)/documents/listings/$(listingId)).data.listedByUid == request.auth.uid
+            && request.resource.data.listingId == listingId
+            && request.resource.data.actor == request.auth.uid
+            && request.resource.data.changeType in [
+              'VACANCY_ADDED', 'VACANCY_REDUCED', 'MARKED_FULL', 'REOPENED', 'PAUSED'
+            ]
+            && request.resource.data.newAvailableCount is number
+            && request.resource.data.newAvailableCount >= 0
+          )
+        );
+        allow update, delete: if false;
+      }
     }
 
     match /localities/{localityId} {
@@ -574,6 +596,28 @@ service cloud.firestore {
       match /intelligence_internal/{docId} {
         allow read, write: if isAdmin();
       }
+      match /scoring/{scoringSystemId} {
+        // Consumer read if published/active scoring or parent locality is active; writes admin only
+        allow read: if (exists(/databases/$(database)/documents/localities/$(localityId)) && get(/databases/$(database)/documents/localities/$(localityId)).data.status == 'ACTIVE') || isAdmin();
+        allow write: if isAdmin();
+      }
+    }
+
+    match /area_scoring_systems/{systemId} {
+      // Consumers can read the active/published scoring systems; admins can read all and write
+      allow read: if resource.data.status == 'ACTIVE' || isAdmin();
+      allow write: if isAdmin();
+    }
+
+    match /area_scoring_imports/{importId} {
+      // Admin only: audit record of spreadsheet imports
+      allow read, write: if isAdmin();
+    }
+
+    match /metadata/{docId} {
+      // Public / consumer read metadata (like active area scoring pointer); writes admin only
+      allow read: if true;
+      allow write: if isAdmin();
     }
 
     match /listingTaxonomy/{typeId} {

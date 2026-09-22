@@ -72,23 +72,49 @@ function toDiscoveryItem(row) {
         representationStatus: row.representationStatus || 'unverified',
         verification: row.verification || null,
         spatialTourAvailable: row.spatialTourAvailable === true,
+        availability: row.availability || null,
+        availableCount: row.availableCount ?? row.availability?.availableCount ?? null,
+        availabilityMode: row.availabilityMode || row.availability?.availabilityMode || null,
+        availableFrom: row.availableFrom || row.availability?.availableFrom || null,
     };
 }
 
+const PREFIX_CACHE_TTL_MS = 60 * 1000;
+const prefixCache = new Map(); // key -> { timestamp, data }
+const inFlightPrefixQueries = new Map(); // key -> Promise
+
 async function queryPrefix(prefix, transactionType) {
-    const constraints = [
-        where('status', '==', 'PUBLISHED'),
-        where('geohash', '>=', prefix),
-        where('geohash', '<', geohashEndExclusive(prefix)),
-        orderBy('geohash'),
-        limit(EXPLORE_PREFIX_LIMIT),
-    ];
-    if (transactionType === 'buy' || transactionType === 'rent') {
-        constraints.splice(1, 0, where('transactionType', '==', transactionType));
+    const cacheKey = `${prefix}_${transactionType || 'all'}`;
+    const cached = prefixCache.get(cacheKey);
+    if (cached && Date.now() - cached.timestamp < PREFIX_CACHE_TTL_MS) {
+        return cached.data;
     }
-    const q = query(collection(db, COLLECTIONS.listings), ...constraints);
-    const snap = await withTimeout(getDocs(q), 12000, `discover:${prefix}`);
-    return snap.docs.map(toRecord);
+    if (inFlightPrefixQueries.has(cacheKey)) {
+        return inFlightPrefixQueries.get(cacheKey);
+    }
+    const queryPromise = (async () => {
+        try {
+            const constraints = [
+                where('status', '==', 'PUBLISHED'),
+                where('geohash', '>=', prefix),
+                where('geohash', '<', geohashEndExclusive(prefix)),
+                orderBy('geohash'),
+                limit(EXPLORE_PREFIX_LIMIT),
+            ];
+            if (transactionType === 'buy' || transactionType === 'rent') {
+                constraints.splice(1, 0, where('transactionType', '==', transactionType));
+            }
+            const q = query(collection(db, COLLECTIONS.listings), ...constraints);
+            const snap = await withTimeout(getDocs(q), 12000, `discover:${prefix}`);
+            const data = snap.docs.map(toRecord);
+            prefixCache.set(cacheKey, { timestamp: Date.now(), data });
+            return data;
+        } finally {
+            inFlightPrefixQueries.delete(cacheKey);
+        }
+    })();
+    inFlightPrefixQueries.set(cacheKey, queryPromise);
+    return queryPromise;
 }
 
 function applyClientFilters(items, filters = {}) {
@@ -121,6 +147,11 @@ function applyClientFilters(items, filters = {}) {
         }
         if (filters.minPrice != null && (item.price == null || item.price < filters.minPrice)) return false;
         if (filters.maxPrice != null && (item.price == null || item.price > filters.maxPrice)) return false;
+        if (filters.onlyAvailable) {
+            if (item.availableCount === 0 || (item.availability && item.availability.availableCount === 0)) {
+                return false;
+            }
+        }
         return true;
     });
 }
@@ -159,6 +190,10 @@ export const discoveryService = {
             return isCoordinateInBounds(lat, lng, bounds);
         });
         return inBounds.map(toDiscoveryItem).slice(0, EXPLORE_MAX_RESULTS);
+    },
+    clearCache() {
+        prefixCache.clear();
+        inFlightPrefixQueries.clear();
     },
 };
 

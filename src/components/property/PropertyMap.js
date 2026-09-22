@@ -6,7 +6,13 @@ import { LIGHT_MAP_STYLE } from '../../constants/mapStyle';
 import { EXPLORE_MAX_MARKERS } from '../../constants/explore';
 import PropertyMarker from './PropertyMarker';
 import LocalityScoreBubble from '../intelligence/LocalityScoreBubble';
+import LocalityClusterBubble from '../intelligence/LocalityClusterBubble';
 import { getLocalityBoundaryRings } from '../../domain/intelligence/localityBoundaries';
+import { getLocalityPolygonStyle, RELEVANCE_CONFIG } from '../../domain/intelligence/localityVisualRelevance';
+import {
+    computeLocalityMapHierarchy,
+    getClusterZoomRegion,
+} from '../../domain/intelligence/localityMapHierarchy';
 
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 const mapProvider = Platform.OS === 'android'
@@ -29,21 +35,50 @@ const PropertyMap = ({
 }) => {
     const mapRef = useRef(null);
     const [currentRegion, setCurrentRegion] = useState(initialRegion || null);
+    const currentRegionRef = useRef(initialRegion || null);
 
     useEffect(() => {
         if (followRegion && mapRef.current) {
             mapRef.current.animateToRegion(followRegion, 700);
             setCurrentRegion(followRegion);
+            currentRegionRef.current = followRegion;
         }
     }, [followRegion]);
 
     const handleRegionChangeComplete = useCallback((region) => {
+        currentRegionRef.current = region;
         setCurrentRegion(region);
         onRegionChangeComplete?.(region);
     }, [onRegionChangeComplete]);
 
-    // Lightweight spatial clustering: groups nearby listings into a cluster when zoomed out
+    // Quantized delta prevents thrashing/recalculating on tiny sub-pixel panning micro-movements
+    const activeLatitudeDelta = currentRegion?.latitudeDelta ?? initialRegion?.latitudeDelta ?? 0.12;
+    const quantizedDelta = Math.round(activeLatitudeDelta * 100) / 100;
+
+    // Deterministic zoom-aware locality hierarchy for the 188 canonical areas
+    const localityHierarchy = useMemo(() => {
+        if (!intelligenceMode || !localityRegions || localityRegions.length === 0) {
+            return null;
+        }
+        return computeLocalityMapHierarchy({
+            localityRegions,
+            latitudeDelta: quantizedDelta,
+            selectedId,
+        });
+    }, [intelligenceMode, localityRegions, quantizedDelta, selectedId]);
+
+    // Handle cluster tap: smoothly zooms into cluster bounds, revealing underlying areas
+    const handleLocalityClusterPress = useCallback((cluster) => {
+        if (!cluster) return;
+        const targetRegion = getClusterZoomRegion(cluster, currentRegionRef.current);
+        if (mapRef.current && targetRegion) {
+            mapRef.current.animateToRegion(targetRegion, 450);
+        }
+    }, []);
+
+    // Lightweight spatial clustering for normal property listings when zoomed out
     const processedMarkers = useMemo(() => {
+        if (intelligenceMode) return [];
         const rawMarkers = listings.slice(0, EXPLORE_MAX_MARKERS);
         if (selectedId && !rawMarkers.some((item) => item.listingId === selectedId)) {
             const extra = listings.find((item) => item.listingId === selectedId);
@@ -51,17 +86,14 @@ const PropertyMap = ({
         }
 
         const latDelta = currentRegion?.latitudeDelta ?? initialRegion?.latitudeDelta ?? 0.1;
-        // If zoomed in close, render all markers as individual price pills
         if (latDelta <= CLUSTER_ZOOM_THRESHOLD) {
             return rawMarkers;
         }
 
-        // When zoomed out, cluster listings by grid cells
         const gridSize = latDelta * 0.12;
         const grid = new Map();
 
         rawMarkers.forEach((item) => {
-            // Never cluster the currently selected listing
             if (item.listingId === selectedId) {
                 return;
             }
@@ -76,8 +108,6 @@ const PropertyMap = ({
         });
 
         const output = [];
-
-        // Always include selected item as individual
         if (selectedId) {
             const selectedItem = rawMarkers.find((item) => item.listingId === selectedId);
             if (selectedItem) output.push(selectedItem);
@@ -87,7 +117,6 @@ const PropertyMap = ({
             if (items.length === 1) {
                 output.push(items[0]);
             } else {
-                // Compute cluster centroid
                 const avgLat = items.reduce((sum, it) => sum + (it.mapCoordinate?.latitude ?? it.latitude), 0) / items.length;
                 const avgLng = items.reduce((sum, it) => sum + (it.mapCoordinate?.longitude ?? it.longitude), 0) / items.length;
 
@@ -104,23 +133,23 @@ const PropertyMap = ({
         });
 
         return output;
-    }, [listings, selectedId, currentRegion, initialRegion]);
+    }, [intelligenceMode, listings, selectedId, currentRegion, initialRegion]);
 
     const handleMarkerPress = useCallback((item) => {
         if (item.isCluster) {
-            // Zoom into the cluster
-            if (mapRef.current && currentRegion) {
+            const cur = currentRegionRef.current;
+            if (mapRef.current && cur) {
                 mapRef.current.animateToRegion({
                     latitude: item.latitude,
                     longitude: item.longitude,
-                    latitudeDelta: Math.max(0.02, (currentRegion.latitudeDelta || 0.1) / 2.5),
-                    longitudeDelta: Math.max(0.02, (currentRegion.longitudeDelta || 0.1) / 2.5),
+                    latitudeDelta: Math.max(0.02, (cur.latitudeDelta || 0.1) / 2.5),
+                    longitudeDelta: Math.max(0.02, (cur.longitudeDelta || 0.1) / 2.5),
                 }, 350);
             }
         } else {
             onSelect?.(item);
         }
-    }, [currentRegion, onSelect]);
+    }, [onSelect]);
 
     return (
         <MapView
@@ -137,7 +166,7 @@ const PropertyMap = ({
             rotateEnabled={false}
             accessibilityLabel="Property map"
         >
-            {/* Sleek pulsing user location dot (universal modern map pattern, no red/teal pins) */}
+            {/* Sleek user location dot */}
             {userCoordinate ? (
                 <Marker
                     coordinate={userCoordinate}
@@ -151,42 +180,99 @@ const PropertyMap = ({
                 </Marker>
             ) : null}
 
-            {/* Locality Intelligence Mode: Authentic Municipal Polygons + Centroid Scores */}
-            {intelligenceMode && localityRegions && localityRegions.length > 0 ? (
-                localityRegions.map((item) => {
-                    const isSelected = item.locality.id === selectedId;
-                    const rings = getLocalityBoundaryRings(item.locality);
+            {/* Locality Intelligence Mode: Authentic Municipal Polygons + Zoom-Aware Point Hierarchy */}
+            {intelligenceMode && localityHierarchy ? (
+                <>
+                    {/* 1. Authentic Verified Municipal Polygons (7 areas, never clustered into points) */}
+                    {localityHierarchy.polygonItems.map((item) => {
+                        const locality = item.locality || item;
+                        const isSelected = locality.id === selectedId;
+                        const anySelected = Boolean(selectedId && localityRegions.some((r) => (r.locality?.id || r.id) === selectedId));
+                        const rings = getLocalityBoundaryRings(locality);
+                        const style = getLocalityPolygonStyle(item, isSelected, anySelected);
 
-                    return (
-                        <React.Fragment key={`region_${item.locality.id}`}>
-                            {rings.map((ringCoords, ringIdx) => (
-                                <Polygon
-                                    key={`poly_${item.locality.id}_${ringIdx}`}
-                                    coordinates={ringCoords}
-                                    fillColor={isSelected ? 'rgba(124, 58, 237, 0.22)' : 'rgba(124, 58, 237, 0.08)'}
-                                    strokeColor={isSelected ? '#7C3AED' : 'rgba(124, 58, 237, 0.65)'}
-                                    strokeWidth={isSelected ? 2.5 : 1.5}
-                                    tappable
+                        return (
+                            <React.Fragment key={`region_${locality.id}`}>
+                                {rings.map((ringCoords, ringIdx) => (
+                                    <Polygon
+                                        key={`poly_${locality.id}_${ringIdx}`}
+                                        coordinates={ringCoords}
+                                        fillColor={style.fillColor}
+                                        strokeColor={style.strokeColor}
+                                        strokeWidth={style.strokeWidth}
+                                        tappable
+                                        onPress={() => onSelect && onSelect(item)}
+                                        zIndex={style.zIndex}
+                                    />
+                                ))}
+
+                                <Marker
+                                    coordinate={{ latitude: locality.latitude, longitude: locality.longitude }}
                                     onPress={() => onSelect && onSelect(item)}
-                                    zIndex={isSelected ? 10 : 2}
-                                />
-                            ))}
+                                    tracksViewChanges={isSelected}
+                                    zIndex={isSelected ? 30 : 8}
+                                >
+                                    <LocalityScoreBubble
+                                        name={locality.name}
+                                        score={item.score}
+                                        selected={isSelected}
+                                        variant="marker"
+                                        relevanceColor={style.dotColor}
+                                    />
+                                </Marker>
+                            </React.Fragment>
+                        );
+                    })}
 
+                    {/* 2. Zoom-Aware POINT_ONLY Locality Markers & Geographic Clusters */}
+                    {localityHierarchy.pointMarkers.map((marker) => {
+                        if (marker.isCluster) {
+                            const relevanceDot = marker.relevanceTier !== 'NEUTRAL'
+                                ? (RELEVANCE_CONFIG[marker.relevanceTier]?.dotColor || null)
+                                : null;
+
+                            return (
+                                <Marker
+                                    key={marker.clusterId}
+                                    coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+                                    onPress={() => handleLocalityClusterPress(marker)}
+                                    tracksViewChanges={false}
+                                    zIndex={10}
+                                >
+                                    <LocalityClusterBubble
+                                        count={marker.count}
+                                        relevanceColor={relevanceDot}
+                                        onPress={() => handleLocalityClusterPress(marker)}
+                                    />
+                                </Marker>
+                            );
+                        }
+
+                        const locality = marker.locality;
+                        const isSelected = marker.isSelected || locality.id === selectedId;
+                        const relevanceDot = marker.relevanceTier !== 'NEUTRAL'
+                            ? (RELEVANCE_CONFIG[marker.relevanceTier]?.dotColor || null)
+                            : null;
+
+                        return (
                             <Marker
-                                coordinate={{ latitude: item.locality.latitude, longitude: item.locality.longitude }}
-                                onPress={() => onSelect && onSelect(item)}
-                                zIndex={isSelected ? 25 : 8}
+                                key={`pt_${locality.id}`}
+                                coordinate={{ latitude: marker.latitude, longitude: marker.longitude }}
+                                onPress={() => onSelect && onSelect(marker.items[0])}
+                                tracksViewChanges={isSelected}
+                                zIndex={isSelected ? 30 : 12}
                             >
                                 <LocalityScoreBubble
-                                    name={item.locality.name}
-                                    score={item.score}
+                                    name={locality.name}
+                                    score={marker.dominantScore}
                                     selected={isSelected}
                                     variant="marker"
+                                    relevanceColor={relevanceDot}
                                 />
                             </Marker>
-                        </React.Fragment>
-                    );
-                })
+                        );
+                    })}
+                </>
             ) : (
                 /* Normal Mode: Compact Airbnb-style price pills */
                 processedMarkers.map((item) => (

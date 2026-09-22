@@ -1,5 +1,6 @@
 import React from 'react';
 import {
+    Image,
     ScrollView,
     StyleSheet,
     Text,
@@ -26,6 +27,18 @@ export default function PreferenceStep({
     const insets = useSafeAreaInsets();
     return (
         <View style={styles.container}>
+            {/* Brand Header */}
+            <View style={styles.brandRow}>
+                <Image
+                    source={require('../../../assets/croww-logo.png')}
+                    style={styles.brandLogo}
+                    resizeMode="contain"
+                    accessibilityLabel="Croww"
+                />
+                <View style={styles.brandDivider} />
+                <Text style={styles.brandTag}>AREAS</Text>
+            </View>
+
             {/* Step indicator header */}
             <View style={styles.progressRow}>
                 <Text style={styles.stepText}>
@@ -77,7 +90,7 @@ export default function PreferenceStep({
                                         <Ionicons
                                             name={option.icon}
                                             size={20}
-                                            color={isSelected ? COLORS.accent : COLORS.secondary}
+                                            color={isSelected ? COLORS.primary : COLORS.secondary}
                                         />
                                     </View>
                                 )}
@@ -149,6 +162,28 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
         paddingTop: 16,
     },
+    brandRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 20,
+        marginBottom: 16,
+    },
+    brandLogo: {
+        width: 64,
+        height: 20,
+    },
+    brandDivider: {
+        width: 1,
+        height: 14,
+        backgroundColor: 'rgba(0, 0, 0, 0.12)',
+        marginHorizontal: 8,
+    },
+    brandTag: {
+        fontSize: 11,
+        fontWeight: '800',
+        letterSpacing: 0.8,
+        color: '#6B7280',
+    },
     progressRow: {
         paddingHorizontal: 20,
         marginBottom: 16,
@@ -207,8 +242,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     optionCardSelected: {
-        borderColor: COLORS.accent,
-        backgroundColor: COLORS.accentMuted,
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.surfaceHighlight,
     },
     optionLeft: {
         flexDirection: 'row',
@@ -225,7 +260,7 @@ const styles = StyleSheet.create({
         marginRight: 14,
     },
     iconContainerSelected: {
-        backgroundColor: '#EDE9FE',
+        backgroundColor: COLORS.surfaceHighlight,
     },
     optionTextContainer: {
         flex: 1,
@@ -236,7 +271,7 @@ const styles = StyleSheet.create({
         color: COLORS.primary,
     },
     optionLabelSelected: {
-        color: COLORS.accentDark,
+        color: COLORS.primary,
         fontWeight: '700',
     },
     optionDescription: {
@@ -255,8 +290,8 @@ const styles = StyleSheet.create({
         marginLeft: 12,
     },
     selectionIndicatorSelected: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
     footer: {
         paddingHorizontal: 20,
@@ -268,7 +303,7 @@ const styles = StyleSheet.create({
     },
     continueBtn: {
         height: TOUCH_TARGETS.button,
-        backgroundColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
         borderRadius: BORDER_RADIUS.button,
         flexDirection: 'row',
         alignItems: 'center',

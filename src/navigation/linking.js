@@ -32,7 +32,7 @@ const linking = {
                             Saved: 'saved',
                             Post: 'post',
                             Areas: 'areas',
-                            Profile: 'me',
+                            Messages: 'messages-tab',
                         },
                     },
                     // Legacy URLs remain routable on the stack, not as primary tabs.
@@ -98,6 +98,7 @@ const linking = {
                             serviceId: (serviceId) => serviceId,
                         },
                     },
+                    Profile: 'profile',
                     Settings: 'settings',
                     NotificationSettings: 'notification-settings',
                     HelpCenter: 'help',
@@ -126,9 +127,10 @@ const linking = {
         },
     },
 
-    // Redirect legacy /home and bare / to the Explore tab on web.
+    // Redirect legacy paths to correct destinations.
     getStateFromPath(path, options) {
         const cleanPath = path.split('?')[0].replace(/^\/+/, '');
+        // Legacy home and bare / → Explore tab
         if (cleanPath === '' || cleanPath === 'home') {
             return {
                 routes: [
@@ -144,6 +146,19 @@ const linking = {
                                     },
                                 },
                             ],
+                        },
+                    },
+                ],
+            };
+        }
+        // Legacy 'me' path → Profile screen on main stack
+        if (cleanPath === 'me') {
+            return {
+                routes: [
+                    {
+                        name: 'Main',
+                        state: {
+                            routes: [{ name: 'Profile' }],
                         },
                     },
                 ],

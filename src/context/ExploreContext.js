@@ -29,6 +29,20 @@ export const ExploreProvider = ({ children }) => {
     const [selectedListingId, setSelectedListingId] = useState(null);
     const [focusRegion, setFocusRegion] = useState(null);
     const [isIntelligenceMode, setIntelligenceMode] = useState(false);
+    const [areasDrawerOpen, setAreasDrawerOpen] = useState(false);
+    const [areasDestination, setAreasDestination] = useState(null);
+
+    const openAreasMode = useCallback((openDrawer = true) => {
+        setIntelligenceMode(true);
+        if (openDrawer) {
+            setAreasDrawerOpen(true);
+        }
+    }, []);
+
+    const closeAreasMode = useCallback(() => {
+        setIntelligenceMode(false);
+        setAreasDrawerOpen(false);
+    }, []);
 
     const setFilters = useCallback((patch) => {
         setFiltersState((prev) => {
@@ -50,6 +64,8 @@ export const ExploreProvider = ({ children }) => {
         setSelectedListingId(null);
         setFocusRegion(null);
         setIntelligenceMode(false);
+        setAreasDrawerOpen(false);
+        setAreasDestination(null);
     }, []);
 
     const applySavedSearch = useCallback((search = {}) => {
@@ -145,6 +161,12 @@ export const ExploreProvider = ({ children }) => {
         applySavedSearch,
         isIntelligenceMode,
         setIntelligenceMode,
+        areasDrawerOpen,
+        setAreasDrawerOpen,
+        areasDestination,
+        setAreasDestination,
+        openAreasMode,
+        closeAreasMode,
     }), [
         city,
         localityId,
@@ -161,6 +183,12 @@ export const ExploreProvider = ({ children }) => {
         applySavedSearch,
         isIntelligenceMode,
         setIntelligenceMode,
+        areasDrawerOpen,
+        setAreasDrawerOpen,
+        areasDestination,
+        setAreasDestination,
+        openAreasMode,
+        closeAreasMode,
     ]);
 
     return (

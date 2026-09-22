@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Linking, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity, Switch, Platform, Linking } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
@@ -11,6 +11,7 @@ import { pushNotificationService } from '../../services/pushNotificationService'
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import { showAlert } from '../../utils/showAlert';
+import { MotionView } from '../../components/motion';
 
 export const NOTIFICATION_SETTINGS_KEY = '@croww_notification_preferences';
 export const USER_SETTINGS_KEY = '@croww_user_settings';
@@ -28,14 +29,12 @@ const DEFAULT_PREFERENCES = {
 const NotificationSettingsScreen = ({ navigation }) => {
     const { user: currentUser } = useAuth();
     const [preferences, setPreferences] = useState(DEFAULT_PREFERENCES);
-    const [loading, setLoading] = useState(true);
     const [osPermissionStatus, setOsPermissionStatus] = useState('undetermined');
     const [testingNotification, setTestingNotification] = useState(false);
 
-    // Load persisted preferences and check OS permission status
+    // Load persisted preferences and check OS permission status in background
     const loadPreferences = useCallback(async () => {
         try {
-            setLoading(true);
             const [storedPrefs, storedLegacy, osStatus] = await Promise.all([
                 AsyncStorage.getItem(NOTIFICATION_SETTINGS_KEY),
                 AsyncStorage.getItem(USER_SETTINGS_KEY),
@@ -74,8 +73,6 @@ const NotificationSettingsScreen = ({ navigation }) => {
             setPreferences(initialPrefs);
         } catch (err) {
             console.error('[NotificationSettings] Error loading preferences:', err);
-        } finally {
-            setLoading(false);
         }
     }, []);
 
@@ -83,8 +80,9 @@ const NotificationSettingsScreen = ({ navigation }) => {
         loadPreferences();
     }, [loadPreferences]);
 
-    // Persist preferences immediately to AsyncStorage and user profile
+    // Persist preferences immediately with optimistic UI update and error rollback
     const updatePreference = async (key, value) => {
+        const previous = { ...preferences };
         const updated = { ...preferences, [key]: value };
         setPreferences(updated);
 
@@ -110,6 +108,8 @@ const NotificationSettingsScreen = ({ navigation }) => {
             }
         } catch (e) {
             console.error('[NotificationSettings] Failed to save preference:', e);
+            setPreferences(previous);
+            showAlert('Notice', 'Failed to update setting. Please try again.');
         }
     };
 
@@ -206,11 +206,7 @@ const NotificationSettingsScreen = ({ navigation }) => {
                 <View style={{ width: 32 }} />
             </View>
 
-            {loading ? (
-                <View style={styles.loadingContainer}>
-                    <ActivityIndicator size="large" color={COLORS.accent} />
-                </View>
-            ) : (
+            <MotionView fadeOnly duration={180} style={{ flex: 1 }}>
                 <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
                     {/* Master Push Toggle */}
                     <View style={styles.section}>
@@ -314,7 +310,7 @@ const NotificationSettingsScreen = ({ navigation }) => {
                         />
                     </View>
                 </ScrollView>
-            )}
+            </MotionView>
         </ScreenWrapper>
     );
 };

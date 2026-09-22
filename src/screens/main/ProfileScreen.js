@@ -5,6 +5,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import FloatingCard from '../../components/FloatingCard';
 import AntigravityButton from '../../components/AntigravityButton';
+import CrowwScreenHeader from '../../components/CrowwScreenHeader';
 import { SPACING, COLORS, BORDER_RADIUS, TOUCH_TARGETS, SHADOWS } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { getPropertyRoles, getShellCapabilities } from '../../navigation/propertyCapabilities';
@@ -43,6 +44,7 @@ const ProfileScreen = ({ navigation }) => {
     if (!user) {
         return (
             <ScreenWrapper edges={['top']}>
+                <CrowwScreenHeader navigation={navigation} withTopInset={false} />
                 <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                     <View style={styles.header}>
                         <Typography variant="display" style={styles.pageTitle}>Profile</Typography>
@@ -104,6 +106,7 @@ const ProfileScreen = ({ navigation }) => {
 
     return (
         <ScreenWrapper edges={['top']}>
+            <CrowwScreenHeader navigation={navigation} withTopInset={false} />
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
                 {/* Header User Card */}
                 <View style={styles.profileHeader}>

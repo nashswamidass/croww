@@ -7,3 +7,5 @@ export * from './proximity.ts';
 export * from './snapshot.ts';
 export * from './viewport.ts';
 export * from './validate.ts';
+export * from './localityMapHierarchy.ts';
+export * from './localityIntelligenceContract.ts';

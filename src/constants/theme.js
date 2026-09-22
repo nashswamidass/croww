@@ -15,18 +15,24 @@ export const COLORS = {
   tertiary: '#9CA3AF',         // Soft metadata grey
   text: '#111827',             // Alias for primary
   textSecondary: '#6B7280',    // Alias for secondary
+  textMuted: '#9CA3AF',        // Alias for tertiary
 
-  // Accents (Croww Purple)
-  accent: '#7C3AED',           // Croww purple CTA & highlight
-  accentDark: '#6D28D9',       // Darker tone for active/press
-  accentMuted: '#F5F3FF',      // Soft purple badge/container
-  accentGlow: 'rgba(124, 58, 237, 0.12)',
+  // Accents (Restrained Charcoal / Black Neutral CTA)
+  accent: '#111827',           // Deep charcoal / near-black CTA & highlight
+  accentDark: '#000000',       // Pure black tone for active/press
+  accentMuted: '#F3F4F6',      // Soft neutral badge/container
+  accentGlow: 'rgba(17, 24, 39, 0.08)',
 
   // Bottom Navigation (Floating black pill)
-  navBlack: '#0F0F0F',         // Pure dark floating pill nav
-  navInactive: '#9CA3AF',      // Muted grey icon/text on dark nav
+  navigation: '#111111',       // Near-black floating pill nav
+  navBlack: '#111111',         // Near-black floating pill nav
+  navActive: '#FFFFFF',        // Active tab color (crisp white)
+  navInactive: 'rgba(255, 255, 255, 0.60)', // Muted white/grey on dark nav
 
-  // Status Colors
+  // Data-Driven Relevance & Status Colors
+  accentSuccess: '#059669',    // Strong match / verified green
+  accentWarning: '#D97706',    // Good match / warning amber
+  accentPossible: '#CA8A04',   // Possible match / yellow gold
   success: '#059669',          // Verified green
   successMuted: '#ECFDF5',     // Soft verified badge container
   error: '#DC2626',            // Destructive / error red

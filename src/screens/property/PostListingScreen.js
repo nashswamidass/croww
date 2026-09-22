@@ -1,93 +1,81 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-    View,
-    StyleSheet,
-    ScrollView,
-    KeyboardAvoidingView,
-    Platform,
-    TouchableOpacity,
-    Image,
     ActivityIndicator,
+    Alert,
+    Image,
+    KeyboardAvoidingView,
+    Modal,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    Text,
+    TouchableOpacity,
+    View,
 } from 'react-native';
 import { useNavigation, useRoute } from '@react-navigation/native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as ImagePicker from 'expo-image-picker';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import NotionInput from '../../components/NotionInput';
-import NotionCard from '../../components/NotionCard';
-import AntigravityButton from '../../components/AntigravityButton';
 import GooglePlacesInput from '../../components/GooglePlacesInput';
-import PostProgress from '../../components/property/post/PostProgress';
-import PostChoiceChips from '../../components/property/post/PostChoiceChips';
 import PostPinMap from '../../components/property/post/PostPinMap';
-import PropertyMiniMap from '../../components/property/PropertyMiniMap';
-import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
-import { useAuth } from '../../context/AuthContext';
-import { getPropertyRoles } from '../../navigation/propertyCapabilities';
+import {
+    BORDER_RADIUS,
+    COLORS,
+    FONT_SIZES,
+    SHADOWS,
+    SPACING,
+    TOUCH_TARGETS,
+} from '../../constants/theme';
 import { inventoryService } from '../../services/property';
-import { useTaxonomy } from '../../hooks/useTaxonomy';
 import { mapTaxonomyToLegacy } from '../../domain/taxonomy';
 import {
     InventoryError,
     MAX_POST_PHOTOS,
-    PRECISION_COPY,
-    LOCATION_VISIBILITY_COPY,
     SUBTYPE_LABELS,
-    amenityOptions,
-    bhkValueFromChoice,
     buildListingCreateInput,
     buildListingUpdatePatch,
     buildPropertyCreateInput,
-    canRequestPublish,
     canSaveDraft,
+    getCategoryAdditionalFeatures,
+    getCategoryOccupancyOptions,
+    getCategoryQuickFeatures,
     inventoryErrorMessage,
-    listerStatusCopy,
-    numericField,
-    postingActorChoices,
-    propertyFieldVisibility,
     slugLocalityId,
-    subtypeOptions,
     validatePostListing,
     validatePostProperty,
-    visibleSteps,
 } from '../../domain/property';
-import { formatInrCompact } from '../../utils/propertyFormat';
 import { showAlert } from '../../utils/showAlert';
 
-const BHK_OPTIONS = [
-    { value: 1, label: '1 BHK' },
-    { value: 2, label: '2 BHK' },
-    { value: 3, label: '3 BHK' },
-    { value: 4, label: '4 BHK' },
-    { value: 5, label: '5+' },
-];
+function getCategoryIcon(subtype) {
+    const s = (subtype || '').toLowerCase().replace(/^stay_/, '');
+    if (s.includes('bed')) return 'bed-outline';
+    if (s.includes('shared')) return 'people-outline';
+    if (s.includes('private')) return 'person-outline';
+    if (s.includes('pg')) return 'business-outline';
+    if (s.includes('coliving')) return 'people-circle-outline';
+    if (s.includes('roommate')) return 'swap-horizontal-outline';
+    return 'home-outline';
+}
 
-const STEP_TITLES = {
-    actor: 'Who is listing?',
-    source: 'Which property?',
-    transaction: 'What are you listing?',
-    category: 'Property type',
-    property: 'Property details',
-    location: 'Location',
-    listing: 'Listing details',
-    media: 'Photos',
-    review: 'Review',
-};
-
-function emptyForm() {
+function emptyForm(initialType = null) {
+    const legacy = initialType ? mapTaxonomyToLegacy(initialType) : null;
+    const subtype = legacy?.subtype || (typeof initialType === 'string' ? initialType.replace(/^stay_/, '') : 'private_room');
+    const defaultOcc = subtype === 'shared_room' ? 'double' : 'single';
     return {
-        listedByRole: null,
+        listedByRole: 'owner',
         existingPropertyId: null,
         propertyId: null,
         listingId: null,
-        transactionType: null,
-        category: null,
-        subtype: null,
-        listingTypeId: null,
-        taxonomyId: null,
-        bedrooms: null,
-        bathrooms: null,
+        transactionType: 'rent',
+        category: 'residential',
+        subtype,
+        listingTypeId: initialType || 'stay_private_room',
+        taxonomyId: initialType || 'stay_private_room',
+        bedrooms: legacy?.defaultBedrooms || 1,
+        bathrooms: 1,
         carpetAreaSqft: null,
         builtUpAreaSqft: null,
         plotAreaSqft: null,
@@ -99,8 +87,8 @@ function emptyForm() {
         amenities: [],
         propertyDescription: '',
         projectName: '',
-        city: '',
-        state: '',
+        city: 'Chennai',
+        state: 'Tamil Nadu',
         localityId: '',
         localityName: '',
         localityCoordinate: null,
@@ -116,6 +104,11 @@ function emptyForm() {
         depositText: '',
         maintenanceText: '',
         negotiable: true,
+        availableFrom: 'immediate',
+        occupancy: defaultOcc,
+        foodIncluded: false,
+        attachedBathroom: false,
+        genderPreference: 'any',
         photos: [],
         coverLocalId: null,
         status: 'DRAFT',
@@ -133,17 +126,17 @@ function hydrateForm({ listing, property, media }) {
     }));
     return {
         ...emptyForm(),
-        listedByRole: listing.listedByRole,
+        listedByRole: listing.listedByRole || 'owner',
         existingPropertyId: listing.propertyId,
         propertyId: listing.propertyId,
         listingId: listing.id,
-        transactionType: listing.transactionType,
-        category: property?.category || null,
-        subtype: property?.subtype || null,
+        transactionType: listing.transactionType || 'rent',
+        category: property?.category || 'residential',
+        subtype: property?.subtype || 'private_room',
         listingTypeId: listing.taxonomyId || listing.listingTypeId || property?.subtype || null,
         taxonomyId: listing.taxonomyId || null,
-        bedrooms: property?.bedrooms ?? null,
-        bathrooms: property?.bathrooms ?? null,
+        bedrooms: property?.bedrooms ?? 1,
+        bathrooms: property?.bathrooms ?? 1,
         carpetAreaSqft: property?.carpetAreaSqft ?? null,
         builtUpAreaSqft: property?.builtUpAreaSqft ?? null,
         plotAreaSqft: property?.plotAreaSqft ?? null,
@@ -155,10 +148,10 @@ function hydrateForm({ listing, property, media }) {
         amenities: Array.isArray(property?.amenities) ? property.amenities : [],
         propertyDescription: property?.description || '',
         projectName: property?.projectName || '',
-        city: property?.city || property?.address?.city || '',
-        state: property?.state || property?.address?.state || '',
+        city: property?.city || 'Chennai',
+        state: property?.state || 'Tamil Nadu',
         localityId: property?.localityId || '',
-        localityName: property?.localityId || '',
+        localityName: property?.localityId ? property.localityId.split('__')[1] || property.localityId : '',
         addressLine1: property?.address?.line1 || '',
         pincode: property?.address?.pincode || '',
         exactLatitude: null,
@@ -171,6 +164,11 @@ function hydrateForm({ listing, property, media }) {
         depositText: listing.deposit != null ? String(listing.deposit) : '',
         maintenanceText: listing.maintenanceMonthly != null ? String(listing.maintenanceMonthly) : '',
         negotiable: listing.negotiable !== false,
+        availableFrom: listing.availableFrom || 'immediate',
+        occupancy: listing.occupancy || 'single',
+        foodIncluded: Boolean(listing.foodIncluded),
+        attachedBathroom: Boolean(listing.attachedBathroom),
+        genderPreference: listing.genderPreference || 'any',
         photos,
         coverLocalId: photos[0]?.localId || null,
         status: listing.status || 'DRAFT',
@@ -201,35 +199,31 @@ function parsePlace(selection) {
 const PostListingScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
-    const { user } = useAuth();
-    const roles = getPropertyRoles(user);
-    const actorChoices = useMemo(() => postingActorChoices(roles), [roles]);
-    const listingIdParam = route.params?.listingId || null;
-    const { postingCategories } = useTaxonomy();
+    const insets = useSafeAreaInsets();
 
-    const [form, setForm] = useState(emptyForm);
-    const [stepKey, setStepKey] = useState('actor');
+    const initialTypeParam = route.params?.initialType;
+    const listingIdParam = route.params?.listingId;
+
+    const scrollRef = useRef(null);
+    const [form, setForm] = useState(() => emptyForm(initialTypeParam));
+    const [dirty, setDirty] = useState(false);
     const [busy, setBusy] = useState(false);
-    const [loading, setLoading] = useState(!!listingIdParam);
+    const [loading, setLoading] = useState(Boolean(listingIdParam));
     const [error, setError] = useState('');
     const [duplicates, setDuplicates] = useState([]);
-    const [myProperties, setMyProperties] = useState([]);
-    const [localities, setLocalities] = useState([]);
-    const [dirty, setDirty] = useState(false);
+    const [additionalModalVisible, setAdditionalModalVisible] = useState(false);
 
-    const patch = useCallback((partial) => {
+    const patch = useCallback((updates) => {
         setDirty(true);
-        setForm((prev) => ({ ...prev, ...partial }));
+        setError('');
+        setForm((prev) => ({ ...prev, ...updates }));
     }, []);
 
-    const steps = visibleSteps(form);
-    const stepIndex = Math.max(0, steps.indexOf(stepKey));
-    const vis = propertyFieldVisibility(form.category, form.subtype);
-
+    // Load existing draft if editing
     useEffect(() => {
+        if (!listingIdParam) return;
         let cancelled = false;
         (async () => {
-            if (!listingIdParam) return;
             setLoading(true);
             try {
                 const loaded = await inventoryService.loadForEdit(listingIdParam);
@@ -241,7 +235,6 @@ const PostListingScreen = () => {
                 }
                 setForm(hydrateForm(loaded));
                 setDirty(false);
-                setStepKey('review');
             } catch (err) {
                 if (!cancelled) {
                     setError(inventoryErrorMessage(err?.code, err?.message));
@@ -253,11 +246,12 @@ const PostListingScreen = () => {
         return () => { cancelled = true; };
     }, [listingIdParam, navigation]);
 
+    // Prompt before leaving if changes unsaved
     useEffect(() => {
         const unsubscribe = navigation.addListener('beforeRemove', (event) => {
             if (!dirty || busy) return;
             event.preventDefault();
-            showAlert(
+            Alert.alert(
                 'Leave listing?',
                 'Unsaved changes will be lost. Save a draft first if you want to continue later.',
                 [
@@ -269,206 +263,8 @@ const PostListingScreen = () => {
         return unsubscribe;
     }, [navigation, dirty, busy]);
 
-    const loadMine = useCallback(async () => {
-        try {
-            const rows = await inventoryService.listMyProperties();
-            setMyProperties(Array.isArray(rows) ? rows : []);
-        } catch {
-            setMyProperties([]);
-        }
-    }, []);
-
-    useEffect(() => {
-        if (stepKey === 'source') loadMine();
-    }, [stepKey, loadMine]);
-
-    useEffect(() => {
-        let cancelled = false;
-        (async () => {
-            if (stepKey !== 'location' || !form.city) {
-                setLocalities([]);
-                return;
-            }
-            const rows = await inventoryService.listLocalitiesForCity(form.city);
-            if (!cancelled) setLocalities(Array.isArray(rows) ? rows : []);
-        })();
-        return () => { cancelled = true; };
-    }, [stepKey, form.city]);
-
-    const goNext = () => {
-        setError('');
-        const current = steps[stepIndex];
-        if (current === 'actor' && !form.listedByRole) {
-            setError('Choose how you are listing.');
-            return;
-        }
-        if (current === 'transaction' && !form.transactionType) {
-            setError('Choose Buy or Rent.');
-            return;
-        }
-        if (current === 'category' && (!form.category || !form.subtype) && !form.listingTypeId) {
-            setError('Choose a listing type.');
-            return;
-        }
-        if (current === 'location') {
-            const issues = validatePostProperty(form);
-            if (issues.length) {
-                setError(issues[0].message);
-                return;
-            }
-        }
-        if (current === 'listing') {
-            const issues = validatePostListing(form);
-            if (issues.length) {
-                setError(issues[0].message);
-                return;
-            }
-        }
-        const next = steps[stepIndex + 1];
-        if (next) setStepKey(next);
-    };
-
-    const goBack = () => {
-        setError('');
-        const prev = steps[stepIndex - 1];
-        if (prev) setStepKey(prev);
-        else navigation.goBack();
-    };
-
-    const persistDraft = async ({ allowDuplicates = false } = {}) => {
-        const listingInput = buildListingCreateInput(form);
-        if (form.listingId) {
-            await inventoryService.updateListing(form.listingId, buildListingUpdatePatch(form));
-            if (form.propertyId && form.exactLatitude != null && form.exactLongitude != null) {
-                const propertyInput = buildPropertyCreateInput(form);
-                await inventoryService.updateProperty(form.propertyId, {
-                    locationPrecision: propertyInput.locationPrecision,
-                    latitude: propertyInput.latitude,
-                    longitude: propertyInput.longitude,
-                    localityCoordinate: propertyInput.localityCoordinate,
-                    address: propertyInput.address,
-                    description: propertyInput.description,
-                    projectName: propertyInput.projectName,
-                    bedrooms: propertyInput.bedrooms,
-                    bathrooms: propertyInput.bathrooms,
-                    carpetAreaSqft: propertyInput.carpetAreaSqft,
-                    builtUpAreaSqft: propertyInput.builtUpAreaSqft,
-                    plotAreaSqft: propertyInput.plotAreaSqft,
-                    floor: propertyInput.floor,
-                    totalFloors: propertyInput.totalFloors,
-                    furnishing: propertyInput.furnishing,
-                    parking: propertyInput.parking,
-                    constructionYear: propertyInput.constructionYear,
-                    amenities: propertyInput.amenities,
-                });
-            }
-            if (form.photos.some((photo) => photo.uri && !photo.mediaId && !String(photo.uri).startsWith('http'))) {
-                const attached = await inventoryService.attachLocalPhotos({
-                    propertyId: form.propertyId,
-                    listingId: form.listingId,
-                    photos: form.photos,
-                    coverUri: form.coverLocalId,
-                });
-                patch({ photos: attached, coverLocalId: attached[0]?.localId || form.coverLocalId });
-            }
-            return { listingId: form.listingId, propertyId: form.propertyId };
-        }
-
-        let propertyId = form.existingPropertyId || form.propertyId;
-        if (!propertyId) {
-            const created = await inventoryService.createProperty(buildPropertyCreateInput(form), { allowDuplicates });
-            propertyId = created.property.id;
-            patch({
-                propertyId,
-                publicLatitude: created.property.latitude,
-                publicLongitude: created.property.longitude,
-            });
-        }
-        const createdListing = await inventoryService.createListing({
-            ...listingInput,
-            propertyId,
-        });
-        const listingId = createdListing.listing.id;
-        let photos = form.photos;
-        if (photos.length) {
-            photos = await inventoryService.attachLocalPhotos({
-                propertyId,
-                listingId,
-                photos,
-                coverUri: form.coverLocalId,
-            });
-        }
-        patch({
-            propertyId,
-            listingId,
-            photos,
-            status: 'DRAFT',
-            existingPropertyId: propertyId,
-        });
-        return { listingId, propertyId };
-    };
-
-    const onSaveDraft = async ({ allowDuplicates = false } = {}) => {
-        if (!canSaveDraft(form)) {
-            setError('Add the property location and a listing title before saving a draft.');
-            return null;
-        }
-        setBusy(true);
-        setError('');
-        try {
-            const result = await persistDraft({ allowDuplicates });
-            setDuplicates([]);
-            setDirty(false);
-            showAlert('Draft saved', 'You can leave and finish this listing later. It is not live.');
-            return result;
-        } catch (err) {
-            if (err instanceof InventoryError && err.code === 'POTENTIAL_DUPLICATE') {
-                setDuplicates(Array.isArray(err.details?.candidates) ? err.details.candidates : []);
-                setError(inventoryErrorMessage('POTENTIAL_DUPLICATE'));
-                return null;
-            }
-            setError(inventoryErrorMessage(err?.code, err?.message));
-            return null;
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const onRequestReview = async () => {
-        if (!canRequestPublish(form)) {
-            const issues = validatePostListing(form, { forPublish: true });
-            setError(issues[0]?.message || 'Add a valid price before requesting review.');
-            return;
-        }
-        setBusy(true);
-        setError('');
-        try {
-            const saved = await persistDraft();
-            if (!saved?.listingId) return;
-            const result = await inventoryService.requestPublish(saved.listingId);
-            patch({
-                listingId: saved.listingId,
-                reviewRequestedAt: true,
-                status: result?.status || 'DRAFT',
-            });
-            setDirty(false);
-            showAlert(
-                'Submitted for review',
-                'Your listing will be reviewed before going live. It is not published yet.'
-            );
-        } catch (err) {
-            if (err instanceof InventoryError && err.code === 'POTENTIAL_DUPLICATE') {
-                setDuplicates(Array.isArray(err.details?.candidates) ? err.details.candidates : []);
-                setError(inventoryErrorMessage('POTENTIAL_DUPLICATE'));
-                return;
-            }
-            setError(inventoryErrorMessage(err?.code, err?.message));
-        } finally {
-            setBusy(false);
-        }
-    };
-
-    const pickPhotos = async () => {
+    // Photo actions
+    const pickFromLibrary = async () => {
         const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
         if (status !== 'granted') {
             showAlert('Permission needed', 'Allow photo library access to add listing photos.');
@@ -497,746 +293,1399 @@ const PostListingScreen = () => {
         });
     };
 
+    const takePhotoWithCamera = async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status !== 'granted') {
+            showAlert('Permission needed', 'Allow camera access to take a listing photo.');
+            return;
+        }
+        const remaining = MAX_POST_PHOTOS - form.photos.length;
+        if (remaining <= 0) {
+            showAlert('Photo limit', `You can add up to ${MAX_POST_PHOTOS} photos.`);
+            return;
+        }
+        const result = await ImagePicker.launchCameraAsync({
+            quality: 0.8,
+        });
+        if (result.canceled || !result.assets?.[0]?.uri) return;
+        const asset = result.assets[0];
+        const newPhoto = {
+            localId: `${Date.now()}-${asset.uri}`,
+            uri: asset.uri,
+        };
+        const photos = [...form.photos, newPhoto].slice(0, MAX_POST_PHOTOS);
+        patch({
+            photos,
+            coverLocalId: form.coverLocalId || photos[0]?.localId,
+        });
+    };
+
+    const showPhotoOptions = () => {
+        Alert.alert(
+            'Add Photos',
+            'Choose photos showing the room, washroom, and common spaces.',
+            [
+                { text: 'Take Photo', onPress: takePhotoWithCamera },
+                { text: 'Choose from Gallery', onPress: pickFromLibrary },
+                { text: 'Cancel', style: 'cancel' },
+            ]
+        );
+    };
+
+    const removePhoto = (localId) => {
+        const nextPhotos = form.photos.filter((p) => p.localId !== localId);
+        let nextCover = form.coverLocalId;
+        if (nextCover === localId) {
+            nextCover = nextPhotos[0]?.localId || null;
+        }
+        patch({ photos: nextPhotos, coverLocalId: nextCover });
+    };
+
+    const setAsCoverPhoto = (localId) => {
+        patch({ coverLocalId: localId });
+    };
+
+    // Quick Title suggestion
+    const generateTitleSuggestion = () => {
+        const categoryName = SUBTYPE_LABELS[form.subtype] || 'Space';
+        const loc = form.localityName || form.city || 'Bangalore';
+        const features = [];
+        if (form.attachedBathroom) features.push('Attached Bath');
+        if (form.amenities.includes('ac')) features.push('AC');
+        if (form.amenities.includes('balcony')) features.push('Balcony');
+        const extra = features.length > 0 ? ` with ${features.slice(0, 2).join(' & ')}` : '';
+        return `Bright ${categoryName} in ${loc}${extra}`;
+    };
+
+    const applySuggestedTitle = () => {
+        patch({ title: generateTitleSuggestion() });
+    };
+
+    // Feature toggles
+    const quickFeatures = useMemo(() => getCategoryQuickFeatures(form.subtype), [form.subtype]);
+    const additionalFeatures = useMemo(() => getCategoryAdditionalFeatures(form.subtype), [form.subtype]);
+    const occupancyOptions = useMemo(() => getCategoryOccupancyOptions(form.subtype), [form.subtype]);
+
+    const toggleFeature = (featureId) => {
+        const currentAmenities = form.amenities || [];
+        const isSelected = currentAmenities.includes(featureId);
+        let nextAmenities = isSelected
+            ? currentAmenities.filter((id) => id !== featureId)
+            : [...currentAmenities, featureId];
+
+        const updates = { amenities: nextAmenities };
+
+        // Synchronize with core schema boolean properties
+        if (featureId === 'attached_bathroom') {
+            updates.attachedBathroom = !isSelected;
+        } else if (featureId === 'shared_bathroom') {
+            updates.attachedBathroom = false;
+        } else if (featureId === 'food_included' || featureId === 'food') {
+            updates.foodIncluded = !isSelected;
+        } else if (featureId === 'furnished') {
+            updates.furnishing = !isSelected ? 'fully' : 'unknown';
+        }
+
+        patch(updates);
+    };
+
+    // Group additional features by group
+    const additionalGroups = useMemo(() => {
+        const groups = {};
+        additionalFeatures.forEach((feat) => {
+            const g = feat.group || 'More Features';
+            if (!groups[g]) groups[g] = [];
+            groups[g].push(feat);
+        });
+        return groups;
+    }, [additionalFeatures]);
+
+    // Secondary features currently active
+    const selectedSecondaryFeatures = useMemo(() => {
+        const quickIds = new Set(quickFeatures.map((f) => f.id));
+        return (form.amenities || [])
+            .filter((id) => !quickIds.has(id))
+            .map((id) => {
+                const found = additionalFeatures.find((f) => f.id === id);
+                return { id, label: found ? found.label : id.replace(/_/g, ' ') };
+            });
+    }, [form.amenities, quickFeatures, additionalFeatures]);
+
+    // Submission logic
+    const persistDraft = async ({ allowDuplicates = false } = {}) => {
+        const listingInput = buildListingCreateInput(form);
+
+        if (form.listingId) {
+            await inventoryService.updateListing(form.listingId, buildListingUpdatePatch(form));
+            if (form.propertyId && form.exactLatitude != null && form.exactLongitude != null) {
+                const propertyInput = buildPropertyCreateInput(form);
+                await inventoryService.updateProperty(form.propertyId, {
+                    locationPrecision: propertyInput.locationPrecision,
+                    latitude: propertyInput.latitude,
+                    longitude: propertyInput.longitude,
+                    localityCoordinate: propertyInput.localityCoordinate,
+                    address: propertyInput.address,
+                    description: propertyInput.description,
+                    bedrooms: propertyInput.bedrooms,
+                    bathrooms: propertyInput.bathrooms,
+                    furnishing: propertyInput.furnishing,
+                    amenities: propertyInput.amenities,
+                });
+            }
+            if (form.photos.some((photo) => photo.uri && !photo.mediaId && !String(photo.uri).startsWith('http'))) {
+                const attached = await inventoryService.attachLocalPhotos({
+                    propertyId: form.propertyId,
+                    listingId: form.listingId,
+                    photos: form.photos,
+                    coverUri: form.coverLocalId,
+                });
+                patch({ photos: attached, coverLocalId: attached[0]?.localId || form.coverLocalId });
+            }
+            return { listingId: form.listingId, propertyId: form.propertyId };
+        }
+
+        let propertyId = form.existingPropertyId || form.propertyId;
+        let createdNewProperty = false;
+        if (!propertyId) {
+            const created = await inventoryService.createProperty(buildPropertyCreateInput(form), { allowDuplicates });
+            propertyId = created.property.id;
+            createdNewProperty = true;
+            patch({
+                propertyId,
+                publicLatitude: created.property.latitude,
+                publicLongitude: created.property.longitude,
+            });
+        }
+
+        let createdListing;
+        try {
+            createdListing = await inventoryService.createListing({
+                ...listingInput,
+                propertyId,
+            });
+        } catch (listingError) {
+            if (createdNewProperty && propertyId) {
+                try {
+                    await inventoryService.updateProperty(propertyId, { status: 'INACTIVE' });
+                } catch (rollbackErr) {
+                    console.warn('[PostListingScreen] Property rollback failed:', rollbackErr);
+                }
+            }
+            throw listingError;
+        }
+
+        const listingId = createdListing.listing.id;
+        let photos = form.photos;
+        if (photos.length) {
+            photos = await inventoryService.attachLocalPhotos({
+                propertyId,
+                listingId,
+                photos,
+                coverUri: form.coverLocalId,
+            });
+        }
+        patch({
+            propertyId,
+            listingId,
+            photos,
+            status: 'DRAFT',
+            existingPropertyId: propertyId,
+        });
+        return { listingId, propertyId };
+    };
+
+    const handleSaveDraft = async ({ allowDuplicates = false } = {}) => {
+        if (!canSaveDraft(form)) {
+            const propIssues = validatePostProperty(form);
+            let msg = 'Add the space location and a title before saving a draft.';
+            if (propIssues.length) {
+                msg = (propIssues[0].field === 'latitude' || propIssues[0].field === 'longitude')
+                    ? 'Please drop a pin on the map or select an address for your space.'
+                    : propIssues[0].message;
+            }
+            setError(msg);
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+            showAlert('Draft Incomplete', msg);
+            return;
+        }
+        setBusy(true);
+        setError('');
+        try {
+            const result = await persistDraft({ allowDuplicates });
+            setDirty(false);
+            showAlert('Draft saved', 'Your listing draft has been saved to your inventory.', [
+                {
+                    text: 'View in Inventory',
+                    onPress: () => navigation.replace('InventoryDashboard'),
+                },
+                { text: 'Keep Editing', style: 'cancel' },
+            ]);
+            return result;
+        } catch (err) {
+            console.warn('[PostListingScreen.handleSaveDraft] error:', err);
+            if (err instanceof InventoryError && err.code === 'POTENTIAL_DUPLICATE') {
+                setDuplicates(Array.isArray(err.details?.candidates) ? err.details.candidates : []);
+                setError(inventoryErrorMessage('POTENTIAL_DUPLICATE'));
+                showAlert(
+                    'Potential Duplicate',
+                    inventoryErrorMessage('POTENTIAL_DUPLICATE'),
+                    [
+                        { text: 'Review Space', style: 'cancel' },
+                        {
+                            text: 'Save Anyway',
+                            onPress: () => handleSaveDraft({ allowDuplicates: true }),
+                        },
+                    ]
+                );
+                return;
+            }
+            const msg = inventoryErrorMessage(err?.code, err?.message);
+            setError(msg);
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+            showAlert('Could not save draft', msg);
+        } finally {
+            setBusy(false);
+        }
+    };
+
+    const handlePostSpace = async ({ allowDuplicates = false } = {}) => {
+        const issues = validatePostListing(form, { forPublish: true });
+        if (issues.length) {
+            const msg = issues[0]?.message || 'Please complete required fields before posting.';
+            setError(msg);
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+            showAlert('Missing Information', msg);
+            return;
+        }
+        const propIssues = validatePostProperty(form);
+        if (propIssues.length && !form.existingPropertyId && !form.propertyId) {
+            const first = propIssues[0];
+            const msg = (first?.field === 'latitude' || first?.field === 'longitude')
+                ? 'Please drop a pin on the map or select an address for your space.'
+                : (first?.message || 'Please specify the location of the space.');
+            setError(msg);
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+            showAlert('Location Required', msg);
+            return;
+        }
+
+        setBusy(true);
+        setError('');
+        try {
+            const saved = await persistDraft({ allowDuplicates });
+            if (!saved?.listingId) return;
+            const result = await inventoryService.requestPublish(saved.listingId);
+            patch({
+                listingId: saved.listingId,
+                reviewRequestedAt: true,
+                status: result?.status || 'DRAFT',
+            });
+            setDirty(false);
+            showAlert(
+                'Space Posted!',
+                'Your space has been submitted for review. It will be live once verified by our team.',
+                [
+                    {
+                        text: 'Go to Inventory',
+                        onPress: () => navigation.replace('InventoryDashboard'),
+                    },
+                ]
+            );
+        } catch (err) {
+            console.warn('[PostListingScreen.handlePostSpace] error:', err);
+            if (err instanceof InventoryError && err.code === 'POTENTIAL_DUPLICATE') {
+                setDuplicates(Array.isArray(err.details?.candidates) ? err.details.candidates : []);
+                setError(inventoryErrorMessage('POTENTIAL_DUPLICATE'));
+                showAlert(
+                    'Potential Duplicate',
+                    inventoryErrorMessage('POTENTIAL_DUPLICATE'),
+                    [
+                        { text: 'Review Space', style: 'cancel' },
+                        {
+                            text: 'Submit Anyway',
+                            onPress: () => handlePostSpace({ allowDuplicates: true }),
+                        },
+                    ]
+                );
+                return;
+            }
+            const msg = inventoryErrorMessage(err?.code, err?.message);
+            setError(msg);
+            scrollRef.current?.scrollTo({ y: 0, animated: true });
+            showAlert('Could not post space', msg);
+        } finally {
+            setBusy(false);
+        }
+    };
+
     const mapCoordinate = form.exactLatitude != null && form.exactLongitude != null
         ? { latitude: form.exactLatitude, longitude: form.exactLongitude }
         : null;
 
-    const reviewMapCoordinate = form.locationPrecision === 'exact'
-        ? (mapCoordinate || (
-            Number.isFinite(form.publicLatitude) && Number.isFinite(form.publicLongitude)
-                ? { latitude: form.publicLatitude, longitude: form.publicLongitude }
-                : null
-        ))
-        : null;
-
-    const renderStep = () => {
-        if (stepKey === 'actor') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>How are you listing?</Typography>
-                    {actorChoices.map((choice) => (
-                        <NotionCard
-                            key={choice.role}
-                            style={[
-                                styles.optionCard,
-                                form.listedByRole === choice.role && styles.optionCardActive,
-                                !choice.allowed && styles.optionCardLocked,
-                            ]}
-                            onPress={() => {
-                                if (choice.allowed) patch({ listedByRole: choice.role });
-                            }}
-                            accessibilityRole="radio"
-                            accessibilityState={{ selected: form.listedByRole === choice.role, disabled: !choice.allowed }}
-                            accessibilityLabel={choice.title}
-                        >
-                            <Typography variant="h3">{choice.title}</Typography>
-                            <Typography variant="body" style={styles.muted}>{choice.body}</Typography>
-                            {choice.lockedHint ? (
-                                <Typography variant="caption" style={styles.warn}>{choice.lockedHint}</Typography>
-                            ) : null}
-                        </NotionCard>
-                    ))}
-                </>
-            );
-        }
-        if (stepKey === 'source') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>Identify the property</Typography>
-                    <PostChoiceChips
-                        accessibilityLabel="New or existing property"
-                        value={form.existingPropertyId ? 'existing' : 'new'}
-                        onChange={(value) => {
-                            if (value === 'new') patch({ existingPropertyId: null });
-                        }}
-                        options={[
-                            { value: 'new', label: 'New property' },
-                            { value: 'existing', label: 'One I already added', disabled: myProperties.length === 0 },
-                        ]}
-                    />
-                    {myProperties.length === 0 ? (
-                        <Typography variant="body" style={styles.muted}>
-                            You don’t have a saved property yet. We’ll create one with this listing.
-                        </Typography>
-                    ) : myProperties.map((property) => (
-                        <NotionCard
-                            key={property.id}
-                            style={[
-                                styles.optionCard,
-                                form.existingPropertyId === property.id && styles.optionCardActive,
-                            ]}
-                            onPress={() => patch({
-                                existingPropertyId: property.id,
-                                propertyId: property.id,
-                                category: property.category,
-                                subtype: property.subtype,
-                                city: property.city,
-                                localityId: property.localityId,
-                                locationPrecision: property.locationPrecision,
-                                publicLatitude: property.latitude,
-                                publicLongitude: property.longitude,
-                            })}
-                            accessibilityLabel={`Use existing ${property.subtype || 'property'} in ${property.city || 'this city'}`}
-                        >
-                            <Typography variant="h3">
-                                {SUBTYPE_LABELS[property.subtype] || property.subtype} · {property.city}
-                            </Typography>
-                            <Typography variant="caption" style={styles.muted}>
-                                {property.locationPrecision} location · your property
-                            </Typography>
-                        </NotionCard>
-                    ))}
-                </>
-            );
-        }
-        if (stepKey === 'transaction') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>Buy or rent?</Typography>
-                    <PostChoiceChips
-                        accessibilityLabel="Listing type"
-                        value={form.transactionType}
-                        onChange={(transactionType) => patch({ transactionType })}
-                        options={[
-                            { value: 'buy', label: 'Buy', hint: 'Sale listing' },
-                            { value: 'rent', label: 'Rent', hint: 'Monthly rent' },
-                        ]}
-                    />
-                </>
-            );
-        }
-        if (stepKey === 'category') {
-            const availablePostingCategories = postingCategories(form.transactionType || 'rent');
-            const hasTaxonomyItems = availablePostingCategories && availablePostingCategories.length > 0;
-
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>What kind of listing?</Typography>
-                    <Typography variant="bodyMedium" style={{ color: COLORS.secondary, marginBottom: SPACING.m }}>
-                        Choose the accommodation or property type you are listing.
-                    </Typography>
-                    {hasTaxonomyItems ? (
-                        <PostChoiceChips
-                            accessibilityLabel="Listing type"
-                            value={form.listingTypeId || form.subtype}
-                            onChange={(selectedId) => {
-                                const found = availablePostingCategories.find((c) => c.typeId === selectedId || c.id === selectedId);
-                                if (found) {
-                                    const legacy = mapTaxonomyToLegacy(found);
-                                    patch({
-                                        listingTypeId: found.typeId,
-                                        taxonomyId: found.typeId,
-                                        category: legacy.category,
-                                        subtype: legacy.subtype,
-                                        bedrooms: found.typeId === 'stay_bed' ? 1 : form.bedrooms,
-                                        amenities: [],
-                                    });
-                                } else {
-                                    patch({ listingTypeId: selectedId, subtype: selectedId });
-                                }
-                            }}
-                            options={availablePostingCategories.map((item) => ({
-                                value: item.typeId,
-                                label: item.displayName,
-                                hint: item.description,
-                            }))}
-                        />
-                    ) : (
-                        <>
-                            <PostChoiceChips
-                                accessibilityLabel="Property category"
-                                value={form.category}
-                                onChange={(category) => patch({ category, subtype: null, amenities: [] })}
-                                options={[
-                                    { value: 'residential', label: 'Residential' },
-                                    { value: 'commercial', label: 'Commercial' },
-                                    { value: 'land', label: 'Land' },
-                                ]}
-                            />
-                            {form.category ? (
-                                <PostChoiceChips
-                                    accessibilityLabel="Property subtype"
-                                    value={form.subtype}
-                                    onChange={(subtype) => patch({ subtype })}
-                                    options={subtypeOptions(form.category)}
-                                />
-                            ) : null}
-                        </>
-                    )}
-                </>
-            );
-        }
-        if (stepKey === 'property') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>Describe the property</Typography>
-                    {vis.bedrooms ? (
-                        <PostChoiceChips
-                            accessibilityLabel="BHK"
-                            value={form.bedrooms}
-                            onChange={(value) => patch({ bedrooms: bhkValueFromChoice(value) })}
-                            options={BHK_OPTIONS}
-                        />
-                    ) : null}
-                    {vis.bathrooms ? (
-                        <NotionInput
-                            label="Bathrooms"
-                            value={form.bathrooms == null ? '' : String(form.bathrooms)}
-                            onChangeText={(text) => patch({ bathrooms: numericField(text) })}
-                            keyboardType="number-pad"
-                            placeholder="e.g. 2"
-                            accessibilityLabel="Bathrooms"
-                        />
-                    ) : null}
-                    {vis.carpetArea ? (
-                        <NotionInput
-                            label="Carpet area (sq ft)"
-                            value={form.carpetAreaSqft == null ? '' : String(form.carpetAreaSqft)}
-                            onChangeText={(text) => patch({ carpetAreaSqft: numericField(text) })}
-                            keyboardType="decimal-pad"
-                            placeholder="Square feet"
-                            accessibilityLabel="Carpet area in square feet"
-                        />
-                    ) : null}
-                    {vis.builtUpArea ? (
-                        <NotionInput
-                            label="Built-up area (sq ft)"
-                            value={form.builtUpAreaSqft == null ? '' : String(form.builtUpAreaSqft)}
-                            onChangeText={(text) => patch({ builtUpAreaSqft: numericField(text) })}
-                            keyboardType="decimal-pad"
-                            placeholder="Square feet"
-                            accessibilityLabel="Built-up area in square feet"
-                        />
-                    ) : null}
-                    {vis.plotArea ? (
-                        <NotionInput
-                            label="Plot area (sq ft)"
-                            value={form.plotAreaSqft == null ? '' : String(form.plotAreaSqft)}
-                            onChangeText={(text) => patch({ plotAreaSqft: numericField(text) })}
-                            keyboardType="decimal-pad"
-                            placeholder="Square feet"
-                            accessibilityLabel="Plot area in square feet"
-                        />
-                    ) : null}
-                    {vis.floor ? (
-                        <NotionInput
-                            label="Floor"
-                            value={form.floor == null ? '' : String(form.floor)}
-                            onChangeText={(text) => patch({ floor: numericField(text) })}
-                            keyboardType="number-pad"
-                            accessibilityLabel="Floor number"
-                        />
-                    ) : null}
-                    {vis.totalFloors ? (
-                        <NotionInput
-                            label="Total floors"
-                            value={form.totalFloors == null ? '' : String(form.totalFloors)}
-                            onChangeText={(text) => patch({ totalFloors: numericField(text) })}
-                            keyboardType="number-pad"
-                            accessibilityLabel="Total floors"
-                        />
-                    ) : null}
-                    {vis.furnishing ? (
-                        <PostChoiceChips
-                            accessibilityLabel="Furnishing"
-                            value={form.furnishing}
-                            onChange={(furnishing) => patch({ furnishing })}
-                            options={[
-                                { value: 'unfurnished', label: 'Unfurnished' },
-                                { value: 'semi', label: 'Semi' },
-                                { value: 'fully', label: 'Fully' },
-                            ]}
-                        />
-                    ) : null}
-                    {vis.parking ? (
-                        <NotionInput
-                            label="Parking (count)"
-                            value={form.parking == null ? '' : String(form.parking)}
-                            onChangeText={(text) => patch({ parking: numericField(text) })}
-                            keyboardType="number-pad"
-                            accessibilityLabel="Parking count"
-                        />
-                    ) : null}
-                    {vis.constructionYear ? (
-                        <NotionInput
-                            label="Year built"
-                            value={form.constructionYear == null ? '' : String(form.constructionYear)}
-                            onChangeText={(text) => patch({ constructionYear: numericField(text) })}
-                            keyboardType="number-pad"
-                            placeholder="e.g. 2018"
-                            accessibilityLabel="Construction year"
-                        />
-                    ) : null}
-                    {vis.projectName ? (
-                        <NotionInput
-                            label="Building / project name (optional)"
-                            value={form.projectName}
-                            onChangeText={(projectName) => patch({ projectName })}
-                            accessibilityLabel="Project name"
-                        />
-                    ) : null}
-                    {vis.amenities ? (
-                        <>
-                            <Typography variant="caption" style={styles.fieldLabel}>Amenities</Typography>
-                            <PostChoiceChips
-                                accessibilityLabel="Amenities"
-                                value={null}
-                                onChange={(amenity) => {
-                                    const selected = form.amenities.includes(amenity)
-                                        ? form.amenities.filter((item) => item !== amenity)
-                                        : [...form.amenities, amenity];
-                                    patch({ amenities: selected });
-                                }}
-                                options={amenityOptions(form.category).map((item) => ({
-                                    value: item,
-                                    label: form.amenities.includes(item) ? `✓ ${item}` : item,
-                                }))}
-                            />
-                        </>
-                    ) : null}
-                    <NotionInput
-                        label="About the property (optional)"
-                        value={form.propertyDescription}
-                        onChangeText={(propertyDescription) => patch({ propertyDescription })}
-                        multiline
-                        placeholder="Physical details: facing, condition, building"
-                        accessibilityLabel="Property description"
-                    />
-                </>
-            );
-        }
-        if (stepKey === 'location') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>Where is it?</Typography>
-                    <GooglePlacesInput
-                        label="Search address"
-                        placeholder="Search a place in India"
-                        initialValue={form.addressLine1}
-                        onSelect={(selection) => {
-                            const parsed = parsePlace(selection);
-                            const localityName = parsed.localityName || form.localityName;
-                            patch({
-                                addressLine1: parsed.addressLine1,
-                                city: parsed.city || form.city,
-                                pincode: parsed.pincode || form.pincode,
-                                localityName,
-                                localityId: slugLocalityId(parsed.city || form.city, localityName),
-                                exactLatitude: parsed.latitude,
-                                exactLongitude: parsed.longitude,
-                            });
-                        }}
-                    />
-                    <PostPinMap
-                        coordinate={mapCoordinate}
-                        onPick={(coordinate) => patch({
-                            exactLatitude: coordinate.latitude,
-                            exactLongitude: coordinate.longitude,
-                        })}
-                    />
-                    <Typography variant="caption" style={styles.muted}>
-                        Search or tap the map. Croww stores the exact pin privately and derives the public map pin from your visibility setting.
-                    </Typography>
-                    <NotionInput
-                        label="City"
-                        value={form.city}
-                        onChangeText={(city) => patch({
-                            city,
-                            localityId: slugLocalityId(city, form.localityName || form.localityId),
-                        })}
-                        accessibilityLabel="City"
-                    />
-                    <NotionInput
-                        label="Locality / neighborhood"
-                        value={form.localityName}
-                        onChangeText={(localityName) => patch({
-                            localityName,
-                            localityId: slugLocalityId(form.city, localityName),
-                        })}
-                        accessibilityLabel="Locality"
-                    />
-                    {localities.length ? (
-                        <PostChoiceChips
-                            accessibilityLabel="Known localities"
-                            value={form.localityId}
-                            onChange={(localityId) => {
-                                const hit = localities.find((row) => row.id === localityId);
-                                patch({
-                                    localityId,
-                                    localityName: hit?.name || form.localityName,
-                                    localityCoordinate: hit
-                                        ? { latitude: hit.latitude, longitude: hit.longitude }
-                                        : null,
-                                    city: hit?.city || form.city,
-                                });
-                            }}
-                            options={localities.slice(0, 12).map((row) => ({
-                                value: row.id,
-                                label: row.name,
-                            }))}
-                        />
-                    ) : (
-                        <Typography variant="caption" style={styles.muted}>
-                            No Croww neighborhood catalog for this city yet. Your neighborhood name is still saved on the listing.
-                        </Typography>
-                    )}
-                    <NotionInput
-                        label="Street address"
-                        value={form.addressLine1}
-                        onChangeText={(addressLine1) => patch({ addressLine1 })}
-                        accessibilityLabel="Street address"
-                    />
-                    <Typography variant="caption" style={styles.fieldLabel}>Location visibility</Typography>
-                    {Object.keys(LOCATION_VISIBILITY_COPY).map((key) => (
-                        <NotionCard
-                            key={key}
-                            style={[
-                                styles.optionCard,
-                                form.locationPrecision === key && styles.optionCardActive,
-                            ]}
-                            onPress={() => patch({ locationPrecision: key })}
-                            accessibilityRole="radio"
-                            accessibilityState={{ selected: form.locationPrecision === key }}
-                            accessibilityLabel={LOCATION_VISIBILITY_COPY[key].label}
-                        >
-                            <Typography variant="h3">{LOCATION_VISIBILITY_COPY[key].label}</Typography>
-                            <Typography variant="body" style={styles.muted}>{LOCATION_VISIBILITY_COPY[key].hint}</Typography>
-                        </NotionCard>
-                    ))}
-                </>
-            );
-        }
-        if (stepKey === 'listing') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>The offering</Typography>
-                    <NotionInput
-                        label="Listing title"
-                        value={form.title}
-                        onChangeText={(title) => patch({ title })}
-                        placeholder={form.transactionType === 'rent' ? '3 BHK for rent in Adyar' : '3 BHK for sale in Adyar'}
-                        accessibilityLabel="Listing title"
-                    />
-                    <NotionInput
-                        label="Listing description (optional)"
-                        value={form.listingDescription}
-                        onChangeText={(listingDescription) => patch({ listingDescription })}
-                        multiline
-                        placeholder="Price context, availability, who it’s for. Property facts are already captured."
-                        accessibilityLabel="Listing description"
-                    />
-                    {form.transactionType === 'buy' ? (
-                        <NotionInput
-                            label="Asking price (₹)"
-                            value={form.askingPriceText}
-                            onChangeText={(askingPriceText) => patch({ askingPriceText })}
-                            keyboardType="decimal-pad"
-                            placeholder="e.g. 1.35 Cr or 13500000"
-                            accessibilityLabel="Asking price"
-                        />
-                    ) : (
-                        <>
-                            <NotionInput
-                                label="Monthly rent (₹)"
-                                value={form.rentMonthlyText}
-                                onChangeText={(rentMonthlyText) => patch({ rentMonthlyText })}
-                                keyboardType="decimal-pad"
-                                placeholder="e.g. 42000"
-                                accessibilityLabel="Monthly rent"
-                            />
-                            <NotionInput
-                                label="Deposit (optional)"
-                                value={form.depositText}
-                                onChangeText={(depositText) => patch({ depositText })}
-                                keyboardType="decimal-pad"
-                                accessibilityLabel="Security deposit"
-                            />
-                            <NotionInput
-                                label="Maintenance / month (optional)"
-                                value={form.maintenanceText}
-                                onChangeText={(maintenanceText) => patch({ maintenanceText })}
-                                keyboardType="decimal-pad"
-                                accessibilityLabel="Monthly maintenance"
-                            />
-                        </>
-                    )}
-                    <PostChoiceChips
-                        accessibilityLabel="Negotiable"
-                        value={form.negotiable ? 'yes' : 'no'}
-                        onChange={(value) => patch({ negotiable: value === 'yes' })}
-                        options={[
-                            { value: 'yes', label: 'Negotiable' },
-                            { value: 'no', label: 'Fixed' },
-                        ]}
-                    />
-                </>
-            );
-        }
-        if (stepKey === 'media') {
-            return (
-                <>
-                    <Typography variant="h2" style={styles.heading}>Photos</Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        Photos upload when you save the draft. Documents and ID proofs are not allowed here.
-                        A 3D tour is optional and can be added later from inventory — it is not required to list.
-                    </Typography>
-                    <View style={styles.photoGrid}>
-                        {form.photos.map((photo) => {
-                            const isCover = form.coverLocalId === photo.localId;
-                            return (
-                                <TouchableOpacity
-                                    key={photo.localId}
-                                    style={[styles.photoWrap, isCover && styles.photoCover]}
-                                    onPress={() => patch({ coverLocalId: photo.localId })}
-                                    accessibilityLabel={isCover ? 'Cover photo' : 'Set as cover photo'}
-                                >
-                                    <Image source={{ uri: photo.uri }} style={styles.photo} />
-                                    {isCover ? (
-                                        <Typography variant="caption" style={styles.coverBadge}>Cover</Typography>
-                                    ) : null}
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </View>
-                    <AntigravityButton
-                        title="Add photos"
-                        icon="images-outline"
-                        variant="secondary"
-                        onPress={pickPhotos}
-                        accessibilityLabel="Add photos"
-                    />
-                </>
-            );
-        }
-        const price = form.transactionType === 'rent'
-            ? formatInrCompact(buildListingCreateInput(form).rentMonthly)
-            : formatInrCompact(buildListingCreateInput(form).askingPrice);
-        return (
-            <>
-                <Typography variant="h2" style={styles.heading}>Review before submitting</Typography>
-                <Typography variant="caption" style={styles.status}>
-                    {listerStatusCopy(form)}
-                </Typography>
-                <NotionCard style={styles.reviewCard}>
-                    <Typography variant="h3">Property</Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        {SUBTYPE_LABELS[form.subtype] || form.subtype}
-                        {form.bedrooms ? ` · ${form.bedrooms >= 5 ? '5+' : form.bedrooms} BHK` : ''}
-                        {form.builtUpAreaSqft ? ` · ${form.builtUpAreaSqft} sq ft` : ''}
-                        {form.plotAreaSqft ? ` · ${form.plotAreaSqft} sq ft plot` : ''}
-                    </Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        {form.localityName || form.localityId}, {form.city}
-                    </Typography>
-                </NotionCard>
-                <NotionCard style={styles.reviewCard}>
-                    <Typography variant="h3">Listing</Typography>
-                    <Typography variant="body">{form.title}</Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        {form.transactionType === 'rent' ? 'Rent' : 'Buy'}
-                        {price ? ` · ${price}${form.transactionType === 'rent' ? ' / month' : ''}` : ''}
-                        {form.negotiable ? ' · Negotiable' : ''}
-                    </Typography>
-                </NotionCard>
-                <NotionCard style={styles.reviewCard}>
-                    <Typography variant="h3">Location visibility</Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        {PRECISION_COPY[form.locationPrecision]?.label}: {PRECISION_COPY[form.locationPrecision]?.hint}
-                    </Typography>
-                    {reviewMapCoordinate ? (
-                        <View style={{ marginTop: SPACING.s }}>
-                            <PropertyMiniMap
-                                coordinate={reviewMapCoordinate}
-                                accessibilityLabel="Public exact location map"
-                            />
-                        </View>
-                    ) : (
-                        <Typography variant="caption" style={styles.muted}>
-                            The public map pin is derived when you save. Exact coordinates are not shown here.
-                        </Typography>
-                    )}
-                </NotionCard>
-                <NotionCard style={styles.reviewCard}>
-                    <Typography variant="h3">Photos</Typography>
-                    <Typography variant="body" style={styles.muted}>
-                        {form.photos.length ? `${form.photos.length} photo${form.photos.length === 1 ? '' : 's'}` : 'No photos yet'}
-                    </Typography>
-                </NotionCard>
-                <Typography variant="body" style={styles.muted}>
-                    Requesting review does not publish the listing. Croww will review it before it appears on Explore.
-                </Typography>
-                {duplicates.length ? (
-                    <NotionCard style={styles.reviewCard}>
-                        <Typography variant="h3">Possible existing property</Typography>
-                        <Typography variant="body" style={styles.muted}>
-                            We found a similar {form.subtype || 'property'} in this neighborhood. This is not a merge. Continue only if this is a different property.
-                        </Typography>
-                        <AntigravityButton
-                            title="Save anyway"
-                            variant="secondary"
-                            onPress={() => onSaveDraft({ allowDuplicates: true })}
-                            accessibilityLabel="Save draft despite possible duplicate"
-                        />
-                    </NotionCard>
-                ) : null}
-            </>
-        );
-    };
+    const categoryTitle = SUBTYPE_LABELS[form.subtype] || 'Space';
 
     if (loading) {
         return (
-            <ScreenWrapper edges={['top', 'bottom']}>
-                <View style={styles.centered}>
-                    <ActivityIndicator color={COLORS.accent} />
+            <ScreenWrapper edges={['top']}>
+                <View style={styles.loadingWrap}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                    <Typography variant="bodyMedium" style={{ marginTop: SPACING.m, color: COLORS.secondary }}>
+                        Loading space details...
+                    </Typography>
                 </View>
             </ScreenWrapper>
         );
     }
 
     return (
-        <ScreenWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper edges={['top']}>
+            {/* 1. Header with category badge & Save Draft */}
+            <View style={styles.topBar}>
+                <TouchableOpacity
+                    style={styles.backBtn}
+                    onPress={() => navigation.goBack()}
+                    accessibilityRole="button"
+                    accessibilityLabel="Go back"
+                    hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                >
+                    <Ionicons name="arrow-back" size={22} color={COLORS.primary} />
+                </TouchableOpacity>
+
+                <View style={styles.categoryBadge}>
+                    <Ionicons name={getCategoryIcon(form.subtype)} size={15} color={COLORS.primary} />
+                    <Text style={styles.categoryBadgeText}>{categoryTitle}</Text>
+                </View>
+
+                <TouchableOpacity
+                    style={styles.saveDraftBtn}
+                    onPress={handleSaveDraft}
+                    disabled={busy}
+                    accessibilityRole="button"
+                    accessibilityLabel="Save draft"
+                >
+                    <Text style={styles.saveDraftText}>Save Draft</Text>
+                </TouchableOpacity>
+            </View>
+
             <KeyboardAvoidingView
-                style={styles.flex}
+                style={{ flex: 1 }}
                 behavior={Platform.OS === 'ios' ? 'padding' : undefined}
             >
-                <View style={styles.header}>
-                    <TouchableOpacity onPress={goBack} accessibilityRole="button" accessibilityLabel="Back">
-                        <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-                    <Typography variant="h3">{STEP_TITLES[stepKey]}</Typography>
-                    <View style={{ width: 24 }} />
-                </View>
-                <PostProgress
-                    stepIndex={stepIndex}
-                    stepCount={steps.length}
-                    label={`${STEP_TITLES[stepKey]} · ${stepIndex + 1} of ${steps.length}`}
-                />
                 <ScrollView
-                    contentContainerStyle={styles.body}
+                    ref={scrollRef}
+                    contentContainerStyle={[
+                        styles.scrollContent,
+                        { paddingBottom: Math.max(insets.bottom, 16) + 110 },
+                    ]}
+                    showsVerticalScrollIndicator={false}
                     keyboardShouldPersistTaps="handled"
                 >
-                    {renderStep()}
-                    {error ? <Typography variant="body" style={styles.error}>{error}</Typography> : null}
-                </ScrollView>
-                <View style={styles.footer}>
-                    {stepKey === 'review' ? (
-                        <>
-                            <AntigravityButton
-                                title="Save draft"
-                                variant="secondary"
-                                loading={busy}
-                                onPress={() => onSaveDraft()}
-                                accessibilityLabel="Save draft"
-                            />
-                            <AntigravityButton
-                                title="Request review"
-                                loading={busy}
-                                onPress={onRequestReview}
-                                accessibilityLabel="Request publication review"
-                            />
-                        </>
-                    ) : (
-                        <AntigravityButton
-                            title="Next"
-                            onPress={goNext}
-                            accessibilityLabel="Next step"
+                    {/* Error Banner */}
+                    {error ? (
+                        <View style={styles.errorBanner}>
+                            <Ionicons name="alert-circle" size={18} color={COLORS.error} />
+                            <Text style={styles.errorText}>{error}</Text>
+                        </View>
+                    ) : null}
+
+                    {duplicates.length > 0 ? (
+                        <View style={[styles.errorBanner, { backgroundColor: '#FEF3C7', borderColor: '#F59E0B', flexDirection: 'column', alignItems: 'flex-start' }]}>
+                            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <Ionicons name="information-circle" size={18} color="#B45309" />
+                                <Text style={[styles.errorText, { color: '#92400E', flex: 1 }]}>
+                                    {duplicates.length} potential matching listing(s) found in this locality.
+                                </Text>
+                            </View>
+                            <TouchableOpacity
+                                style={{ marginTop: 8, paddingVertical: 6, paddingHorizontal: 12, backgroundColor: '#D97706', borderRadius: 6 }}
+                                onPress={() => handlePostSpace({ allowDuplicates: true })}
+                                activeOpacity={0.8}
+                            >
+                                <Text style={{ color: '#FFFFFF', fontWeight: '600', fontSize: 13 }}>Continue & Submit Space</Text>
+                            </TouchableOpacity>
+                        </View>
+                    ) : null}
+
+                    {/* SECTION 1: PHOTOS FIRST */}
+                    <View style={styles.section}>
+                        <View style={styles.sectionHeaderRow}>
+                            <View>
+                                <Typography variant="h2" style={styles.sectionTitle}>
+                                    Show people the place
+                                </Typography>
+                                <Typography variant="caption" style={styles.sectionSubtitle}>
+                                    High quality photos get 5x more responses. ({form.photos.length}/{MAX_POST_PHOTOS})
+                                </Typography>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.addPhotosPill}
+                                activeOpacity={0.8}
+                                onPress={showPhotoOptions}
+                                accessibilityRole="button"
+                                accessibilityLabel="Add photos"
+                            >
+                                <Ionicons name="camera-outline" size={16} color="#FFFFFF" />
+                                <Text style={styles.addPhotosPillText}>+ Add Photos</Text>
+                            </TouchableOpacity>
+                        </View>
+
+                        {form.photos.length === 0 ? (
+                            <TouchableOpacity
+                                style={styles.photoUploadPlaceholder}
+                                activeOpacity={0.78}
+                                onPress={showPhotoOptions}
+                                accessibilityRole="button"
+                                accessibilityLabel="Add photos from camera or gallery"
+                            >
+                                <View style={styles.photoUploadIconCircle}>
+                                    <Ionicons name="images-outline" size={28} color={COLORS.primary} />
+                                </View>
+                                <Text style={styles.photoUploadTitle}>Tap to add photos</Text>
+                                <Text style={styles.photoUploadHint}>Camera or photo library · Up to 12 images</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <ScrollView
+                                horizontal
+                                showsHorizontalScrollIndicator={false}
+                                contentContainerStyle={styles.photosHorizontalList}
+                            >
+                                {form.photos.map((item, index) => {
+                                    const isCover = (form.coverLocalId || form.photos[0]?.localId) === item.localId;
+                                    return (
+                                        <TouchableOpacity
+                                            key={item.localId || index}
+                                            style={[styles.photoCard, isCover && styles.photoCardCover]}
+                                            activeOpacity={0.85}
+                                            onPress={() => setAsCoverPhoto(item.localId)}
+                                        >
+                                            <Image source={{ uri: item.uri }} style={styles.photoThumb} />
+                                            {isCover && (
+                                                <View style={styles.coverBadge}>
+                                                    <Text style={styles.coverBadgeText}>Cover</Text>
+                                                </View>
+                                            )}
+                                            <TouchableOpacity
+                                                style={styles.photoDeleteBtn}
+                                                onPress={() => removePhoto(item.localId)}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                accessibilityRole="button"
+                                                accessibilityLabel="Remove photo"
+                                            >
+                                                <Ionicons name="close" size={14} color="#FFFFFF" />
+                                            </TouchableOpacity>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+
+                                {form.photos.length < MAX_POST_PHOTOS && (
+                                    <TouchableOpacity
+                                        style={styles.photoAddMoreCard}
+                                        onPress={showPhotoOptions}
+                                        activeOpacity={0.78}
+                                    >
+                                        <Ionicons name="add" size={26} color={COLORS.secondary} />
+                                        <Text style={styles.photoAddMoreText}>Add more</Text>
+                                    </TouchableOpacity>
+                                )}
+                            </ScrollView>
+                        )}
+                    </View>
+
+                    {/* SECTION 2: TITLE & DESCRIPTION */}
+                    <View style={styles.section}>
+                        <View style={styles.labelRowWithAction}>
+                            <Typography variant="h3" style={styles.inputLabel}>
+                                Title
+                            </Typography>
+                            <TouchableOpacity
+                                style={styles.suggestBtn}
+                                onPress={applySuggestedTitle}
+                                activeOpacity={0.7}
+                            >
+                                <Ionicons name="bulb-outline" size={13} color={COLORS.primary} />
+                                <Text style={styles.suggestBtnText}>Suggest title</Text>
+                            </TouchableOpacity>
+                        </View>
+                        <NotionInput
+                            value={form.title}
+                            onChangeText={(title) => patch({ title })}
+                            placeholder={`e.g. Bright ${categoryTitle} in ${form.localityName || 'Adyar'}`}
+                            accessibilityLabel="Listing title"
                         />
-                    )}
-                </View>
+
+                        <Typography variant="h3" style={[styles.inputLabel, { marginTop: SPACING.m }]}>
+                            Tell people about the place
+                        </Typography>
+                        <NotionInput
+                            value={form.listingDescription}
+                            onChangeText={(listingDescription) => patch({ listingDescription })}
+                            multiline
+                            numberOfLines={4}
+                            placeholder="Describe flatmates, vibe, amenities, house rules, or commute highlights..."
+                            accessibilityLabel="Listing description"
+                        />
+                    </View>
+
+                    {/* SECTION 3: RENT & DEPOSIT */}
+                    <View style={styles.section}>
+                        <Typography variant="h2" style={styles.sectionTitle}>
+                            Rent & Costs
+                        </Typography>
+
+                        <View style={styles.twoColumnRow}>
+                            <View style={styles.columnHalf}>
+                                <Typography variant="h3" style={styles.inputLabel}>
+                                    ₹ Monthly rent *
+                                </Typography>
+                                <NotionInput
+                                    value={form.rentMonthlyText}
+                                    onChangeText={(rentMonthlyText) => patch({ rentMonthlyText })}
+                                    keyboardType="numeric"
+                                    placeholder="e.g. 12000"
+                                    accessibilityLabel="Monthly rent in rupees"
+                                />
+                            </View>
+
+                            <View style={styles.columnHalf}>
+                                <View style={styles.labelRowWithAction}>
+                                    <Typography variant="h3" style={styles.inputLabel}>
+                                        ₹ Deposit *
+                                    </Typography>
+                                    <TouchableOpacity
+                                        style={styles.zeroDepositChip}
+                                        onPress={() => patch({ depositText: '0' })}
+                                        activeOpacity={0.7}
+                                    >
+                                        <Text style={styles.zeroDepositText}>Zero dep</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <NotionInput
+                                    value={form.depositText}
+                                    onChangeText={(depositText) => patch({ depositText })}
+                                    keyboardType="numeric"
+                                    placeholder="e.g. 20000"
+                                    accessibilityLabel="Security deposit in rupees"
+                                />
+                            </View>
+                        </View>
+
+                        <View style={styles.twoColumnRow}>
+                            <View style={styles.columnHalf}>
+                                <Typography variant="h3" style={styles.inputLabel}>
+                                    ₹ Maintenance (optional)
+                                </Typography>
+                                <NotionInput
+                                    value={form.maintenanceText}
+                                    onChangeText={(maintenanceText) => patch({ maintenanceText })}
+                                    keyboardType="numeric"
+                                    placeholder="e.g. 1500"
+                                    accessibilityLabel="Maintenance in rupees"
+                                />
+                            </View>
+
+                            <View style={[styles.columnHalf, { justifyContent: 'center', paddingTop: 18 }]}>
+                                <TouchableOpacity
+                                    style={[styles.togglePill, form.negotiable && styles.togglePillActive]}
+                                    onPress={() => patch({ negotiable: !form.negotiable })}
+                                    activeOpacity={0.8}
+                                >
+                                    <Ionicons
+                                        name={form.negotiable ? 'checkbox' : 'square-outline'}
+                                        size={18}
+                                        color={form.negotiable ? COLORS.primary : COLORS.secondary}
+                                    />
+                                    <Text style={[styles.togglePillText, form.negotiable && styles.togglePillTextActive]}>
+                                        Rent is negotiable
+                                    </Text>
+                                </TouchableOpacity>
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* SECTION 4: AVAILABILITY & OCCUPANCY */}
+                    <View style={styles.section}>
+                        <Typography variant="h2" style={styles.sectionTitle}>
+                            Availability & Occupancy
+                        </Typography>
+
+                        <Typography variant="caption" style={styles.fieldSubLabel}>
+                            Available from
+                        </Typography>
+                        <View style={styles.chipsRow}>
+                            {[
+                                { id: 'immediate', label: 'Immediately / Today' },
+                                { id: 'next_month', label: '1st of next month' },
+                                { id: '15_days', label: 'Within 15 days' },
+                            ].map((opt) => {
+                                const selected = (form.availableFrom || 'immediate') === opt.id;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.id}
+                                        style={[styles.chipPill, selected && styles.chipPillActive]}
+                                        onPress={() => patch({ availableFrom: opt.id })}
+                                        activeOpacity={0.78}
+                                    >
+                                        <Text style={[styles.chipPillText, selected && styles.chipPillTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        <Typography variant="caption" style={[styles.fieldSubLabel, { marginTop: SPACING.m }]}>
+                            Occupancy / Room format
+                        </Typography>
+                        <View style={styles.chipsRow}>
+                            {occupancyOptions.map((opt) => {
+                                const selected = (form.occupancy || 'single') === opt.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.value}
+                                        style={[styles.chipPill, selected && styles.chipPillActive]}
+                                        onPress={() => patch({ occupancy: opt.value })}
+                                        activeOpacity={0.78}
+                                    >
+                                        <Text style={[styles.chipPillText, selected && styles.chipPillTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* Gender Preference */}
+                        <Typography variant="caption" style={[styles.fieldSubLabel, { marginTop: SPACING.m }]}>
+                            Preferred tenant / flatmate
+                        </Typography>
+                        <View style={styles.chipsRow}>
+                            {[
+                                { value: 'any', label: 'Any / All welcome' },
+                                { value: 'female', label: 'Female only' },
+                                { value: 'male', label: 'Male only' },
+                            ].map((opt) => {
+                                const selected = (form.genderPreference || 'any') === opt.value;
+                                return (
+                                    <TouchableOpacity
+                                        key={opt.value}
+                                        style={[styles.chipPill, selected && styles.chipPillActive]}
+                                        onPress={() => patch({ genderPreference: opt.value })}
+                                        activeOpacity={0.78}
+                                    >
+                                        <Text style={[styles.chipPillText, selected && styles.chipPillTextActive]}>
+                                            {opt.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+                    </View>
+
+                    {/* SECTION 5: LOCATION */}
+                    <View style={styles.section}>
+                        <Typography variant="h2" style={styles.sectionTitle}>
+                            Location
+                        </Typography>
+                        <Typography variant="caption" style={styles.sectionSubtitle}>
+                            Your exact pin stays private. Croww displays an approximate locality to seekers.
+                        </Typography>
+
+                        <GooglePlacesInput
+                            label="Search address or area"
+                            placeholder="e.g. Koramangala 4th Block, Indiranagar, Adyar..."
+                            initialValue={form.addressLine1}
+                            onSelect={(selection) => {
+                                const parsed = parsePlace(selection);
+                                const localityName = parsed.localityName || form.localityName;
+                                patch({
+                                    addressLine1: parsed.addressLine1,
+                                    city: parsed.city || form.city,
+                                    pincode: parsed.pincode || form.pincode,
+                                    localityName,
+                                    localityId: slugLocalityId(parsed.city || form.city, localityName),
+                                    exactLatitude: parsed.latitude,
+                                    exactLongitude: parsed.longitude,
+                                });
+                            }}
+                        />
+
+                        {/* Interactive Pin Adjuster */}
+                        <View style={styles.mapWrap}>
+                            <PostPinMap
+                                coordinate={mapCoordinate}
+                                onPick={(coordinate) => patch({
+                                    exactLatitude: coordinate.latitude,
+                                    exactLongitude: coordinate.longitude,
+                                })}
+                            />
+                        </View>
+
+                        <View style={styles.twoColumnRow}>
+                            <View style={styles.columnHalf}>
+                                <NotionInput
+                                    label="Locality / Area"
+                                    value={form.localityName}
+                                    onChangeText={(localityName) => patch({
+                                        localityName,
+                                        localityId: slugLocalityId(form.city, localityName),
+                                    })}
+                                    placeholder="e.g. HSR Layout"
+                                    accessibilityLabel="Locality name"
+                                />
+                            </View>
+                            <View style={styles.columnHalf}>
+                                <NotionInput
+                                    label="City"
+                                    value={form.city}
+                                    onChangeText={(city) => patch({ city })}
+                                    placeholder="e.g. Bangalore"
+                                    accessibilityLabel="City"
+                                />
+                            </View>
+                        </View>
+                    </View>
+
+                    {/* SECTION 6: CATEGORY-SPECIFIC QUICK FEATURES */}
+                    <View style={styles.section}>
+                        <Typography variant="h2" style={styles.sectionTitle}>
+                            Key Features
+                        </Typography>
+                        <Typography variant="caption" style={styles.sectionSubtitle}>
+                            Tap to highlight what is included in this {categoryTitle.toLowerCase()}.
+                        </Typography>
+
+                        <View style={styles.featuresGrid}>
+                            {quickFeatures.map((feat) => {
+                                const isSelected = (form.amenities || []).includes(feat.id)
+                                    || (feat.id === 'attached_bathroom' && form.attachedBathroom)
+                                    || (feat.id === 'food_included' && form.foodIncluded)
+                                    || (feat.id === 'furnished' && form.furnishing === 'fully');
+
+                                return (
+                                    <TouchableOpacity
+                                        key={feat.id}
+                                        style={[styles.featureCard, isSelected && styles.featureCardSelected]}
+                                        onPress={() => toggleFeature(feat.id)}
+                                        activeOpacity={0.78}
+                                        accessibilityRole="checkbox"
+                                        accessibilityState={{ checked: isSelected }}
+                                        accessibilityLabel={feat.label}
+                                    >
+                                        <Ionicons
+                                            name={isSelected ? 'checkmark-circle' : 'add-circle-outline'}
+                                            size={17}
+                                            color={isSelected ? COLORS.primary : COLORS.secondary}
+                                            style={{ marginRight: 6 }}
+                                        />
+                                        <Text
+                                            style={[styles.featureCardText, isSelected && styles.featureCardTextSelected]}
+                                            numberOfLines={1}
+                                        >
+                                            {feat.label}
+                                        </Text>
+                                    </TouchableOpacity>
+                                );
+                            })}
+                        </View>
+
+                        {/* Selected Secondary Features as Chips */}
+                        {selectedSecondaryFeatures.length > 0 && (
+                            <View style={styles.secondarySelectedWrap}>
+                                <Typography variant="caption" style={styles.secondarySelectedTitle}>
+                                    Additional added:
+                                </Typography>
+                                <View style={styles.chipsRow}>
+                                    {selectedSecondaryFeatures.map((feat) => (
+                                        <View key={feat.id} style={styles.selectedSecondaryChip}>
+                                            <Text style={styles.selectedSecondaryChipText}>{feat.label}</Text>
+                                            <TouchableOpacity
+                                                onPress={() => toggleFeature(feat.id)}
+                                                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                                                style={{ marginLeft: 4 }}
+                                            >
+                                                <Ionicons name="close-circle" size={14} color={COLORS.secondary} />
+                                            </TouchableOpacity>
+                                        </View>
+                                    ))}
+                                </View>
+                            </View>
+                        )}
+
+                        {/* + Add Additional Features Trigger */}
+                        <TouchableOpacity
+                            style={styles.moreFeaturesBtn}
+                            onPress={() => setAdditionalModalVisible(true)}
+                            activeOpacity={0.8}
+                            accessibilityRole="button"
+                            accessibilityLabel="Add additional features"
+                        >
+                            <Ionicons name="options-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                            <Text style={styles.moreFeaturesBtnText}>+ Add Additional Features</Text>
+                        </TouchableOpacity>
+                    </View>
+                </ScrollView>
             </KeyboardAvoidingView>
+
+            {/* STICKY BOTTOM POST CTA */}
+            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+                <TouchableOpacity
+                    style={[styles.primarySubmitBtn, busy && styles.primarySubmitBtnDisabled]}
+                    onPress={handlePostSpace}
+                    disabled={busy}
+                    activeOpacity={0.88}
+                    accessibilityRole="button"
+                    accessibilityLabel="Post your space"
+                >
+                    {busy ? (
+                        <ActivityIndicator color="#FFFFFF" size="small" />
+                    ) : (
+                        <>
+                            <Text style={styles.primarySubmitBtnText}>Post your space</Text>
+                            <Ionicons name="arrow-forward" size={18} color="#FFFFFF" style={{ marginLeft: 8 }} />
+                        </>
+                    )}
+                </TouchableOpacity>
+            </View>
+
+            {/* ADDITIONAL FEATURES MODAL / BOTTOM SHEET */}
+            <Modal
+                visible={additionalModalVisible}
+                animationType="slide"
+                transparent
+                onRequestClose={() => setAdditionalModalVisible(false)}
+            >
+                <View style={styles.modalOverlay}>
+                    <View style={[styles.modalSheet, { paddingBottom: Math.max(insets.bottom, 16) + 16 }]}>
+                        <View style={styles.modalHeader}>
+                            <View>
+                                <Typography variant="h2" style={styles.modalTitle}>
+                                    Additional Features
+                                </Typography>
+                                <Typography variant="caption" style={styles.modalSubtitle}>
+                                    Select rules, facilities, and amenities for this {categoryTitle.toLowerCase()}.
+                                </Typography>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.modalCloseBtn}
+                                onPress={() => setAdditionalModalVisible(false)}
+                                hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+                            >
+                                <Ionicons name="close" size={22} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        </View>
+
+                        <ScrollView style={styles.modalBody} showsVerticalScrollIndicator={false}>
+                            {Object.entries(additionalGroups).map(([groupName, items]) => (
+                                <View key={groupName} style={styles.modalGroup}>
+                                    <Text style={styles.modalGroupTitle}>{groupName}</Text>
+                                    <View style={styles.chipsRow}>
+                                        {items.map((feat) => {
+                                            const isSelected = (form.amenities || []).includes(feat.id);
+                                            return (
+                                                <TouchableOpacity
+                                                    key={feat.id}
+                                                    style={[styles.chipPill, isSelected && styles.chipPillActive]}
+                                                    onPress={() => toggleFeature(feat.id)}
+                                                    activeOpacity={0.78}
+                                                >
+                                                    <Ionicons
+                                                        name={isSelected ? 'checkmark' : 'add'}
+                                                        size={14}
+                                                        color={isSelected ? '#FFFFFF' : COLORS.secondary}
+                                                        style={{ marginRight: 4 }}
+                                                    />
+                                                    <Text style={[styles.chipPillText, isSelected && styles.chipPillTextActive]}>
+                                                        {feat.label}
+                                                    </Text>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                </View>
+                            ))}
+                        </ScrollView>
+
+                        <TouchableOpacity
+                            style={styles.modalDoneBtn}
+                            onPress={() => setAdditionalModalVisible(false)}
+                            activeOpacity={0.88}
+                        >
+                            <Text style={styles.modalDoneBtnText}>Done</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            </Modal>
         </ScreenWrapper>
     );
 };
 
 const styles = StyleSheet.create({
-    flex: { flex: 1 },
-    header: {
+    loadingWrap: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    topBar: {
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: SPACING.l,
-        paddingBottom: SPACING.s,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 12,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        backgroundColor: COLORS.surface,
     },
-    body: {
-        paddingHorizontal: SPACING.l,
-        paddingBottom: SPACING.xl,
+    backBtn: {
+        width: 36,
+        height: 36,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderRadius: 18,
     },
-    heading: {
+    categoryBadge: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.accentMuted,
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.full,
+        gap: 6,
+    },
+    categoryBadgeText: {
+        fontSize: FONT_SIZES.bodySmall,
+        fontWeight: '700',
+        color: COLORS.accent,
+    },
+    saveDraftBtn: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+    },
+    saveDraftText: {
+        fontSize: FONT_SIZES.bodySmall,
+        fontWeight: '600',
+        color: COLORS.accent,
+    },
+    scrollContent: {
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.s,
+    },
+    errorBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#FEE2E2',
+        borderWidth: 1,
+        borderColor: '#F87171',
+        borderRadius: BORDER_RADIUS.m,
+        padding: 12,
         marginBottom: SPACING.m,
+        gap: 8,
     },
-    muted: {
+    errorText: {
+        color: '#991B1B',
+        fontSize: FONT_SIZES.bodySmall,
+        fontWeight: '500',
+        flex: 1,
+    },
+    section: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.l,
+        padding: SPACING.m,
+        marginBottom: SPACING.m,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
+    },
+    sectionHeaderRow: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        marginBottom: SPACING.s,
+    },
+    sectionTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    sectionSubtitle: {
+        color: COLORS.secondary,
+        marginTop: 2,
+        marginBottom: SPACING.s,
+    },
+    addPhotosPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.accent,
+        paddingHorizontal: 12,
+        paddingVertical: 7,
+        borderRadius: BORDER_RADIUS.full,
+        gap: 5,
+    },
+    addPhotosPillText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: FONT_SIZES.caption,
+    },
+    photoUploadPlaceholder: {
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+        borderRadius: BORDER_RADIUS.m,
+        paddingVertical: 28,
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.background,
+    },
+    photoUploadIconCircle: {
+        width: 52,
+        height: 52,
+        borderRadius: 26,
+        backgroundColor: COLORS.accentMuted,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 10,
+    },
+    photoUploadTitle: {
+        fontSize: FONT_SIZES.bodyMedium,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    photoUploadHint: {
+        fontSize: FONT_SIZES.caption,
         color: COLORS.secondary,
         marginTop: 4,
     },
-    warn: {
-        color: COLORS.warning,
-        marginTop: SPACING.s,
-    },
-    error: {
-        color: COLORS.error,
-        marginTop: SPACING.m,
-    },
-    status: {
-        color: COLORS.accent,
-        marginBottom: SPACING.m,
-    },
-    optionCard: {
-        marginBottom: SPACING.m,
-    },
-    optionCardActive: {
-        borderWidth: 1,
-        borderColor: COLORS.accent,
-    },
-    optionCardLocked: {
-        opacity: 0.7,
-    },
-    fieldLabel: {
-        color: COLORS.secondary,
-        marginBottom: SPACING.s,
-        fontWeight: '600',
-    },
-    photoGrid: {
+    photosHorizontalList: {
         flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: SPACING.s,
-        marginVertical: SPACING.m,
+        gap: 10,
+        paddingVertical: 6,
     },
-    photoWrap: {
-        width: 96,
-        height: 96,
+    photoCard: {
+        width: 100,
+        height: 100,
         borderRadius: BORDER_RADIUS.m,
         overflow: 'hidden',
-        borderWidth: 1,
+        borderWidth: 1.5,
         borderColor: COLORS.border,
+        position: 'relative',
     },
-    photoCover: {
+    photoCardCover: {
         borderColor: COLORS.accent,
+        borderWidth: 2,
     },
-    photo: {
+    photoThumb: {
         width: '100%',
         height: '100%',
     },
     coverBadge: {
         position: 'absolute',
-        bottom: 4,
-        left: 4,
-        color: COLORS.accent,
+        top: 6,
+        left: 6,
+        backgroundColor: COLORS.accent,
+        paddingHorizontal: 6,
+        paddingVertical: 2,
+        borderRadius: BORDER_RADIUS.s,
+    },
+    coverBadgeText: {
+        color: '#FFFFFF',
+        fontSize: 10,
         fontWeight: '700',
     },
-    reviewCard: {
-        marginBottom: SPACING.m,
+    photoDeleteBtn: {
+        position: 'absolute',
+        top: 6,
+        right: 6,
+        backgroundColor: 'rgba(0,0,0,0.65)',
+        width: 20,
+        height: 20,
+        borderRadius: 10,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    footer: {
-        paddingHorizontal: SPACING.l,
-        paddingVertical: SPACING.m,
-        gap: SPACING.s,
+    photoAddMoreCard: {
+        width: 80,
+        height: 100,
+        borderRadius: BORDER_RADIUS.m,
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        borderStyle: 'dashed',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backgroundColor: COLORS.background,
+    },
+    photoAddMoreText: {
+        fontSize: 11,
+        color: COLORS.secondary,
+        marginTop: 4,
+        fontWeight: '500',
+    },
+    labelRowWithAction: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 6,
+    },
+    inputLabel: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    suggestBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 4,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: BORDER_RADIUS.s,
+        backgroundColor: COLORS.accentMuted,
+    },
+    suggestBtnText: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.accent,
+    },
+    twoColumnRow: {
+        flexDirection: 'row',
+        gap: 12,
+        marginTop: 6,
+    },
+    columnHalf: {
+        flex: 1,
+    },
+    zeroDepositChip: {
+        backgroundColor: COLORS.surfaceMuted,
+        paddingHorizontal: 7,
+        paddingVertical: 2,
+        borderRadius: BORDER_RADIUS.s,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    zeroDepositText: {
+        fontSize: 10,
+        fontWeight: '600',
+        color: COLORS.secondary,
+    },
+    togglePill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        paddingVertical: 8,
+    },
+    togglePillActive: {},
+    togglePillText: {
+        fontSize: 13,
+        color: COLORS.secondary,
+        fontWeight: '500',
+    },
+    togglePillTextActive: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    fieldSubLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.secondary,
+        marginBottom: 8,
+    },
+    chipsRow: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    chipPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 12,
+        paddingVertical: 8,
+        borderRadius: BORDER_RADIUS.full,
+    },
+    chipPillActive: {
+        borderColor: COLORS.accent,
+        backgroundColor: COLORS.accent,
+    },
+    chipPillText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    chipPillTextActive: {
+        color: '#FFFFFF',
+    },
+    mapWrap: {
+        borderRadius: BORDER_RADIUS.m,
+        overflow: 'hidden',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        marginVertical: SPACING.s,
+    },
+    featuresGrid: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 8,
+    },
+    featureCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.background,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        borderRadius: BORDER_RADIUS.m,
+        width: '48%',
+    },
+    featureCardSelected: {
+        borderColor: COLORS.accent,
+        backgroundColor: COLORS.accentMuted,
+    },
+    featureCardText: {
+        fontSize: 13,
+        fontWeight: '500',
+        color: COLORS.primary,
+        flex: 1,
+    },
+    featureCardTextSelected: {
+        fontWeight: '700',
+        color: COLORS.accent,
+    },
+    secondarySelectedWrap: {
+        marginTop: SPACING.m,
+        paddingTop: SPACING.s,
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
     },
-    centered: {
+    secondarySelectedTitle: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: COLORS.secondary,
+        marginBottom: 6,
+    },
+    selectedSecondaryChip: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceMuted,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        borderRadius: BORDER_RADIUS.full,
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+    },
+    selectedSecondaryChipText: {
+        fontSize: 12,
+        color: COLORS.primary,
+        fontWeight: '500',
+    },
+    moreFeaturesBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1.5,
+        borderColor: COLORS.border,
+        borderRadius: BORDER_RADIUS.m,
+        paddingVertical: 12,
+        marginTop: SPACING.m,
+        backgroundColor: COLORS.background,
+    },
+    moreFeaturesBtnText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    bottomBar: {
+        position: 'absolute',
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: COLORS.surface,
+        borderTopWidth: 1,
+        borderTopColor: COLORS.border,
+        paddingHorizontal: SPACING.m,
+        paddingTop: 12,
+        ...SHADOWS.lifted,
+    },
+    primarySubmitBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        backgroundColor: COLORS.accent,
+        borderRadius: BORDER_RADIUS.m,
+        paddingVertical: 14,
+        minHeight: TOUCH_TARGETS.minimum,
+    },
+    primarySubmitBtnDisabled: {
+        opacity: 0.6,
+    },
+    primarySubmitBtnText: {
+        color: '#FFFFFF',
+        fontSize: 16,
+        fontWeight: '700',
+    },
+    modalOverlay: {
         flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    modalSheet: {
+        backgroundColor: COLORS.surface,
+        borderTopLeftRadius: BORDER_RADIUS.xl,
+        borderTopRightRadius: BORDER_RADIUS.xl,
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.m,
+        maxHeight: '80%',
+    },
+    modalHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'flex-start',
+        paddingBottom: SPACING.m,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    modalTitle: {
+        fontSize: 18,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    modalSubtitle: {
+        color: COLORS.secondary,
+        marginTop: 2,
+    },
+    modalCloseBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: COLORS.surfaceMuted,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    modalBody: {
+        paddingVertical: SPACING.m,
+    },
+    modalGroup: {
+        marginBottom: SPACING.m,
+    },
+    modalGroupTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: COLORS.secondary,
+        textTransform: 'uppercase',
+        marginBottom: 8,
+        letterSpacing: 0.5,
+    },
+    modalDoneBtn: {
+        backgroundColor: COLORS.primary,
+        borderRadius: BORDER_RADIUS.m,
+        paddingVertical: 14,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginTop: 8,
+    },
+    modalDoneBtnText: {
+        color: '#FFFFFF',
+        fontSize: 15,
+        fontWeight: '700',
     },
 });
 

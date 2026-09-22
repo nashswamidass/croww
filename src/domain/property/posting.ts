@@ -251,9 +251,18 @@ export function bhkValueFromChoice(choice: string | number | null | undefined): 
 
 export function visibleSteps(form: {
     existingPropertyId?: string | null;
+    category?: string | null;
+    subtype?: string | null;
+    listingTypeId?: string | null;
 }): PostStep[] {
     if (form.existingPropertyId) {
         return ['actor', 'source', 'transaction', 'listing', 'media', 'review'];
+    }
+    const isStay = form.subtype === 'bed' || form.subtype === 'shared_room'
+        || form.subtype === 'private_room' || form.subtype === 'pg'
+        || form.subtype === 'coliving' || form.subtype === 'roommate_replacement';
+    if (isStay && form.listingTypeId) {
+        return ['property', 'location', 'listing', 'media', 'review'];
     }
     return [...POST_STEPS];
 }
@@ -263,6 +272,8 @@ export function inventoryErrorMessage(
     fallback?: string
 ): string {
     switch (code) {
+        case 'TAXONOMY_POSTING_DISABLED':
+            return fallback || 'This listing type is missing required details or is not available for posting.';
         case 'POTENTIAL_DUPLICATE':
             return 'A similar property may already exist on Croww. Review and continue only if this is a different property.';
         case 'UNAUTHENTICATED':
@@ -345,6 +356,11 @@ export type PostFormLike = {
     depositText?: string | null;
     maintenanceText?: string | null;
     negotiable?: boolean;
+    availableFrom?: string | null;
+    occupancy?: string | null;
+    foodIncluded?: boolean | null;
+    attachedBathroom?: boolean | null;
+    genderPreference?: string | null;
 };
 
 function numericOrNull(value: unknown): number | null {
@@ -378,14 +394,21 @@ export function buildPropertyCreateInput(form: PostFormLike): Record<string, unk
     const localityName = (cleaned.localityName || '').trim();
     const localityId = (cleaned.localityId || '').trim()
         || (city && localityName ? slugLocalityId(city, localityName) : '');
+    const isStay = cleaned.subtype === 'bed' || cleaned.subtype === 'shared_room'
+        || cleaned.subtype === 'private_room' || cleaned.subtype === 'pg'
+        || cleaned.subtype === 'coliving' || cleaned.subtype === 'roommate_replacement';
+    const bedrooms = isStay ? (cleaned.bedrooms || 1) : (cleaned.bedrooms ?? null);
+    const bathrooms = isStay ? (cleaned.bathrooms ?? 1) : (cleaned.bathrooms ?? null);
+    const line1 = (cleaned.addressLine1 || '').trim()
+        || (city && localityName ? `${localityName}, ${city}` : (city ? `Main Road, ${city}` : 'Property address on request'));
     return {
-        category: cleaned.category,
-        subtype: cleaned.subtype,
+        category: cleaned.category || 'residential',
+        subtype: cleaned.subtype || 'private_room',
         status: 'ACTIVE',
         localityId,
         localityCoordinate: cleaned.localityCoordinate || null,
         address: {
-            line1: (cleaned.addressLine1 || '').trim(),
+            line1,
             city,
             state: (cleaned.state || '').trim(),
             pincode: (cleaned.pincode || '').trim() || null,
@@ -397,8 +420,8 @@ export function buildPropertyCreateInput(form: PostFormLike): Record<string, unk
         latitude: cleaned.exactLatitude,
         longitude: cleaned.exactLongitude,
         locationPrecision: cleaned.locationPrecision || 'approximate',
-        bedrooms: cleaned.bedrooms ?? null,
-        bathrooms: cleaned.bathrooms ?? null,
+        bedrooms,
+        bathrooms,
         carpetAreaSqft: cleaned.carpetAreaSqft ?? null,
         builtUpAreaSqft: cleaned.builtUpAreaSqft ?? null,
         plotAreaSqft: cleaned.plotAreaSqft ?? null,
@@ -416,35 +439,51 @@ export function buildPropertyCreateInput(form: PostFormLike): Record<string, unk
 }
 
 export function buildListingCreateInput(form: PostFormLike): Record<string, unknown> {
-    const transactionType = form.transactionType;
+    const transactionType = form.transactionType || 'rent';
+    const depositAmount = parseInrAmount(form.depositText);
+    const title = (form.title || '').trim()
+        || (form.subtype ? `${SUBTYPE_LABELS[form.subtype] || form.subtype} in ${form.localityName || form.city || 'Bangalore'}` : 'New Listing');
     return {
         propertyId: form.propertyId || form.existingPropertyId,
         taxonomyId: form.listingTypeId || form.taxonomyId || null,
         listingTypeId: form.listingTypeId || form.taxonomyId || null,
         transactionType,
-        listedByRole: form.listedByRole,
-        title: (form.title || '').trim(),
+        listedByRole: form.listedByRole || 'owner',
+        title,
         description: (form.listingDescription || '').trim() || null,
         askingPrice: transactionType === 'buy' ? parseInrAmount(form.askingPriceText) : null,
         rentMonthly: transactionType === 'rent' ? parseInrAmount(form.rentMonthlyText) : null,
-        deposit: transactionType === 'rent' ? parseInrAmount(form.depositText) : null,
+        deposit: transactionType === 'rent' ? (depositAmount != null ? depositAmount : 0) : null,
         maintenanceMonthly: transactionType === 'rent' ? parseInrAmount(form.maintenanceText) : null,
         negotiable: form.negotiable !== false,
+        availableFrom: form.availableFrom || 'immediate',
+        occupancy: form.occupancy || 'single',
+        foodIncluded: Boolean(form.foodIncluded),
+        attachedBathroom: Boolean(form.attachedBathroom),
+        genderPreference: form.genderPreference || 'any',
         status: 'DRAFT',
         sourceChannel: 'USER_CREATED',
     };
 }
 
 export function buildListingUpdatePatch(form: PostFormLike): Record<string, unknown> {
-    const transactionType = form.transactionType;
+    const transactionType = form.transactionType || 'rent';
+    const depositAmount = parseInrAmount(form.depositText);
+    const title = (form.title || '').trim()
+        || (form.subtype ? `${SUBTYPE_LABELS[form.subtype] || form.subtype} in ${form.localityName || form.city || 'Bangalore'}` : 'New Listing');
     return {
-        title: (form.title || '').trim(),
+        title,
         description: (form.listingDescription || '').trim() || null,
         askingPrice: transactionType === 'buy' ? parseInrAmount(form.askingPriceText) : null,
         rentMonthly: transactionType === 'rent' ? parseInrAmount(form.rentMonthlyText) : null,
-        deposit: transactionType === 'rent' ? parseInrAmount(form.depositText) : null,
+        deposit: transactionType === 'rent' ? (depositAmount != null ? depositAmount : 0) : null,
         maintenanceMonthly: transactionType === 'rent' ? parseInrAmount(form.maintenanceText) : null,
         negotiable: form.negotiable !== false,
+        availableFrom: form.availableFrom || 'immediate',
+        occupancy: form.occupancy || 'single',
+        foodIncluded: Boolean(form.foodIncluded),
+        attachedBathroom: Boolean(form.attachedBathroom),
+        genderPreference: form.genderPreference || 'any',
     };
 }
 
@@ -463,7 +502,6 @@ export function validatePostListing(form: PostFormLike, { forPublish = false } =
 
 export function canSaveDraft(form: PostFormLike): boolean {
     if (!form.listedByRole || !form.transactionType) return false;
-    if (!(form.title || '').trim()) return false;
     if (form.existingPropertyId || form.propertyId) return true;
     return validatePostProperty(form).length === 0;
 }
@@ -476,3 +514,230 @@ export function canRequestPublish(form: PostFormLike): boolean {
 export function numericField(value: unknown): number | null {
     return numericOrNull(value);
 }
+
+export type FeatureChip = {
+    id: string;
+    label: string;
+    icon?: string;
+    group?: string;
+};
+
+export const CATEGORY_QUICK_FEATURES: Record<string, FeatureChip[]> = {
+    bed: [
+        { id: 'ac', label: 'AC' },
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'shared_bathroom', label: 'Shared bathroom' },
+        { id: 'bed_included', label: 'Bed included' },
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'food_included', label: 'Food included' },
+        { id: 'laundry', label: 'Laundry' },
+        { id: 'housekeeping', label: 'Housekeeping' },
+        { id: 'parking', label: 'Parking' },
+    ],
+    shared_room: [
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'shared_bathroom', label: 'Shared bathroom' },
+        { id: 'ac', label: 'AC' },
+        { id: 'bed_included', label: 'Bed included' },
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'food_included', label: 'Food' },
+        { id: 'laundry', label: 'Laundry' },
+        { id: 'parking', label: 'Parking' },
+        { id: 'housekeeping', label: 'Housekeeping' },
+    ],
+    private_room: [
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'ac', label: 'AC' },
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'bed_included', label: 'Bed included' },
+        { id: 'wardrobe', label: 'Wardrobe' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'balcony', label: 'Balcony' },
+        { id: 'study_table', label: 'Study table' },
+        { id: 'parking', label: 'Parking' },
+    ],
+    pg: [
+        { id: 'ac', label: 'AC' },
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'food_included', label: 'Food included' },
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'laundry', label: 'Laundry' },
+        { id: 'housekeeping', label: 'Housekeeping' },
+        { id: 'parking', label: 'Parking' },
+    ],
+    coliving: [
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'ac', label: 'AC' },
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'housekeeping', label: 'Housekeeping' },
+        { id: 'laundry', label: 'Laundry' },
+        { id: 'kitchen', label: 'Kitchen' },
+        { id: 'workspace', label: 'Workspace' },
+        { id: 'parking', label: 'Parking' },
+        { id: 'food_included', label: 'Food' },
+    ],
+    roommate_replacement: [
+        { id: 'attached_bathroom', label: 'Attached bathroom' },
+        { id: 'balcony', label: 'Balcony' },
+        { id: 'furnished', label: 'Furnished' },
+        { id: 'bed_included', label: 'Bed' },
+        { id: 'wardrobe', label: 'Wardrobe' },
+        { id: 'ac', label: 'AC' },
+        { id: 'wifi', label: 'Wi-Fi' },
+        { id: 'parking', label: 'Parking' },
+    ],
+};
+
+export const CATEGORY_ADDITIONAL_FEATURES: Record<string, FeatureChip[]> = {
+    bed: [
+        { id: 'fan', label: 'Fan', group: 'Comfort' },
+        { id: 'mattress', label: 'Mattress', group: 'Comfort' },
+        { id: 'wardrobe', label: 'Wardrobe', group: 'Room' },
+        { id: 'study_table', label: 'Study table', group: 'Room' },
+        { id: 'geyser', label: 'Geyser', group: 'Comfort' },
+        { id: 'kitchen_access', label: 'Kitchen access', group: 'Facilities' },
+        { id: 'fridge', label: 'Fridge', group: 'Facilities' },
+        { id: 'washing_machine', label: 'Washing machine', group: 'Facilities' },
+        { id: 'power_backup', label: 'Power backup', group: 'Building' },
+        { id: 'cctv', label: 'CCTV', group: 'Security' },
+        { id: 'security', label: 'Security guard', group: 'Security' },
+        { id: 'curfew', label: 'No curfew', group: 'Rules' },
+        { id: 'visitor_friendly', label: 'Visitors allowed', group: 'Rules' },
+    ],
+    shared_room: [
+        { id: 'veg_only', label: 'Vegetarian household', group: 'Rules' },
+        { id: 'kitchen_access', label: 'Kitchen access', group: 'Facilities' },
+        { id: 'power_backup', label: 'Power backup', group: 'Building' },
+        { id: 'geyser', label: 'Geyser', group: 'Comfort' },
+        { id: 'wardrobe', label: 'Wardrobe', group: 'Room' },
+        { id: 'study_table', label: 'Study table', group: 'Room' },
+        { id: 'cctv', label: 'CCTV / Security', group: 'Security' },
+        { id: 'no_curfew', label: 'No curfew', group: 'Rules' },
+        { id: 'visitor_friendly', label: 'Visitors allowed', group: 'Rules' },
+        { id: 'non_smoking', label: 'Non-smoking only', group: 'Rules' },
+        { id: 'non_drinking', label: 'Non-drinking only', group: 'Rules' },
+    ],
+    private_room: [
+        { id: 'fan', label: 'Fan', group: 'Comfort' },
+        { id: 'geyser', label: 'Geyser', group: 'Comfort' },
+        { id: 'washing_machine', label: 'Washing machine', group: 'Facilities' },
+        { id: 'fridge', label: 'Refrigerator', group: 'Facilities' },
+        { id: 'kitchen_access', label: 'Kitchen access', group: 'Facilities' },
+        { id: 'power_backup', label: 'Power backup', group: 'Building' },
+        { id: 'housekeeping', label: 'Housekeeping', group: 'Services' },
+        { id: 'maid', label: 'Maid available', group: 'Services' },
+        { id: 'cook', label: 'Cook available', group: 'Services' },
+        { id: 'pets_allowed', label: 'Pets allowed', group: 'Rules' },
+        { id: 'smoking_allowed', label: 'Smoking allowed', group: 'Rules' },
+        { id: 'visitor_friendly', label: 'Visitors allowed', group: 'Rules' },
+    ],
+    pg: [
+        { id: 'breakfast', label: 'Breakfast included', group: 'Food' },
+        { id: 'lunch', label: 'Lunch included', group: 'Food' },
+        { id: 'dinner', label: 'Dinner included', group: 'Food' },
+        { id: 'veg_nonveg', label: 'Veg & Non-Veg', group: 'Food' },
+        { id: 'electricity_included', label: 'Electricity included', group: 'Utilities' },
+        { id: 'power_backup', label: 'Power backup', group: 'Utilities' },
+        { id: 'cctv', label: 'CCTV', group: 'Security' },
+        { id: 'security', label: 'Security guard', group: 'Security' },
+        { id: 'drinking_water', label: 'RO drinking water', group: 'Facilities' },
+        { id: 'geyser', label: 'Geyser', group: 'Comfort' },
+        { id: 'study_area', label: 'Study area', group: 'Facilities' },
+        { id: 'common_area', label: 'Common lounge', group: 'Facilities' },
+        { id: 'gym', label: 'Gym', group: 'Fitness' },
+        { id: 'workspace', label: 'Co-work zone', group: 'Facilities' },
+        { id: 'no_curfew', label: 'No curfew', group: 'Rules' },
+        { id: 'visitor_friendly', label: 'Visitors allowed', group: 'Rules' },
+    ],
+    coliving: [
+        { id: 'gym', label: 'Gym / Fitness', group: 'Amenities' },
+        { id: 'common_area', label: 'Community lounge', group: 'Community' },
+        { id: 'power_backup', label: '100% Power backup', group: 'Utilities' },
+        { id: 'cctv', label: 'CCTV & Biometric', group: 'Security' },
+        { id: 'security', label: '24/7 Security', group: 'Security' },
+        { id: 'utilities_included', label: 'Utilities included', group: 'Bills' },
+        { id: 'electricity_included', label: 'Electricity included', group: 'Bills' },
+        { id: 'flexible_stay', label: 'Flexible stay duration', group: 'Terms' },
+        { id: 'short_term', label: 'Short-term available', group: 'Terms' },
+        { id: 'pets_allowed', label: 'Pet friendly', group: 'Rules' },
+        { id: 'visitor_friendly', label: 'Visitors welcome', group: 'Rules' },
+    ],
+    roommate_replacement: [
+        { id: 'washing_machine', label: 'Washing machine', group: 'Appliances' },
+        { id: 'fridge', label: 'Refrigerator', group: 'Appliances' },
+        { id: 'kitchen', label: 'Equipped kitchen', group: 'Appliances' },
+        { id: 'gas_stove', label: 'Gas / Stove setup', group: 'Appliances' },
+        { id: 'maid', label: 'Daily maid / cleaner', group: 'Services' },
+        { id: 'cook', label: 'Cook available', group: 'Services' },
+        { id: 'power_backup', label: 'Power backup', group: 'Building' },
+        { id: 'pets_allowed', label: 'Pets allowed', group: 'Household' },
+        { id: 'visitor_friendly', label: 'Visitors allowed', group: 'Household' },
+        { id: 'veg_household', label: 'Vegetarian household', group: 'Household' },
+        { id: 'non_smoking', label: 'Non-smoking', group: 'Household' },
+        { id: 'non_drinking', label: 'Non-drinking', group: 'Household' },
+    ],
+};
+
+export const CATEGORY_OCCUPANCY_OPTIONS: Record<string, { value: string; label: string }[]> = {
+    bed: [
+        { value: 'single', label: 'Single Bed' },
+        { value: 'double', label: '2 Sharing' },
+    ],
+    shared_room: [
+        { value: 'double', label: '2 Sharing' },
+        { value: 'triple', label: '3 Sharing' },
+        { value: '4_plus', label: '4+ Sharing' },
+    ],
+    private_room: [
+        { value: 'single', label: 'Private (Single)' },
+    ],
+    pg: [
+        { value: 'single', label: 'Single' },
+        { value: 'double', label: '2 Sharing' },
+        { value: 'triple', label: '3 Sharing' },
+        { value: '4_sharing', label: '4 Sharing' },
+        { value: '5_plus', label: '5+ Sharing' },
+    ],
+    coliving: [
+        { value: 'single', label: 'Private' },
+        { value: 'double', label: '2 Sharing' },
+        { value: 'triple', label: '3 Sharing' },
+        { value: '4_plus', label: '4+ Sharing' },
+    ],
+    roommate_replacement: [
+        { value: 'single', label: 'Private Room' },
+        { value: 'double', label: 'Shared Room' },
+    ],
+};
+
+const DEFAULT_QUICK_FEATURES: FeatureChip[] = [
+    { id: 'ac', label: 'AC' },
+    { id: 'attached_bathroom', label: 'Attached bathroom' },
+    { id: 'furnished', label: 'Furnished' },
+    { id: 'wifi', label: 'Wi-Fi' },
+    { id: 'parking', label: 'Parking' },
+    { id: 'power_backup', label: 'Power backup' },
+];
+
+export function getCategoryQuickFeatures(subtype: string | null | undefined): FeatureChip[] {
+    const key = (subtype || '').toLowerCase().replace(/^stay_/, '');
+    return CATEGORY_QUICK_FEATURES[key] || DEFAULT_QUICK_FEATURES;
+}
+
+export function getCategoryAdditionalFeatures(subtype: string | null | undefined): FeatureChip[] {
+    const key = (subtype || '').toLowerCase().replace(/^stay_/, '');
+    return CATEGORY_ADDITIONAL_FEATURES[key] || [];
+}
+
+export function getCategoryOccupancyOptions(subtype: string | null | undefined): { value: string; label: string }[] {
+    const key = (subtype || '').toLowerCase().replace(/^stay_/, '');
+    return CATEGORY_OCCUPANCY_OPTIONS[key] || [
+        { value: 'single', label: 'Single' },
+        { value: 'double', label: 'Double Sharing' },
+    ];
+}
+

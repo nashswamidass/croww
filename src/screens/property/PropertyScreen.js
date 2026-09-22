@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    ActivityIndicator,
     Share,
     useWindowDimensions,
 } from 'react-native';
@@ -20,6 +19,7 @@ import PropertyVerification from '../../components/property/PropertyVerification
 import Property3DSection from '../../components/property/Property3DSection';
 import { propertyDetailService } from '../../services/property';
 import { useAuth } from '../../context/AuthContext';
+import { ListingDetailSkeleton, MotionView } from '../../components/motion';
 import { COLORS, SPACING } from '../../constants/theme';
 import AntigravityButton from '../../components/AntigravityButton';
 import { formatOfferPrice, formatSubtype } from '../../utils/propertyFormat';
@@ -229,10 +229,9 @@ const PropertyScreen = ({ route, navigation }) => {
             </View>
 
             {status === 'loading' ? (
-                <View style={styles.centered}>
-                    <ActivityIndicator color={COLORS.accent} />
-                    <Typography variant="body" style={styles.muted}>Loading property…</Typography>
-                </View>
+                <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xxl }} showsVerticalScrollIndicator={false}>
+                    <ListingDetailSkeleton />
+                </ScrollView>
             ) : null}
 
             {status === 'missing' ? (
@@ -252,21 +251,23 @@ const PropertyScreen = ({ route, navigation }) => {
             ) : null}
 
             {(status === 'ready' || status === 'inactive') && property ? (
-                <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xxl }}>
-                    {split ? (
-                        <View style={styles.split}>
-                            <View style={styles.mediaPane}>
-                                <PropertyMediaGallery media={media} />
+                <MotionView fadeOnly duration={180} style={{ flex: 1 }}>
+                    <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xxl }}>
+                        {split ? (
+                            <View style={styles.split}>
+                                <View style={styles.mediaPane}>
+                                    <PropertyMediaGallery media={media} />
+                                </View>
+                                {details}
                             </View>
-                            {details}
-                        </View>
-                    ) : (
-                        <>
-                            <PropertyMediaGallery media={media} />
-                            {details}
-                        </>
-                    )}
-                </ScrollView>
+                        ) : (
+                            <>
+                                <PropertyMediaGallery media={media} />
+                                {details}
+                            </>
+                        )}
+                    </ScrollView>
+                </MotionView>
             ) : null}
         </ScreenWrapper>
     );

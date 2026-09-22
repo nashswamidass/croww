@@ -71,6 +71,8 @@ import SubmitVerificationScreen from '../screens/property/SubmitVerificationScre
 import SpatialTourScreen from '../screens/property/SpatialTourScreen';
 import SavedSearchScreen from '../screens/property/SavedSearchScreen';
 import PropertyVisualQAScreen from '../screens/property/PropertyVisualQAScreen';
+import AreaMatcherScreen from '../screens/property/AreaMatcherScreen';
+import ProfileScreen from '../screens/main/ProfileScreen';
 
 // Verification Screens
 import VerifyIdentityScreen from '../screens/verification/VerifyIdentityScreen';
@@ -114,11 +116,13 @@ const MainNavigator = () => {
             <Stack.Screen name="SpatialTour" component={SpatialTourScreen} />
             <Stack.Screen name="SavedSearch" component={SavedSearchScreen} />
             <Stack.Screen name="PropertyVisualQA" component={PropertyVisualQAScreen} />
+            <Stack.Screen name="AreaMatcher" component={AreaMatcherScreen} />
             <Stack.Screen name="BusinessDashboard" component={BusinessDashboardScreen} />
             <Stack.Screen name="EventSearch" component={EventSearchScreen} />
             <Stack.Screen name="Chat" component={ChatScreen} />
             <Stack.Screen name="ChatList" component={ChatListScreen} />
             <Stack.Screen name="Messages" component={ChatListScreen} />
+            <Stack.Screen name="Profile" component={ProfileScreen} />
             <Stack.Screen name="ServiceDetail" component={ServiceDetailScreen} />
             <Stack.Screen name="EventDetail" component={EventDetailScreen} />
             <Stack.Screen name="CreateEvent" component={CreateEventScreen} />

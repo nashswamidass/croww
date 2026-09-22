@@ -5,6 +5,7 @@ import Typography from '../../components/Typography';
 import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
 import CrowwEmptyState from '../../components/rive/CrowwEmptyState';
+import CrowwScreenHeader from '../../components/CrowwScreenHeader';
 import { SPACING, COLORS, TOUCH_TARGETS } from '../../constants/theme';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
@@ -141,19 +142,11 @@ const ChatListScreen = ({ navigation }) => {
     if (!authUser) {
         return (
             <ScreenWrapper edges={['top']}>
-                <View style={styles.header}>
-                    {navigation.canGoBack() ? (
-                        <TouchableOpacity
-                            onPress={() => navigation.goBack()}
-                            style={styles.backButton}
-                            hitSlop={TOUCH_TARGETS.hitSlop}
-                        >
-                            <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-                        </TouchableOpacity>
-                    ) : <View style={{ width: 16 }} />}
-                    <Typography variant="titleLarge" style={styles.headerTitle}>Messages</Typography>
-                    <View style={{ width: 40 }} />
-                </View>
+                <CrowwScreenHeader
+                    navigation={navigation}
+                    showBack={navigation.canGoBack()}
+                    withTopInset={false}
+                />
 
                 <View style={{ flex: 1, padding: SPACING.l, justifyContent: 'center', alignItems: 'center' }}>
                     <FloatingCard style={{ padding: SPACING.xl, alignItems: 'center', width: '100%', maxWidth: 440 }}>
@@ -189,19 +182,11 @@ const ChatListScreen = ({ navigation }) => {
 
     return (
         <ScreenWrapper edges={['top']}>
-            <View style={styles.header}>
-                {navigation.canGoBack() ? (
-                    <TouchableOpacity
-                        onPress={() => navigation.goBack()}
-                        style={styles.backButton}
-                        hitSlop={TOUCH_TARGETS.hitSlop}
-                    >
-                        <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-                    </TouchableOpacity>
-                ) : <View style={{ width: 16 }} />}
-                <Typography variant="titleLarge" style={styles.headerTitle}>Messages</Typography>
-                <View style={{ width: 40 }} />
-            </View>
+            <CrowwScreenHeader
+                navigation={navigation}
+                showBack={navigation.canGoBack()}
+                withTopInset={false}
+            />
 
             {loading ? (
                 <ActivityIndicator size="large" color={COLORS.accent} style={{ marginTop: SPACING.xl }} />

@@ -3,43 +3,73 @@ import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
-import { formatArea, formatBhk, formatListingPrice, formatSubtype } from '../../utils/propertyFormat';
+import { formatBhk, formatListingPrice, formatSubtype } from '../../utils/propertyFormat';
 import { listingCardTrustHint } from '../../domain/verification';
 import { exploreSpatialHint } from '../../domain/spatial';
+import { formatAvailabilityLabel } from '../../domain/property';
 
 /**
- * Compact Property Result Card for launch:
- * Prioritizes:
- * 1. Image (compact ratio)
- * 2. Price (prominent hierarchy)
- * 3. Stay type (Bed, Private Room, PG, etc.)
- * 4. Locality
- * 5. 1-2 important facts (e.g. Furnished · Immediate)
+ * Compact Property Result Card:
+ * Sized conservatively to keep the map as the dominant surface.
  *
- * Sized conservatively to sit cleanly above the floating navbar with zero overlap.
+ * Structure:
+ * ┌──────────────────────────────┐
+ * │ image                        │
+ * ├──────────────────────────────┤
+ * │ ₹12K   Private Room          │
+ * │ Adyar · Furnished · AC       │
+ * └──────────────────────────────┘
  */
-const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) => {
+const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth, layout }) => {
     if (!item) return null;
 
+    const isListLayout = Boolean(fullWidth || layout === 'list');
     const priceText = formatListingPrice(item);
+
+    const formatCategory = (cat) => {
+        if (!cat) return null;
+        if (cat === 'stay_private_room') return 'Private Room';
+        if (cat === 'stay_shared_room') return 'Shared Room';
+        if (cat === 'stay_coliving') return 'Co-living';
+        if (cat === 'stay_bed') return 'Bed';
+        if (cat === 'stay_pg') return 'PG';
+        if (cat === 'stay_roommate_replacement') return 'Roommate';
+        return cat.replace(/^stay_/, '').replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+    };
 
     // Stay Type: use category displayName / stay type, fallback to bhk/subtype
     const stayType = item.categoryDisplayName
         || item.categoryName
         || item.stayType
+        || formatSubtype(item.subtype)
+        || formatCategory(item.category)
         || [formatBhk(item.bedrooms), formatSubtype(item.subtype)].filter(Boolean).join(' ')
         || (item.category === 'land' ? 'Plot' : 'Stay');
 
     // Locality & City
-    const locality = item.localityName || item.locality || 'Adyar';
+    const rawLocality = item.localityName || item.locality || 'Adyar';
     const city = item.city || 'Chennai';
-    const locationText = locality.toLowerCase().includes(city.toLowerCase())
-        ? locality
-        : `${locality}, ${city}`;
+    const shortLocality = rawLocality.split(',')[0].trim();
+
+    const availabilityData = item.availability || (
+        item.availableCount != null
+            ? {
+                availableCount: item.availableCount,
+                availabilityMode: item.availabilityMode || 'BED',
+                availableFrom: item.availableFrom || null,
+            }
+            : null
+    );
+    const availabilityLabel = formatAvailabilityLabel(availabilityData);
 
     // 1-2 important facts
     const facts = [];
-    if (item.furnishing) {
+    if (availabilityLabel) {
+        facts.push(availabilityLabel);
+    }
+    if (item.bathrooms) {
+        facts.push(`${item.bathrooms} Bath`);
+    } else if (item.furnishing) {
         facts.push(item.furnishing.charAt(0).toUpperCase() + item.furnishing.slice(1));
     } else if (item.furnished === true) {
         facts.push('Furnished');
@@ -47,17 +77,8 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
         facts.push(`${item.areaSqFt} sq.ft`);
     }
 
-    if (item.availableFrom) {
-        facts.push(`Available ${item.availableFrom}`);
-    } else if (item.immediate === true || item.availability === 'immediate') {
-        facts.push('Immediate');
-    } else if (item.bathrooms) {
-        facts.push(`${item.bathrooms} Bath`);
-    } else {
-        facts.push('Verified');
-    }
-
     const factsText = facts.slice(0, 2).join(' · ');
+    const subtitle = [shortLocality, factsText].filter(Boolean).join(' · ');
 
     const trustHint = listingCardTrustHint(item);
     const spatialHint = exploreSpatialHint(item);
@@ -67,26 +88,25 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
             onPress={onPress}
             style={[
                 styles.card,
-                fullWidth && styles.fullWidth,
+                isListLayout ? styles.fullWidth : styles.carouselWidth,
                 selected && styles.cardSelected,
             ]}
             accessibilityRole="button"
-            accessibilityLabel={`${priceText}, ${stayType}, in ${locationText}`}
+            accessibilityLabel={`${priceText}, ${stayType}, in ${shortLocality}`}
             activeOpacity={0.92}
         >
             {/* 1. Compact Image Container */}
-            <View style={styles.imageContainer}>
+            <View style={[styles.imageContainer, isListLayout && styles.fullWidthImage]}>
                 {item.coverThumbnailUrl || item.coverUrl ? (
                     <Image
                         source={{ uri: item.coverThumbnailUrl || item.coverUrl }}
                         style={styles.image}
                         contentFit="cover"
-                        transition={150}
+                        transition={120}
                     />
                 ) : (
                     <View style={styles.imagePlaceholder}>
-                        <Ionicons name="home-outline" size={26} color={COLORS.tertiary} />
-                        <Text style={styles.placeholderText}>Photo coming soon</Text>
+                        <Ionicons name="home-outline" size={22} color={COLORS.tertiary} />
                     </View>
                 )}
 
@@ -94,7 +114,7 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
                 <View style={styles.badgeRow} pointerEvents="box-none">
                     {trustHint ? (
                         <View style={styles.trustBadge}>
-                            <Ionicons name="shield-checkmark" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                            <Ionicons name="shield-checkmark" size={10} color="#FFFFFF" style={{ marginRight: 2 }} />
                             <Text style={styles.trustBadgeText}>{trustHint}</Text>
                         </View>
                     ) : <View />}
@@ -102,7 +122,7 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
                     <View style={styles.topRightControls}>
                         {spatialHint ? (
                             <View style={styles.spatialBadge}>
-                                <Ionicons name="cube-outline" size={11} color="#FFFFFF" style={{ marginRight: 3 }} />
+                                <Ionicons name="cube-outline" size={10} color="#FFFFFF" style={{ marginRight: 2 }} />
                                 <Text style={styles.spatialBadgeText}>3D</Text>
                             </View>
                         ) : null}
@@ -117,38 +137,23 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
                                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
                                 accessibilityLabel="Deselect property"
                             >
-                                <Ionicons name="close" size={13} color="#FFFFFF" />
+                                <Ionicons name="close" size={11} color="#FFFFFF" />
                             </TouchableOpacity>
                         )}
                     </View>
                 </View>
             </View>
 
-            {/* 2. Compact Body with Strong Price Hierarchy */}
+            {/* 2. Compact Body */}
             <View style={styles.body}>
-                <View style={styles.priceRow}>
-                    <Text style={styles.price}>{priceText}</Text>
-                    {item.transactionType === 'rent' && !priceText.includes('/mo') && !priceText.includes('/month') ? (
-                        <Text style={styles.rentPeriod}>/month</Text>
-                    ) : null}
+                <View style={styles.topRow}>
+                    <Text style={styles.price} numberOfLines={1}>{priceText}</Text>
+                    <Text style={styles.stayType} numberOfLines={1}>{stayType}</Text>
                 </View>
 
-                <Text numberOfLines={1} style={styles.stayType}>
-                    {stayType}
+                <Text numberOfLines={1} style={styles.subText}>
+                    {subtitle || `${shortLocality}, ${city}`}
                 </Text>
-
-                <View style={styles.metaRow}>
-                    <Ionicons name="location-outline" size={12} color={COLORS.secondary} style={{ marginRight: 2 }} />
-                    <Text numberOfLines={1} style={styles.locationText}>
-                        {locationText}
-                    </Text>
-                </View>
-
-                {factsText ? (
-                    <Text numberOfLines={1} style={styles.factsText}>
-                        {factsText}
-                    </Text>
-                ) : null}
             </View>
         </TouchableOpacity>
     );
@@ -156,28 +161,34 @@ const PropertyResultCard = ({ item, selected, onPress, onDismiss, fullWidth }) =
 
 const styles = StyleSheet.create({
     card: {
-        width: 275,
         backgroundColor: COLORS.surface,
         borderRadius: BORDER_RADIUS.card,
         borderWidth: 1,
         borderColor: COLORS.border,
         overflow: 'hidden',
-        marginRight: 10,
         ...SHADOWS.floating,
+    },
+    carouselWidth: {
+        width: 220,
+        marginRight: 10,
     },
     fullWidth: {
         width: '100%',
         marginRight: 0,
+        marginBottom: 12,
     },
     cardSelected: {
-        borderColor: COLORS.accent,
+        borderColor: '#111827',
         borderWidth: 2,
     },
     imageContainer: {
         width: '100%',
-        height: 108,
+        height: 84,
         backgroundColor: COLORS.surfaceHighlight,
         position: 'relative',
+    },
+    fullWidthImage: {
+        height: 130,
     },
     image: {
         width: '100%',
@@ -190,17 +201,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         backgroundColor: COLORS.surfaceSubtle,
     },
-    placeholderText: {
-        fontSize: 10,
-        marginTop: 3,
-        color: COLORS.secondary,
-        fontWeight: '500',
-    },
     badgeRow: {
         position: 'absolute',
-        top: 6,
-        left: 6,
-        right: 6,
+        top: 5,
+        left: 5,
+        right: 5,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
@@ -209,84 +214,68 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: COLORS.success,
-        paddingHorizontal: 6,
-        paddingVertical: 2.5,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
         borderRadius: BORDER_RADIUS.pill,
-        ...SHADOWS.subtle,
     },
     trustBadgeText: {
         fontWeight: '700',
-        fontSize: 10,
+        fontSize: 9.5,
         color: '#FFFFFF',
     },
     topRightControls: {
         flexDirection: 'row',
         alignItems: 'center',
-        gap: 5,
+        gap: 4,
     },
     spatialBadge: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: 'rgba(15, 23, 42, 0.78)',
-        paddingHorizontal: 6,
-        paddingVertical: 2.5,
+        paddingHorizontal: 5,
+        paddingVertical: 2,
         borderRadius: BORDER_RADIUS.pill,
     },
     spatialBadgeText: {
         fontWeight: '700',
-        fontSize: 10,
+        fontSize: 9.5,
         color: '#FFFFFF',
     },
     dismissBtn: {
-        width: 20,
-        height: 20,
-        borderRadius: 10,
+        width: 18,
+        height: 18,
+        borderRadius: 9,
         backgroundColor: 'rgba(0, 0, 0, 0.65)',
         alignItems: 'center',
         justifyContent: 'center',
     },
     body: {
-        paddingHorizontal: 10,
-        paddingVertical: 8,
+        paddingHorizontal: 9,
+        paddingVertical: 6,
     },
-    priceRow: {
+    topRow: {
         flexDirection: 'row',
         alignItems: 'baseline',
+        justifyContent: 'space-between',
+        gap: 6,
     },
     price: {
-        fontSize: 17,
+        fontSize: 15,
         fontWeight: '800',
-        color: COLORS.primary,
+        color: '#111827',
         letterSpacing: -0.3,
     },
-    rentPeriod: {
-        marginLeft: 3,
-        fontSize: 11,
-        color: COLORS.secondary,
-        fontWeight: '600',
-    },
     stayType: {
-        marginTop: 1,
-        fontSize: 13,
-        fontWeight: '700',
-        color: COLORS.primary,
-    },
-    metaRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        marginTop: 2,
-    },
-    locationText: {
         fontSize: 11.5,
+        fontWeight: '600',
+        color: '#4B5563',
+        flexShrink: 1,
+    },
+    subText: {
+        marginTop: 2,
+        fontSize: 10.5,
         color: COLORS.secondary,
         fontWeight: '500',
-        flex: 1,
-    },
-    factsText: {
-        marginTop: 2,
-        fontSize: 11,
-        color: COLORS.accentDark,
-        fontWeight: '600',
     },
 });
 

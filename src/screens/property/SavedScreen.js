@@ -7,6 +7,7 @@ import ScreenWrapper from '../../components/ScreenWrapper';
 import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
 import CrowwEmptyState from '../../components/rive/CrowwEmptyState';
+import CrowwScreenHeader from '../../components/CrowwScreenHeader';
 import SavedListingCard from '../../components/property/saved/SavedListingCard';
 import SavedPropertyCard from '../../components/property/saved/SavedPropertyCard';
 import SavedSearchCard from '../../components/property/saved/SavedSearchCard';
@@ -101,6 +102,7 @@ const SavedScreen = ({ navigation }) => {
     if (!user) {
         return (
             <ScreenWrapper edges={['top']}>
+                <CrowwScreenHeader navigation={navigation} withTopInset={false} />
                 <View style={styles.header}>
                     <Typography variant="display" style={styles.title}>Saved</Typography>
                     <Typography variant="bodyLarge" style={styles.subtitle}>
@@ -111,7 +113,7 @@ const SavedScreen = ({ navigation }) => {
                 <View style={styles.unauthContainer}>
                     <FloatingCard style={styles.unauthCard}>
                         <View style={styles.unauthIconWrapper}>
-                            <Ionicons name="bookmark-outline" size={40} color={COLORS.accent} />
+                            <Ionicons name="bookmark-outline" size={40} color={COLORS.primary} />
                         </View>
                         <Typography variant="titleLarge" style={styles.unauthTitle}>
                             Keep track of homes you like
@@ -133,6 +135,7 @@ const SavedScreen = ({ navigation }) => {
 
     return (
         <ScreenWrapper edges={['top']}>
+            <CrowwScreenHeader navigation={navigation} withTopInset={false} />
             <View style={styles.header}>
                 <Typography variant="display" style={styles.title}>Saved</Typography>
                 <Typography variant="bodyLarge" style={styles.subtitle}>
@@ -174,13 +177,13 @@ const SavedScreen = ({ navigation }) => {
 
             {loading ? (
                 <View style={styles.centered}>
-                    <ActivityIndicator color={COLORS.accent} size="large" />
+                    <ActivityIndicator color={COLORS.primary} size="large" />
                 </View>
             ) : (
                 <ScrollView
                     contentContainerStyle={styles.body}
                     refreshControl={(
-                        <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.accent} />
+                        <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.primary} />
                     )}
                 >
                     {error ? <Typography variant="caption" style={styles.error}>{error}</Typography> : null}
@@ -196,7 +199,7 @@ const SavedScreen = ({ navigation }) => {
                                         navigation.navigate('Property', { propertyId: item.propertyId });
                                         return;
                                     }
-                                    navigation.navigate('Listing', { listingId });
+                                    navigation.navigate('Listing', { listingId, initialListing: item });
                                 }}
                                 onUnsave={async () => {
                                     await unsaveListing(item.listingId || item.id);
@@ -300,8 +303,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     chipActive: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
     chipText: {
         color: COLORS.textSecondary,
@@ -326,7 +329,7 @@ const styles = StyleSheet.create({
         fontWeight: '700',
     },
     badgeTextActive: {
-        color: COLORS.accent,
+        color: COLORS.primary,
         fontWeight: '800',
     },
     body: {
@@ -376,7 +379,7 @@ const styles = StyleSheet.create({
         width: 72,
         height: 72,
         borderRadius: 36,
-        backgroundColor: (COLORS.accent || '#E05A47') + '15',
+        backgroundColor: COLORS.surfaceHighlight,
         alignItems: 'center',
         justifyContent: 'center',
         marginBottom: SPACING.m,

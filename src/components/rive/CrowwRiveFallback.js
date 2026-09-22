@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ActivityIndicator, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Typography from '../Typography';
 import { COLORS, SPACING } from '../../constants/theme';
@@ -22,11 +22,15 @@ export const CrowwRiveFallback = ({
         case 'brand': {
             const isLoading = state?.isLoading;
             return (
-                <View style={[styles.brandWrap, { width: size, height: size, borderRadius: size / 2 }, style]}>
+                <View style={[styles.brandWrap, { width: size, height: size, borderRadius: Math.round(size * 0.22) }, style]}>
                     {isLoading ? (
                         <ActivityIndicator size="small" color={accentColor} />
                     ) : (
-                        <Ionicons name="home" size={size * 0.52} color={accentColor} />
+                        <Image
+                            source={require('../../../assets/croww favicon.jpg')}
+                            style={{ width: size, height: size, borderRadius: Math.round(size * 0.22) }}
+                            resizeMode="cover"
+                        />
                     )}
                 </View>
             );

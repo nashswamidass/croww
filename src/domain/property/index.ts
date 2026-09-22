@@ -11,3 +11,4 @@ export * from './duplicates';
 export * from './posting';
 export * from './saved';
 export * from './dashboard';
+export * from './availability';

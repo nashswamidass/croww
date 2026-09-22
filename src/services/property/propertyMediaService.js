@@ -4,7 +4,6 @@ import {
     doc,
     getDoc,
     getDocs,
-    orderBy,
     query,
     serverTimestamp,
     updateDoc,
@@ -105,11 +104,13 @@ export const propertyMediaService = {
         } else {
             constraints.push(where('visibility', '==', 'public'));
             constraints.push(where('status', '==', 'ACTIVE'));
+            constraints.push(where('mediaType', 'in', ['photo', 'floor_plan', 'video']));
         }
-        constraints.push(orderBy('sortOrder', 'asc'));
         const q = query(collection(db, COLLECTIONS.propertyMedia), ...constraints);
         const snap = await withTimeout(getDocs(q), 10000, 'listForParent');
-        return snap.docs.map(toRecord);
+        const rows = snap.docs.map(toRecord);
+        rows.sort((a, b) => (Number(a.sortOrder) || 0) - (Number(b.sortOrder) || 0));
+        return rows;
     },
 
     /**
@@ -148,8 +149,19 @@ export const propertyMediaService = {
 
     async setCover(mediaId, parentType, parentId) {
         const uid = requireUid();
-        const rows = await propertyMediaService.listForParent(parentType, parentId);
-        const cover = rows.find((row) => row.id === mediaId);
+        const rows = await propertyMediaService.listForParent(parentType, parentId, { includePrivate: true });
+        let cover = rows.find((row) => row.id === mediaId);
+        if (!cover) {
+            const directSnap = await withTimeout(
+                getDoc(doc(db, COLLECTIONS.propertyMedia, mediaId)),
+                10000,
+                'setCover.getDoc'
+            );
+            if (directSnap.exists()) {
+                cover = toRecord(directSnap);
+                rows.push(cover);
+            }
+        }
         if (!cover || cover.createdByUid !== uid) {
             throw new Error('Media not found on this parent');
         }

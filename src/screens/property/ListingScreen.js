@@ -4,7 +4,6 @@ import {
     StyleSheet,
     ScrollView,
     TouchableOpacity,
-    ActivityIndicator,
     Share,
     useWindowDimensions,
 } from 'react-native';
@@ -26,6 +25,7 @@ import { propertyDetailService, locationShareService } from '../../services/prop
 import { useAuth } from '../../context/AuthContext';
 import { useSavedItems } from '../../context/SavedItemsContext';
 import SaveButton from '../../components/property/saved/SaveButton';
+import { ListingDetailSkeleton, MotionView } from '../../components/motion';
 import { COLORS, SPACING, SHADOWS } from '../../constants/theme';
 import { showAlert } from '../../utils/showAlert';
 import { formatOfferPrice } from '../../utils/propertyFormat';
@@ -41,6 +41,7 @@ import {
 
 const ListingScreen = ({ route, navigation }) => {
     const listingId = route.params?.listingId || route.params?.id || null;
+    const initialListing = route.params?.initialListing || null;
     const { user } = useAuth();
     const currentUid = user?.id || user?.uid || null;
     const { isListingSaved, saveListing, unsaveListing } = useSavedItems();
@@ -48,9 +49,9 @@ const ListingScreen = ({ route, navigation }) => {
     const { width } = useWindowDimensions();
     const split = width >= 900;
 
-    const [status, setStatus] = useState(listingId ? 'loading' : 'missing');
+    const [status, setStatus] = useState(initialListing ? 'ready' : (listingId ? 'loading' : 'missing'));
     const [errorMessage, setErrorMessage] = useState(null);
-    const [listing, setListing] = useState(null);
+    const [listing, setListing] = useState(initialListing);
     const [property, setProperty] = useState(null);
     const [propertyAccess, setPropertyAccess] = useState('missing');
     const [media, setMedia] = useState([]);
@@ -83,20 +84,22 @@ const ListingScreen = ({ route, navigation }) => {
         }
 
         (async () => {
-            setStatus('loading');
-            setErrorMessage(null);
-            setListing(null);
-            setProperty(null);
-            setMedia([]);
-            setActor(null);
-            setLocality(null);
-            setMapCoordinate(null);
-            setIsExactShared(false);
-            setShareStatus('NONE');
-            setContextReady(false);
-            setPropertyAccess('missing');
+            if (!initialListing) {
+                setStatus('loading');
+                setErrorMessage(null);
+                setListing(null);
+                setProperty(null);
+                setMedia([]);
+                setActor(null);
+                setLocality(null);
+                setMapCoordinate(null);
+                setIsExactShared(false);
+                setShareStatus('NONE');
+                setContextReady(false);
+                setPropertyAccess('missing');
+            }
             try {
-                const row = await propertyDetailService.getListing(listingId);
+                const row = initialListing || await propertyDetailService.getListing(listingId);
                 if (cancelled) return;
                 if (!row) {
                     setListing(null);
@@ -359,10 +362,9 @@ const ListingScreen = ({ route, navigation }) => {
             </View>
 
             {status === 'loading' ? (
-                <View style={styles.centered}>
-                    <ActivityIndicator color={COLORS.accent} />
-                    <Typography variant="body" style={styles.muted}>Loading listing…</Typography>
-                </View>
+                <ScrollView contentContainerStyle={{ paddingBottom: SPACING.xl }} showsVerticalScrollIndicator={false}>
+                    <ListingDetailSkeleton />
+                </ScrollView>
             ) : null}
 
             {status === 'missing' ? (
@@ -382,7 +384,7 @@ const ListingScreen = ({ route, navigation }) => {
             ) : null}
 
             {status === 'ready' && listing ? (
-                <>
+                <MotionView fadeOnly duration={180} style={{ flex: 1 }}>
                     <ScrollView
                         contentContainerStyle={{
                             paddingBottom: (showContact ? 88 : SPACING.xl) + insets.bottom,
@@ -413,7 +415,7 @@ const ListingScreen = ({ route, navigation }) => {
                             />
                         </View>
                     ) : null}
-                </>
+                </MotionView>
             ) : null}
 
             <AuthPromptModal

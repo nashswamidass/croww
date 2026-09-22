@@ -28,6 +28,7 @@ import {
     completenessWarnings,
     dashboardAttention,
     dashboardCopy,
+    formatInventoryRatio,
     inventoryErrorMessage,
     inventoryLocalityLabel,
     listingCompleteness,
@@ -35,6 +36,7 @@ import {
     listerStatusCopy,
     propertyInventoryTitle,
 } from '../../domain/property';
+import ManageVacancyModal from '../../components/property/ManageVacancyModal';
 import { freshnessLines } from '../../utils/propertyDetailView';
 import { dashboardVerificationLabel } from '../../domain/verification';
 import { dashboardSpatialLabel } from '../../domain/spatial';
@@ -84,6 +86,7 @@ const InventoryDashboardScreen = ({ navigation }) => {
     const [error, setError] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [loadingMore, setLoadingMore] = useState(false);
+    const [vacancyListing, setVacancyListing] = useState(null);
 
     const load = useCallback(async ({ append = false, nextCursor = null } = {}) => {
         setError('');
@@ -180,7 +183,7 @@ const InventoryDashboardScreen = ({ navigation }) => {
             navigation.navigate('PostListing', { listingId: listing.id });
             return;
         }
-        navigation.navigate('Listing', { listingId: listing.id });
+        navigation.navigate('Listing', { listingId: listing.id, initialListing: listing });
     };
 
     const runAction = (listing, action) => {
@@ -247,6 +250,11 @@ const InventoryDashboardScreen = ({ navigation }) => {
                                 {' · '}
                                 {priceLabel(listing)}
                             </Typography>
+                            {formatInventoryRatio(listing.availability) ? (
+                                <Typography variant="caption" style={styles.availabilityLine}>
+                                    Availability: {formatInventoryRatio(listing.availability)}
+                                </Typography>
+                            ) : null}
                             {locality ? (
                                 <Typography variant="caption" style={styles.muted}>{locality}</Typography>
                             ) : null}
@@ -272,6 +280,14 @@ const InventoryDashboardScreen = ({ navigation }) => {
                     </View>
                 </TouchableOpacity>
                 <View style={styles.actionRow}>
+                    <TouchableOpacity
+                        onPress={() => setVacancyListing(listing)}
+                        style={[styles.actionChip, styles.vacancyChip]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Manage vacancy for ${listing.title || 'listing'}`}
+                    >
+                        <Typography variant="caption" style={styles.vacancyChipText}>Manage Vacancy</Typography>
+                    </TouchableOpacity>
                     {statusActions.map((action) => (
                         <TouchableOpacity
                             key={action.id}
@@ -499,6 +515,14 @@ const InventoryDashboardScreen = ({ navigation }) => {
                     <Typography variant="body" style={styles.empty}>{emptyCopy}</Typography>
                 )}
             />
+            <ManageVacancyModal
+                visible={Boolean(vacancyListing)}
+                listing={vacancyListing}
+                onClose={() => setVacancyListing(null)}
+                onSaved={async () => {
+                    await load();
+                }}
+            />
         </ScreenWrapper>
     );
 };
@@ -608,6 +632,19 @@ const styles = StyleSheet.create({
         borderRadius: BORDER_RADIUS.m,
         paddingHorizontal: SPACING.s,
         paddingVertical: 6,
+    },
+    vacancyChip: {
+        backgroundColor: '#F3F4F6',
+        borderColor: COLORS.primary,
+    },
+    vacancyChipText: {
+        color: COLORS.primary,
+        fontWeight: '600',
+    },
+    availabilityLine: {
+        color: COLORS.primary,
+        fontWeight: '600',
+        marginTop: 2,
     },
     empty: {
         color: COLORS.secondary,

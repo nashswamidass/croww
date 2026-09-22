@@ -7,6 +7,9 @@ import { formatMarkerPrice } from '../../utils/propertyFormat';
 import { COLORS } from '../../constants/theme';
 import Typography from '../Typography';
 import { getLocalityBoundaryRings } from '../../domain/intelligence/localityBoundaries';
+import { getLocalityPolygonStyle, RELEVANCE_CONFIG } from '../../domain/intelligence/localityVisualRelevance';
+import { computeLocalityMapHierarchy } from '../../domain/intelligence/localityMapHierarchy';
+import { formatAreaScore } from '../../domain/scoring/formatAreaScore';
 
 const libraries = ['places'];
 const containerStyle = { width: '100%', height: '100%' };
@@ -24,8 +27,9 @@ const PropertyMap = ({
     localityRegions = [],
 }) => {
     const mapRef = useRef(null);
-    const polygonsRef = useRef([]);
+    const polygonsMapRef = useRef(new Map());
     const [currentZoom, setCurrentZoom] = useState(13);
+    const [currentDelta, setCurrentDelta] = useState(initialRegion?.latitudeDelta || 0.12);
     const defaultCenter = useRef({
         lat: initialRegion?.latitude || 13.0827,
         lng: initialRegion?.longitude || 80.2707,
@@ -56,73 +60,134 @@ const PropertyMap = ({
         }
     }, [followRegion]);
 
-    // Manage translucent purple intelligence polygons on the web map
+    // Manage data-driven dynamic intelligence polygons on the web map
     useEffect(() => {
-        polygonsRef.current.forEach((p) => {
-            try { p.setMap(null); } catch (_) {}
-        });
-        polygonsRef.current = [];
-
         if (!mapRef.current || typeof window === 'undefined' || !window.google?.maps || !intelligenceMode) {
+            polygonsMapRef.current.forEach((p) => {
+                try { p.setMap(null); } catch (_) {}
+            });
+            polygonsMapRef.current.clear();
             return;
         }
 
+        const activeIds = new Set();
+        const anySelected = Boolean(selectedId && localityRegions.some((r) => r.locality?.id === selectedId));
+
         if (localityRegions && localityRegions.length > 0) {
             localityRegions.forEach((item) => {
+                const locId = item.locality?.id;
+                if (!locId) return;
+                activeIds.add(locId);
+
+                const isSelected = locId === selectedId;
+                const style = getLocalityPolygonStyle(item, isSelected, anySelected);
                 const rings = getLocalityBoundaryRings(item.locality);
                 if (!rings || rings.length === 0) return;
-                const isSelected = item.locality?.id === selectedId;
 
-                try {
-                    const paths = rings.map((ring) =>
-                        ring.map((pt) => ({ lat: pt.latitude, lng: pt.longitude }))
-                    );
-                    const polygon = new window.google.maps.Polygon({
-                        map: mapRef.current,
+                const paths = rings.map((ring) =>
+                    ring.map((pt) => ({ lat: pt.latitude, lng: pt.longitude }))
+                );
+
+                const existingPolygon = polygonsMapRef.current.get(locId);
+                if (existingPolygon) {
+                    // Smoothly update visual options without destroying the polygon layer
+                    existingPolygon.setOptions({
                         paths: paths.length === 1 ? paths[0] : paths,
-                        fillColor: '#7C3AED',
-                        fillOpacity: isSelected ? 0.22 : 0.08,
-                        strokeColor: '#7C3AED',
-                        strokeOpacity: isSelected ? 0.9 : 0.55,
-                        strokeWeight: isSelected ? 2.5 : 1.5,
-                        clickable: true,
-                        zIndex: isSelected ? 10 : 2,
+                        fillColor: style.fillColor || 'transparent',
+                        fillOpacity: style.fillOpacity,
+                        strokeColor: style.strokeColor,
+                        strokeOpacity: style.strokeOpacity,
+                        strokeWeight: style.strokeWidth,
+                        zIndex: style.zIndex,
                     });
-                    polygon.addListener('click', () => {
-                        onSelect && onSelect(item);
-                    });
-                    polygonsRef.current.push(polygon);
-                } catch (err) {
-                    console.warn('[PropertyMap.web] Failed to add polygon', err);
+                } else {
+                    try {
+                        const polygon = new window.google.maps.Polygon({
+                            map: mapRef.current,
+                            paths: paths.length === 1 ? paths[0] : paths,
+                            fillColor: style.fillColor || 'transparent',
+                            fillOpacity: style.fillOpacity,
+                            strokeColor: style.strokeColor,
+                            strokeOpacity: style.strokeOpacity,
+                            strokeWeight: style.strokeWidth,
+                            clickable: true,
+                            zIndex: style.zIndex,
+                        });
+                        polygon.addListener('click', () => {
+                            onSelect && onSelect(item);
+                        });
+                        polygonsMapRef.current.set(locId, polygon);
+                    } catch (err) {
+                        console.warn('[PropertyMap.web] Failed to add polygon', err);
+                    }
                 }
             });
         }
 
+        // Clean up polygons for localities no longer in view
+        polygonsMapRef.current.forEach((p, id) => {
+            if (!activeIds.has(id)) {
+                try { p.setMap(null); } catch (_) {}
+                polygonsMapRef.current.delete(id);
+            }
+        });
+    }, [intelligenceMode, localityRegions, selectedId, onSelect]);
+
+    useEffect(() => {
+        const polyMap = polygonsMapRef.current;
         return () => {
-            polygonsRef.current.forEach((p) => {
+            polyMap.forEach((p) => {
                 try { p.setMap(null); } catch (_) {}
             });
-            polygonsRef.current = [];
+            polyMap.clear();
         };
-    }, [intelligenceMode, localityRegions, selectedId, onSelect]);
+    }, []);
 
     const handleIdle = () => {
         const map = mapRef.current;
         if (!map) return;
         setCurrentZoom(map.getZoom() || 13);
-        if (!onRegionChangeComplete) return;
         const center = map.getCenter();
         const bounds = map.getBounds();
         if (!center || !bounds) return;
         const ne = bounds.getNorthEast();
         const sw = bounds.getSouthWest();
-        onRegionChangeComplete({
+        const latDelta = Math.abs(ne.lat() - sw.lat());
+        const lngDelta = Math.abs(ne.lng() - sw.lng());
+        setCurrentDelta(latDelta);
+        onRegionChangeComplete?.({
             latitude: center.lat(),
             longitude: center.lng(),
-            latitudeDelta: Math.abs(ne.lat() - sw.lat()),
-            longitudeDelta: Math.abs(ne.lng() - sw.lng()),
+            latitudeDelta: latDelta,
+            longitudeDelta: lngDelta,
         });
     };
+
+    const quantizedDelta = Math.round((currentDelta || 0.12) * 100) / 100;
+    const localityHierarchy = useMemo(() => {
+        if (!intelligenceMode || !localityRegions || localityRegions.length === 0) {
+            return null;
+        }
+        return computeLocalityMapHierarchy({
+            localityRegions,
+            latitudeDelta: quantizedDelta,
+            selectedId,
+        });
+    }, [intelligenceMode, localityRegions, quantizedDelta, selectedId]);
+
+    const handleClusterClick = useCallback((cluster) => {
+        if (!mapRef.current) return;
+        if (cluster.bounds && typeof window !== 'undefined' && window.google?.maps?.LatLngBounds) {
+            const bounds = new window.google.maps.LatLngBounds(
+                { lat: cluster.bounds.minLat, lng: cluster.bounds.minLng },
+                { lat: cluster.bounds.maxLat, lng: cluster.bounds.maxLng }
+            );
+            mapRef.current.fitBounds(bounds, { top: 70, bottom: 70, left: 70, right: 70 });
+        } else {
+            mapRef.current.panTo({ lat: cluster.latitude, lng: cluster.longitude });
+            mapRef.current.setZoom((mapRef.current.getZoom() || 12) + 2);
+        }
+    }, []);
 
     // Lightweight spatial clustering for Web when zoomed out (zoom < 13)
     const processedMarkers = useMemo(() => {
@@ -252,57 +317,177 @@ const PropertyMap = ({
                 </OverlayViewF>
             ) : null}
 
-            {/* Locality Intelligence Centroid Scores via OverlayViewF */}
-            {intelligenceMode && localityRegions && localityRegions.length > 0 ? (
-                localityRegions.map((item) => {
-                    const lat = item.locality?.latitude;
-                    const lng = item.locality?.longitude;
-                    if (!lat || !lng) return null;
-                    const isSelected = item.locality?.id === selectedId;
-                    const score = Math.round(item.score || 75);
+            {/* Locality Intelligence: Verified Municipal Polygons + Zoom-Aware Point Hierarchy */}
+            {intelligenceMode && localityHierarchy ? (
+                <>
+                    {/* 1. Centroid Scores for the 7 Verified Municipal Polygons */}
+                    {localityHierarchy.polygonItems.map((item) => {
+                        const locality = item.locality || item;
+                        const lat = locality.latitude;
+                        const lng = locality.longitude;
+                        if (!lat || !lng) return null;
+                        const isSelected = locality.id === selectedId;
+                        const anySelected = Boolean(selectedId && localityRegions.some((r) => (r.locality?.id || r.id) === selectedId));
+                        const style = getLocalityPolygonStyle(item, isSelected, anySelected);
+                        const score = formatAreaScore(item.score);
 
-                    return (
-                        <OverlayViewF
-                            key={`loc_${item.locality.id}`}
-                            position={{ lat, lng }}
-                            mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
-                            getPixelPositionOffset={(width, height) => ({
-                                x: -(width / 2),
-                                y: -(height / 2),
-                            })}
-                        >
-                            <div
-                                onClick={(e) => {
-                                    e.stopPropagation();
-                                    onSelect && onSelect(item);
-                                }}
-                                style={{
-                                    backgroundColor: isSelected ? '#7C3AED' : '#FFFFFF',
-                                    color: isSelected ? '#FFFFFF' : '#111827',
-                                    border: `1.5px solid ${isSelected ? '#7C3AED' : '#E5E7EB'}`,
-                                    borderRadius: '16px',
-                                    padding: '5px 12px',
-                                    display: 'flex',
-                                    alignItems: 'center',
-                                    gap: '6px',
-                                    fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
-                                    fontSize: '13px',
-                                    fontWeight: 700,
-                                    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.08)',
-                                    cursor: 'pointer',
-                                    userSelect: 'none',
-                                    whiteSpace: 'nowrap',
-                                    transform: isSelected ? 'scale(1.08)' : 'scale(1)',
-                                    transition: 'transform 150ms ease, background-color 150ms ease',
-                                    zIndex: isSelected ? 100 : 20,
-                                }}
+                        return (
+                            <OverlayViewF
+                                key={`poly_marker_${locality.id}`}
+                                position={{ lat, lng }}
+                                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                getPixelPositionOffset={(width, height) => ({
+                                    x: -(width / 2),
+                                    y: -(height / 2),
+                                })}
                             >
-                                <span style={{ color: isSelected ? '#FFFFFF' : '#7C3AED', fontWeight: 800 }}>{score}</span>
-                                <span>{item.locality.name}</span>
-                            </div>
-                        </OverlayViewF>
-                    );
-                })
+                                <div
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelect && onSelect(item);
+                                    }}
+                                    style={{
+                                        backgroundColor: '#FFFFFF',
+                                        color: '#111827',
+                                        border: isSelected ? '2px solid #111827' : '1.2px solid #1F1F1F',
+                                        borderRadius: '16px',
+                                        padding: '4px 9px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                                        fontSize: '11px',
+                                        fontWeight: isSelected ? 800 : 700,
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: isSelected ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
+                                        zIndex: isSelected ? 120 : 20,
+                                    }}
+                                >
+                                    {style.dotColor ? (
+                                        <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: style.dotColor }} />
+                                    ) : null}
+                                    <span style={{ letterSpacing: '0.4px' }}>{locality.name?.toUpperCase()}</span>
+                                    {score != null ? (
+                                        <>
+                                            <span style={{ color: '#9CA3AF' }}>·</span>
+                                            <span style={{ fontWeight: 800 }}>{score}</span>
+                                        </>
+                                    ) : null}
+                                </div>
+                            </OverlayViewF>
+                        );
+                    })}
+
+                    {/* 2. Zoom-Aware POINT_ONLY Locality Markers & Clusters */}
+                    {localityHierarchy.pointMarkers.map((marker) => {
+                        const lat = marker.latitude;
+                        const lng = marker.longitude;
+                        if (!lat || !lng) return null;
+
+                        if (marker.isCluster) {
+                            const relevanceDot = marker.relevanceTier !== 'NEUTRAL'
+                                ? (RELEVANCE_CONFIG[marker.relevanceTier]?.dotColor || null)
+                                : null;
+
+                            return (
+                                <OverlayViewF
+                                    key={marker.clusterId}
+                                    position={{ lat, lng }}
+                                    mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                    getPixelPositionOffset={(width, height) => ({
+                                        x: -(width / 2),
+                                        y: -(height / 2),
+                                    })}
+                                >
+                                    <div
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleClusterClick(marker);
+                                        }}
+                                        style={{
+                                            backgroundColor: '#FFFFFF',
+                                            color: '#111827',
+                                            border: '1.2px solid #1F1F1F',
+                                            borderRadius: '16px',
+                                            padding: '4px 8.5px',
+                                            display: 'flex',
+                                            alignItems: 'center',
+                                            gap: '4px',
+                                            fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                                            cursor: 'pointer',
+                                            userSelect: 'none',
+                                            whiteSpace: 'nowrap',
+                                            zIndex: 25,
+                                        }}
+                                    >
+                                        {relevanceDot ? (
+                                            <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: relevanceDot }} />
+                                        ) : null}
+                                        <span style={{ fontSize: '11px', fontWeight: 800 }}>{marker.count}</span>
+                                        <span style={{ fontSize: '9.5px', fontWeight: 700, color: '#6B7280', letterSpacing: '0.5px' }}>AREAS</span>
+                                    </div>
+                                </OverlayViewF>
+                            );
+                        }
+
+                        const locality = marker.locality;
+                        const isSelected = marker.isSelected || locality.id === selectedId;
+                        const relevanceDot = marker.relevanceTier !== 'NEUTRAL'
+                            ? (RELEVANCE_CONFIG[marker.relevanceTier]?.dotColor || null)
+                            : null;
+                        const score = formatAreaScore(marker.dominantScore);
+
+                        return (
+                            <OverlayViewF
+                                key={`pt_${locality.id}`}
+                                position={{ lat, lng }}
+                                mapPaneName={OverlayView.OVERLAY_MOUSE_TARGET}
+                                getPixelPositionOffset={(width, height) => ({
+                                    x: -(width / 2),
+                                    y: -(height / 2),
+                                })}
+                            >
+                                <div
+                                    onClick={(e) => {
+                                        e.stopPropagation();
+                                        onSelect && onSelect(marker.items[0]);
+                                    }}
+                                    style={{
+                                        backgroundColor: '#FFFFFF',
+                                        color: '#111827',
+                                        border: isSelected ? '2px solid #111827' : '1.2px solid #1F1F1F',
+                                        borderRadius: '16px',
+                                        padding: '4px 9px',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        gap: '5px',
+                                        fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
+                                        fontSize: '11px',
+                                        fontWeight: isSelected ? 800 : 700,
+                                        cursor: 'pointer',
+                                        userSelect: 'none',
+                                        whiteSpace: 'nowrap',
+                                        boxShadow: isSelected ? '0 4px 12px rgba(0, 0, 0, 0.25)' : 'none',
+                                        zIndex: isSelected ? 120 : 30,
+                                    }}
+                                >
+                                    {relevanceDot ? (
+                                        <div style={{ width: 6, height: 6, borderRadius: '50%', backgroundColor: relevanceDot }} />
+                                    ) : null}
+                                    <span style={{ letterSpacing: '0.4px' }}>{locality.name?.toUpperCase()}</span>
+                                    {score != null ? (
+                                        <>
+                                            <span style={{ color: '#9CA3AF' }}>·</span>
+                                            <span style={{ fontWeight: 800 }}>{score}</span>
+                                        </>
+                                    ) : null}
+                                </div>
+                            </OverlayViewF>
+                        );
+                    })}
+                </>
             ) : (
                 /* Normal Mode: Compact Airbnb-style price pills via OverlayViewF */
                 processedMarkers.map((item) => {
@@ -333,8 +518,8 @@ const PropertyMap = ({
                                     height: '36px',
                                     borderRadius: '50%',
                                     backgroundColor: '#FFFFFF',
-                                    border: '2px solid #7C3AED',
-                                    color: '#7C3AED',
+                                    border: '2px solid #111827',
+                                    color: '#111827',
                                     display: 'flex',
                                     alignItems: 'center',
                                     justifyContent: 'center',
@@ -347,16 +532,16 @@ const PropertyMap = ({
                                     transition: 'transform 150ms ease',
                                     zIndex: 40,
                                 } : {
-                                    backgroundColor: selected ? '#7C3AED' : '#FFFFFF',
+                                    backgroundColor: selected ? '#111827' : '#FFFFFF',
                                     color: selected ? '#FFFFFF' : '#111827',
-                                    border: `1.5px solid ${selected ? '#7C3AED' : '#E5E7EB'}`,
+                                    border: `1.5px solid ${selected ? '#111827' : '#E5E7EB'}`,
                                     borderRadius: '18px',
                                     padding: '5px 12px',
                                     fontFamily: 'Inter, -apple-system, BlinkMacSystemFont, sans-serif',
                                     fontSize: '13px',
                                     fontWeight: 700,
                                     boxShadow: selected
-                                        ? '0 4px 12px rgba(124, 58, 237, 0.3)'
+                                        ? '0 4px 12px rgba(0, 0, 0, 0.25)'
                                         : '0 2px 6px rgba(0, 0, 0, 0.08)',
                                     cursor: 'pointer',
                                     userSelect: 'none',

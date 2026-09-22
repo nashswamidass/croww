@@ -1,5 +1,6 @@
 import {
     collection,
+    deleteDoc,
     doc,
     getCountFromServer,
     getDoc,
@@ -8,21 +9,23 @@ import {
     limit,
     orderBy,
     query,
+    runTransaction,
     serverTimestamp,
     setDoc,
     startAfter,
     updateDoc,
     where,
-    writeBatch,
 } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
 import {
     COLLECTIONS,
+    LISTING_AVAILABILITY_HISTORY_SUBCOLLECTION,
     LISTING_PRIVATE_META_DOC_ID,
     LISTING_PRIVATE_META_SUBCOLLECTION,
     assertNoIssues,
     canTransitionListing,
     listingProtectedFieldsTouched,
+    validateAvailabilityInput,
     validateListingInput,
 } from '../../domain/property';
 import { propertyService } from './propertyService';
@@ -76,6 +79,8 @@ function privateMetaRef(listingId) {
     return doc(db, COLLECTIONS.listings, listingId, LISTING_PRIVATE_META_SUBCOLLECTION, LISTING_PRIVATE_META_DOC_ID);
 }
 
+const inFlightAvailabilityUpdates = new Map();
+
 export const listingService = {
     async createListing(input = {}) {
         const uid = requireUid();
@@ -109,6 +114,12 @@ export const listingService = {
             leaseDurationMonths: input.leaseDurationMonths ?? null,
             negotiable: input.negotiable !== false,
             availableFrom: input.availableFrom || null,
+            occupancy: input.occupancy || null,
+            taxonomyId: input.taxonomyId || null,
+            listingTypeId: input.listingTypeId || input.taxonomyId || null,
+            foodIncluded: Boolean(input.foodIncluded),
+            attachedBathroom: Boolean(input.attachedBathroom),
+            genderPreference: input.genderPreference || null,
             contactPreference: input.contactPreference || 'in_app',
             representationStatus: 'unverified',
             verification: {
@@ -136,19 +147,26 @@ export const listingService = {
         };
 
         const listingRef = doc(collection(db, COLLECTIONS.listings));
-        const batch = writeBatch(db);
-        batch.set(listingRef, payload);
-        batch.set(privateMetaRef(listingRef.id), {
-            moderation: {
-                status: 'NONE',
-                reason: null,
-                reviewedAt: null,
-                reviewedByUid: null,
-            },
-            updatedAt: serverTimestamp(),
-            updatedByUid: uid,
-        });
-        await withTimeout(batch.commit(), 10000, 'createListing');
+        await withTimeout(setDoc(listingRef, payload), 10000, 'createListingDoc');
+        try {
+            await withTimeout(
+                setDoc(privateMetaRef(listingRef.id), {
+                    moderation: {
+                        status: 'NONE',
+                        reason: null,
+                        reviewedAt: null,
+                        reviewedByUid: null,
+                    },
+                    updatedAt: serverTimestamp(),
+                    updatedByUid: uid,
+                }),
+                10000,
+                'createListingPrivateMeta'
+            );
+        } catch (metaErr) {
+            try { await deleteDoc(listingRef); } catch (_err) { /* ignore rollback error */ }
+            throw metaErr;
+        }
         return { id: listingRef.id, ...payload };
     },
 
@@ -250,10 +268,34 @@ export const listingService = {
             'title', 'description', 'askingPrice', 'rentMonthly', 'deposit',
             'maintenanceMonthly', 'leaseDurationMonths', 'negotiable',
             'availableFrom', 'contactPreference', 'expiresAt',
+            'occupancy', 'foodIncluded', 'attachedBathroom', 'genderPreference',
+            'taxonomyId', 'listingTypeId',
+            'availability', 'availableCount', 'availabilityMode', 'availableFrom',
         ];
         offerKeys.forEach((key) => {
             if (patch[key] !== undefined) updates[key] = patch[key];
         });
+
+        // Ensure duplicated fields remain in lockstep on updateListing write path
+        if (updates.availability && typeof updates.availability === 'object') {
+            if (updates.availability.availableCount !== undefined) {
+                updates.availableCount = updates.availability.availableCount;
+            }
+            if (updates.availability.availabilityMode !== undefined) {
+                updates.availabilityMode = updates.availability.availabilityMode;
+            }
+            if (updates.availability.availableFrom !== undefined) {
+                updates.availableFrom = updates.availability.availableFrom;
+            }
+        } else if (updates.availableCount !== undefined || updates.availabilityMode !== undefined || updates.availableFrom !== undefined) {
+            const baseAvail = current.availability || {};
+            updates.availability = {
+                ...baseAvail,
+                ...(updates.availableCount !== undefined && { availableCount: updates.availableCount }),
+                ...(updates.availabilityMode !== undefined && { availabilityMode: updates.availabilityMode }),
+                ...(updates.availableFrom !== undefined && { availableFrom: updates.availableFrom }),
+            };
+        }
 
         if (patch.status && patch.status !== current.status) {
             if (patch.status === 'PUBLISHED') {
@@ -271,6 +313,121 @@ export const listingService = {
 
         await withTimeout(updateDoc(doc(db, COLLECTIONS.listings, listingId), updates), 10000, 'updateListing');
         return { ...current, ...updates, id: listingId };
+    },
+
+    async updateAvailability(listingId, availabilityInput = {}, options = {}) {
+        const uid = requireUid();
+        if (!listingId || typeof listingId !== 'string') throw new Error('Listing ID is required');
+
+        // Prevent duplicate action / rapid double-submission for the same listing
+        const inFlight = inFlightAvailabilityUpdates.get(listingId);
+        if (inFlight) {
+            return inFlight;
+        }
+
+        const executeUpdate = async () => {
+            const listingRef = doc(db, COLLECTIONS.listings, listingId);
+            const historyColRef = collection(db, COLLECTIONS.listings, listingId, LISTING_AVAILABILITY_HISTORY_SUBCOLLECTION);
+            const historyRef = doc(historyColRef);
+
+            const result = await withTimeout(
+                runTransaction(db, async (transaction) => {
+                    const snap = await transaction.get(listingRef);
+                    if (!snap.exists()) throw new Error('Listing not found');
+                    const current = { id: snap.id, ...snap.data() };
+
+                    if (current.listedByUid !== uid) {
+                        throw new Error('Not allowed to update availability for this listing');
+                    }
+
+                    const protectedTouched = listingProtectedFieldsTouched(availabilityInput);
+                    if (protectedTouched.length) {
+                        throw new Error(`Protected fields cannot be updated: ${protectedTouched.join(', ')}`);
+                    }
+
+                    const issues = validateAvailabilityInput(availabilityInput);
+                    assertNoIssues(issues);
+
+                    const prevCount = current.availability?.availableCount ?? current.availableCount ?? null;
+                    const newCount = Number(availabilityInput.availableCount);
+                    const prevFrom = current.availability?.availableFrom ?? current.availableFrom ?? null;
+                    const normalizedFrom = availabilityInput.availableFrom ? String(availabilityInput.availableFrom).trim() : null;
+
+                    let changeType = options.changeType;
+                    if (!changeType) {
+                        if (newCount === 0) {
+                            changeType = 'MARKED_FULL';
+                        } else if ((prevCount === 0 || prevCount == null) && newCount > 0) {
+                            changeType = 'REOPENED';
+                        } else if (prevCount != null && newCount > prevCount) {
+                            changeType = 'VACANCY_ADDED';
+                        } else if (prevCount != null && newCount < prevCount) {
+                            changeType = 'VACANCY_REDUCED';
+                        } else {
+                            changeType = 'VACANCY_ADDED';
+                        }
+                    }
+
+                    const availabilityDoc = {
+                        availabilityMode: availabilityInput.availabilityMode,
+                        totalCapacity: Number(availabilityInput.totalCapacity),
+                        occupiedCount: Number(availabilityInput.occupiedCount),
+                        availableCount: newCount,
+                        availableFrom: normalizedFrom,
+                        updatedAt: serverTimestamp(),
+                        updatedByUid: uid,
+                    };
+
+                    const updates = {
+                        availability: availabilityDoc,
+                        availableCount: newCount,
+                        availabilityMode: availabilityInput.availabilityMode,
+                        availableFrom: normalizedFrom,
+                        updatedAt: serverTimestamp(),
+                        updatedByUid: uid,
+                    };
+
+                    const historyPayload = {
+                        listingId,
+                        timestamp: serverTimestamp(),
+                        actor: uid,
+                        previousAvailableCount: prevCount,
+                        newAvailableCount: newCount,
+                        previousAvailableFrom: prevFrom,
+                        newAvailableFrom: normalizedFrom,
+                        changeType,
+                        notes: options.notes || null,
+                    };
+
+                    transaction.update(listingRef, updates);
+                    transaction.set(historyRef, historyPayload);
+
+                    return { ...current, ...updates, id: listingId, historyId: historyRef.id };
+                }),
+                12000,
+                'updateAvailabilityTransaction'
+            );
+
+            return result;
+        };
+
+        const updatePromise = executeUpdate().finally(() => {
+            inFlightAvailabilityUpdates.delete(listingId);
+        });
+
+        inFlightAvailabilityUpdates.set(listingId, updatePromise);
+        return updatePromise;
+    },
+
+    async listAvailabilityHistory(listingId, { limitCount = 20 } = {}) {
+        if (!listingId) return [];
+        const q = query(
+            collection(db, COLLECTIONS.listings, listingId, LISTING_AVAILABILITY_HISTORY_SUBCOLLECTION),
+            orderBy('timestamp', 'desc'),
+            limit(limitCount)
+        );
+        const snap = await withTimeout(getDocs(q), 10000, 'listAvailabilityHistory');
+        return snap.docs.map(toRecord);
     },
 
     async setCoverThumbnail(listingId, coverThumbnailUrl) {

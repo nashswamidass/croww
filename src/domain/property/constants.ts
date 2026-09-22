@@ -99,6 +99,8 @@ export const PRIVATE_GEO_DOC_ID = 'current';
 /** Subcollection under a listing. Moderation internals are not on the public listing doc. */
 export const LISTING_PRIVATE_META_SUBCOLLECTION = 'private_meta';
 export const LISTING_PRIVATE_META_DOC_ID = 'current';
+/** Subcollection under a listing for immutable vacancy and availability change history. */
+export const LISTING_AVAILABILITY_HISTORY_SUBCOLLECTION = 'availability_history';
 /** Admin/server only. Unpublished or raw intelligence — never public client writes. */
 export const LOCALITY_INTELLIGENCE_DRAFT_SUBCOLLECTION = 'intelligence_draft';
 export const LOCALITY_INTELLIGENCE_HISTORY_SUBCOLLECTION = 'intelligence_history';

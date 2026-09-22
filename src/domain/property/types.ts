@@ -25,6 +25,7 @@ import {
     MODERATION_STATUSES,
     REPRESENTATION_STATUSES,
 } from './constants';
+import type { AvailabilityMode, ListingAvailability } from './availability/types.ts';
 
 export type PropertyCategory = (typeof PROPERTY_CATEGORIES)[number];
 export type TransactionType = (typeof TRANSACTION_TYPES)[number];
@@ -213,6 +214,10 @@ export type ListingRecord = {
     representationStatus?: RepresentationStatus;
     /** Server-only availability flag for Explore cards. Not a 3D filter. */
     spatialTourAvailable?: boolean;
+    /** Normalized inventory/vacancy tracking for PG / co-living / shared accommodation. */
+    availability?: ListingAvailability | null;
+    availableCount?: number | null;
+    availabilityMode?: AvailabilityMode | null;
     createdByUid?: string;
     updatedByUid?: string | null;
     createdAt: TimestampLike;

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import {
     ActivityIndicator,
     StyleSheet,
@@ -147,7 +147,12 @@ export default function AreasScreen() {
                         city: targetCity,
                         weights,
                     });
-                    const score = result?.score != null ? result.score : 70;
+                    const publishedAdminScore = locality.publishedScore?.overallScore
+                        ?? locality.intelligence?.areaScore?.score
+                        ?? null;
+                    const score = typeof publishedAdminScore === 'number'
+                        ? publishedAdminScore
+                        : (result?.score != null ? result.score : 70);
                     return {
                         locality,
                         score,
@@ -271,14 +276,17 @@ export default function AreasScreen() {
                         listings={mapProperties}
                         selectedId={selectedLocality?.id}
                         onSelect={(item) => {
+                            const targetId = item.listingId || item.id || item.locality?.id;
                             const found = scoredLocalities.find(
-                                (s) => s.locality.id === (item.listingId || item.id)
+                                (s) => (s.locality?.id || s.id) === targetId
                             );
                             if (found) {
                                 setSelectedLocality(found.locality);
                                 setSelectedLocalityData(found);
                             }
                         }}
+                        intelligenceMode={phase === PHASES.MAP}
+                        localityRegions={scoredLocalities}
                     />
                 </View>
             )}

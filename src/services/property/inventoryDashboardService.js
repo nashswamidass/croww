@@ -350,4 +350,22 @@ export const inventoryDashboardService = {
             wrap(error, 'INVALID_LISTING', 'Could not load inquiries');
         }
     },
+
+    async updateListingAvailability(listingId, availabilityInput, options = {}) {
+        requireUid();
+        try {
+            return await listingService.updateAvailability(listingId, availabilityInput, options);
+        } catch (error) {
+            wrap(error, 'UPDATE_FAILED', error?.message || 'Could not update listing availability');
+        }
+    },
+
+    async listListingAvailabilityHistory(listingId, options = {}) {
+        requireUid();
+        try {
+            return await listingService.listAvailabilityHistory(listingId, options);
+        } catch (error) {
+            wrap(error, 'HISTORY_FAILED', error?.message || 'Could not load availability history');
+        }
+    },
 };

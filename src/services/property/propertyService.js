@@ -1,5 +1,6 @@
 import {
     collection,
+    deleteDoc,
     doc,
     getCountFromServer,
     getDoc,
@@ -10,7 +11,6 @@ import {
     setDoc,
     updateDoc,
     where,
-    writeBatch,
     GeoPoint,
 } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
@@ -175,20 +175,21 @@ export const propertyService = {
             updatedAt: serverTimestamp(),
         };
 
-        const batch = writeBatch(db);
-        batch.set(ref, payload);
-        const exactGeo = buildGeoFields(exact.latitude, exact.longitude);
-        batch.set(privateGeoRef(ref.id), {
-            latitude: exactGeo.latitude,
-            longitude: exactGeo.longitude,
-            geohash: exactGeo.geohash,
-            geo: new GeoPoint(exactGeo.latitude, exactGeo.longitude),
-            addressLine1: address.line1 ? String(address.line1).trim() : null,
-            pincode: address.pincode ? String(address.pincode).trim() : null,
-            updatedAt: serverTimestamp(),
-            updatedByUid: uid,
-        });
-        await withTimeout(batch.commit(), 10000, 'createProperty');
+        // Write the property document first so that private_geo rules can verify
+        // ownership via isPropertyOwnerOrCreator. A Firestore batch evaluates rules
+        // against the pre-batch state, so private_geo creation in a batch always
+        // fails (exists(properties/{id}) returns false). Two sequential writes fix this.
+        await withTimeout(setDoc(ref, payload), 10000, 'createProperty');
+        try {
+            await writePrivateGeo(ref.id, uid, exact, {
+                addressLine1: address.line1 ? String(address.line1).trim() : null,
+                pincode: address.pincode ? String(address.pincode).trim() : null,
+            });
+        } catch (geoError) {
+            // Best-effort rollback: remove the property if private_geo write fails.
+            try { await deleteDoc(ref); } catch (_rollbackErr) { /* ignore */ }
+            throw geoError;
+        }
         return { id: ref.id, ...payload };
     },
 

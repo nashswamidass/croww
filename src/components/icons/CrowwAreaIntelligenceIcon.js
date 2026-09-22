@@ -14,7 +14,7 @@ import Svg, { Circle, Path, G } from 'react-native-svg';
  */
 export default function CrowwAreaIntelligenceIcon({
     size = 24,
-    color = '#7C3AED',
+    color = '#111827',
     focused = false,
     style,
 }) {

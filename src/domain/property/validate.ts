@@ -31,6 +31,8 @@ import type {
     PropertyStatus,
     PropertySubtype,
 } from './types';
+import { validateAvailabilityInput } from './availability/validation.ts';
+import type { AvailabilityInput } from './availability/types.ts';
 
 export type ValidationIssue = { field: string; message: string };
 
@@ -215,6 +217,13 @@ export function validateListingInput(input: Record<string, unknown>): Validation
     }
     if (input.sourceChannel != null && !includes(INGESTION_CHANNELS, input.sourceChannel)) {
         issues.push({ field: 'source.channel', message: 'Unknown ingestion channel' });
+    }
+    if (input.availability != null) {
+        const availIssues = validateAvailabilityInput(input.availability as AvailabilityInput);
+        issues.push(...availIssues);
+    }
+    if (input.availableCount != null && !optionalNonNegative(input.availableCount)) {
+        issues.push({ field: 'availableCount', message: 'Cannot be negative' });
     }
     return issues;
 }

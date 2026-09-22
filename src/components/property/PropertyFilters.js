@@ -343,8 +343,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     categoryChipActive: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: '#111827',
+        borderColor: '#111827',
     },
     categoryChipText: {
         color: COLORS.primary,
@@ -372,8 +372,8 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     refinePillActive: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: '#111827',
+        borderColor: '#111827',
     },
     refinePillText: {
         color: COLORS.secondary,
@@ -467,15 +467,15 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.background,
     },
     sheetChipActive: {
-        backgroundColor: COLORS.accentMuted,
-        borderColor: COLORS.accent,
+        backgroundColor: '#111827',
+        borderColor: '#111827',
     },
     sheetChipText: {
         color: COLORS.primary,
         fontWeight: '600',
     },
     sheetChipTextActive: {
-        color: COLORS.accent,
+        color: '#FFFFFF',
         fontWeight: '700',
     },
     sheetFooter: {

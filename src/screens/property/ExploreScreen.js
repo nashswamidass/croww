@@ -7,6 +7,7 @@ import {
     TouchableOpacity,
     ActivityIndicator,
     Platform,
+    Image,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -20,30 +21,24 @@ import PropertyResultCard from '../../components/property/PropertyResultCard';
 import SaveSearchModal from '../../components/property/saved/SaveSearchModal';
 import AuthPromptModal from '../../components/auth/AuthPromptModal';
 import { useAuth } from '../../context/AuthContext';
-import { useExplore } from '../../context/ExploreContext';
+import { useExplore, DEFAULT_EXPLORE_FILTERS } from '../../context/ExploreContext';
 import { useExploreLocation } from '../../hooks/useExploreLocation';
 import { useExploreDiscovery } from '../../hooks/useExploreDiscovery';
 import { savedSearchService } from '../../services/property';
 import { showAlert } from '../../utils/showAlert';
 import { LAUNCH_VIEWPORT } from '../../constants/explore';
-import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS, FONT_SIZES } from '../../constants/theme';
 import CrowwRive from '../../components/rive/CrowwRive';
 import { EMPTY_STATES_RIVE_SPEC } from '../../components/rive/specs/emptyStates.spec';
 import { useTaxonomy } from '../../hooks/useTaxonomy';
 import AreaIntelligenceOverlay, { INTELLIGENCE_PHASES } from '../../components/intelligence/AreaIntelligenceOverlay';
-import { localityService } from '../../services/property/localityService';
-import { areaScoreService } from '../../services/intelligence/areaScoreService';
-import { areaScorePreferenceService } from '../../services/intelligence/areaScorePreferenceService';
+import AreaQuestionnaireSheet from '../../components/intelligence/AreaQuestionnaireSheet';
+import { localityMatcherService } from '../../services/intelligence/localityMatcherService';
 import { getFloatingNavbarClearance } from '../../constants/layout';
 
-const FALLBACK_CHENNAI_LOCALITIES = [
-    { id: 'adyar', name: 'Adyar', city: 'Chennai', latitude: 13.0012, longitude: 80.2565, intelligence: { flood: { class: 'MINIMAL' }, transport: { metro: { available: true } } }, staysCount: 23 },
-    { id: 'thiruvanmiyur', name: 'Thiruvanmiyur', city: 'Chennai', latitude: 12.9850, longitude: 80.2600, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 18 },
-    { id: 't_nagar', name: 'T Nagar', city: 'Chennai', latitude: 13.0418, longitude: 80.2341, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 31 },
-    { id: 'velachery', name: 'Velachery', city: 'Chennai', latitude: 12.9750, longitude: 80.2200, intelligence: { flood: { class: 'MODERATE' }, transport: { metro: { available: true } } }, staysCount: 27 },
-    { id: 'anna_nagar', name: 'Anna Nagar', city: 'Chennai', latitude: 13.0850, longitude: 80.2100, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: true } } }, staysCount: 24 },
-    { id: 'omr', name: 'OMR', city: 'Chennai', latitude: 12.8950, longitude: 80.2280, intelligence: { flood: { class: 'LOW' }, transport: { metro: { available: false } } }, staysCount: 42 },
-];
+const CARD_WIDTH = 220;
+const CARD_GAP = 10;
+const CARD_SNAP = CARD_WIDTH + CARD_GAP; // 230
 
 const SAMPLE_PREVIEW_LISTINGS = [
     {
@@ -260,6 +255,10 @@ const ExploreScreen = () => {
         focusRegion,
         isIntelligenceMode,
         setIntelligenceMode,
+        areasDrawerOpen,
+        setAreasDrawerOpen,
+        areasDestination,
+        setAreasDestination,
     } = useExplore();
     const { consumerCategories } = useTaxonomy();
     const { userLocation, requestLocation, status: _locationStatus } = useExploreLocation();
@@ -271,20 +270,28 @@ const ExploreScreen = () => {
     const [saveOpen, setSaveOpen] = useState(false);
     const [saveBusy, setSaveBusy] = useState(false);
     const [saveError, setSaveError] = useState(null);
+    const [areasMatcherRan, setAreasMatcherRan] = useState(false);
+
+    // Carousel & View Mode state
+    const carouselRef = useRef(null);
+    const isProgrammaticScrollRef = useRef(false);
+    const scrollTimeoutRef = useRef(null);
+    const [viewMode, setViewMode] = useState('map'); // 'map' | 'list'
+    const setSelectedListingIdRef = useRef(setSelectedListingId);
+    setSelectedListingIdRef.current = setSelectedListingId;
 
     // Area Intelligence state
     const [intelligencePhase, setIntelligencePhase] = useState(INTELLIGENCE_PHASES.INTRO);
-    const [stepIndex, setStepIndex] = useState(0);
-    const [answers, setAnswers] = useState({
-        0: ['stay_private_room'],
-        1: ['12k_20k'],
-        2: ['omr'],
-        3: ['metro'],
-        4: ['flood', 'transport'],
-    });
     const [scoredLocalities, setScoredLocalities] = useState([]);
     const [selectedLocality, setSelectedLocality] = useState(null);
     const [selectedLocalityData, setSelectedLocalityData] = useState(null);
+    const [isAreaDetailOpen, setIsAreaDetailOpen] = useState(false);
+    const [areasInputs, setAreasInputs] = useState({
+        destination: null,
+        budget: null,
+        commuteMode: 'transit',
+        priorities: ['short_commute', 'low_rent'],
+    });
 
     const canSaveSearch = savedSearchService.isMeaningful({
         city,
@@ -305,15 +312,21 @@ const ExploreScreen = () => {
         if (route.params?.city && route.params.city !== city) {
             selectCity(route.params.city);
         }
+        if (route.params?.intelligenceMode) {
+            setIntelligenceMode(true);
+            setIntelligencePhase(INTELLIGENCE_PHASES.MAP);
+        }
         if (route.params?.localityId) {
             focusLocality({
                 id: route.params.localityId,
-                name: route.params.localityName,
+                name: route.params.localityName || route.params.locality,
                 viewport: route.params.viewport,
                 city: route.params.city,
             });
+        } else if (route.params?.localityName || route.params?.locality) {
+            setQuery(route.params.localityName || route.params.locality);
         }
-    }, [route.params, selectCity, focusLocality, city]);
+    }, [route.params, selectCity, focusLocality, city, setIntelligenceMode]);
 
     useEffect(() => {
         if (!focusRegion) return;
@@ -396,14 +409,64 @@ const ExploreScreen = () => {
         });
     }, [setViewport]);
 
+    useEffect(() => {
+        return () => {
+            if (scrollTimeoutRef.current) {
+                clearTimeout(scrollTimeoutRef.current);
+            }
+        };
+    }, []);
+
+    const getItemLayout = useCallback((_, index) => ({
+        length: CARD_SNAP,
+        offset: CARD_SNAP * index,
+        index,
+    }), []);
+
+    const viewabilityConfig = useRef({
+        itemVisiblePercentThreshold: 60,
+        waitForInteraction: true,
+    }).current;
+
+    const onViewableItemsChanged = useRef(({ viewableItems }) => {
+        if (isProgrammaticScrollRef.current) return;
+        if (viewableItems && viewableItems.length > 0) {
+            const centerItem = viewableItems[0]?.item;
+            if (centerItem?.listingId) {
+                setSelectedListingIdRef.current(centerItem.listingId);
+            }
+        }
+    }).current;
+
     const openListing = useCallback((item) => {
         setSelectedListingId(item.listingId);
-        navigation.navigate('Listing', { listingId: item.listingId });
+        navigation.navigate('Listing', { listingId: item.listingId, initialListing: item });
     }, [navigation, setSelectedListingId]);
 
     const onSelectMarker = useCallback((item) => {
+        if (!item?.listingId) return;
         setSelectedListingId(item.listingId);
-    }, [setSelectedListingId]);
+        const index = displayedResults.findIndex(r => r.listingId === item.listingId);
+        if (index !== -1 && carouselRef.current) {
+            isProgrammaticScrollRef.current = true;
+            if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+            try {
+                carouselRef.current.scrollToIndex({
+                    index,
+                    animated: true,
+                    viewPosition: 0.5,
+                });
+            } catch (_err) {
+                carouselRef.current.scrollToOffset({
+                    offset: index * CARD_SNAP,
+                    animated: true,
+                });
+            }
+            scrollTimeoutRef.current = setTimeout(() => {
+                isProgrammaticScrollRef.current = false;
+            }, 350);
+        }
+    }, [displayedResults, setSelectedListingId]);
 
     const onSelectCard = useCallback((item) => {
         setSelectedListingId(item.listingId);
@@ -481,194 +544,93 @@ const ExploreScreen = () => {
         }
     }, [city, localityId, searchLocation, viewport, filters, navigation]);
 
-    // Dynamic Step Options for Area Intelligence
-    const stepOptions = useMemo(() => {
-        const taxonomyOptions = (consumerCategories && consumerCategories.length > 0)
-            ? consumerCategories.map((cat) => {
-                let icon = cat.icon || 'bed-outline';
-                if (icon === 'sparkles-outline' || icon === 'sparkles') {
-                    icon = 'people-circle-outline';
-                }
-                return {
-                    id: cat.typeId || cat.id,
-                    label: cat.displayName,
-                    description: cat.shortDescription || cat.displayName,
-                    icon,
-                };
-            })
-            : [
-                { id: 'stay_bed', label: 'Bed', description: 'Single bed space in a shared room or hostel', icon: 'bed-outline' },
-                { id: 'stay_shared_room', label: 'Shared Room', description: 'Shared bedroom with 1 or 2 roommates', icon: 'people-outline' },
-                { id: 'stay_private_room', label: 'Private Room', description: 'Independent private bedroom in an apartment or house', icon: 'key-outline' },
-                { id: 'stay_pg', label: 'PG', description: 'Paying guest accommodation with food & housekeeping', icon: 'business-outline' },
-                { id: 'stay_coliving', label: 'Co-living', description: 'Fully managed with food, WiFi, and housekeeping', icon: 'people-circle-outline' },
-                { id: 'stay_roommate', label: 'Roommate Replacement', description: 'Take over an existing shared lease spot', icon: 'person-add-outline' },
-            ];
 
-        return [
-            {
-                title: 'What are you looking for?',
-                subtitle: 'Select the home format that matches your stay.',
-                isMulti: false,
-                options: taxonomyOptions,
-            },
-            {
-                title: 'What is your budget?',
-                subtitle: 'Target monthly rent excluding deposit.',
-                isMulti: false,
-                options: [
-                    { id: 'under_12k', label: 'Under ₹12,000 / month', description: 'Budget & shared stays', icon: 'wallet-outline' },
-                    { id: '12k_20k', label: '₹12,000 – ₹20,000 / month', description: 'Standard 1BHK / premium private rooms', icon: 'cash-outline' },
-                    { id: '20k_35k', label: '₹20,000 – ₹35,000 / month', description: '2BHK / gated communities', icon: 'trending-up-outline' },
-                    { id: 'above_35k', label: '₹35,000+ / month', description: 'Luxury 3BHK & premium stays', icon: 'diamond-outline' },
-                ],
-            },
-            {
-                title: 'Where do you work or study?',
-                subtitle: 'Croww optimizes travel times and metro access to your primary hub.',
-                isMulti: false,
-                options: [
-                    { id: 'omr', label: 'OMR / IT Corridor', description: 'Tidel Park, SRP Tools, Sholinganallur, Siruseri', icon: 'laptop-outline' },
-                    { id: 'guindy', label: 'Guindy / Olympia Tech Park', description: 'Ekkattuthangal, Kathipara, Ashok Nagar', icon: 'briefcase-outline' },
-                    { id: 'central', label: 'Central / Nungambakkam', description: 'T. Nagar, Anna Salai, Alwarpet, Mylapore', icon: 'business-outline' },
-                    { id: 'annangar', label: 'Anna Nagar / Ambattur', description: 'Ambattur Estate, Mogappair, Koyambedu', icon: 'location-outline' },
-                    { id: 'remote', label: 'Fully Remote / Work from Home', description: 'Prioritize quiet residential vibe & lifestyle', icon: 'wifi-outline' },
-                ],
-            },
-            {
-                title: 'How do you commute?',
-                subtitle: 'Helps us weigh metro proximity vs road corridor connectivity.',
-                isMulti: false,
-                options: [
-                    { id: 'metro', label: 'Metro Rail', description: 'Station proximity within 1.5 km is critical', icon: 'train-outline' },
-                    { id: 'two_wheeler', label: 'Bike / Two Wheeler', description: 'Quick arterial roads and bypass connectivity', icon: 'bicycle-outline' },
-                    { id: 'car_cab', label: 'Car / Cab / Auto', description: 'Smooth main road corridors and parking', icon: 'car-outline' },
-                    { id: 'walking', label: 'Walk / Cycle', description: 'Self-sufficient walkable neighborhoods', icon: 'walk-outline' },
-                ],
-            },
-            {
-                title: 'What matters most?',
-                subtitle: 'Pick up to 3 factors that Croww will heavily weigh.',
-                isMulti: true,
-                options: [
-                    { id: 'flood', label: 'Zero Flood Risk', description: 'High ground, well-drained during monsoon', icon: 'shield-checkmark-outline' },
-                    { id: 'transport', label: 'Metro & Public Transit', description: 'Walking distance to stations and bus hubs', icon: 'train-outline' },
-                    { id: 'affordability', label: 'Best Rental Value', description: 'High space-to-cost ratio', icon: 'pricetag-outline' },
-                    { id: 'schools', label: 'Schools & Family Friendly', description: 'Top education institutes & green parks', icon: 'school-outline' },
-                    { id: 'healthcare', label: 'Healthcare & Hospitals', description: 'Multi-specialty emergency care nearby', icon: 'medkit-outline' },
-                    { id: 'airport', label: 'Airport & Outstation Transit', description: 'Fast access to airport & bypass highways', icon: 'airplane-outline' },
-                ],
-            },
-        ];
-    }, [consumerCategories]);
 
-    const computeWeightsFromAnswers = useCallback((userAnswers) => {
-        const priorities = userAnswers[4] || [];
-        const commute = userAnswers[3]?.[0];
-
-        return {
-            affordability: priorities.includes('affordability') ? 0.35 : 0.15,
-            transport: commute === 'metro' || priorities.includes('transport') ? 0.35 : 0.15,
-            flood: priorities.includes('flood') ? 0.40 : 0.15,
-            schools: priorities.includes('schools') ? 0.25 : 0.05,
-            healthcare: priorities.includes('healthcare') ? 0.25 : 0.05,
-            airport: priorities.includes('airport') ? 0.25 : 0.05,
-            connectivity: 0.15,
-            marketFit: 0.10,
-        };
-    }, []);
-
-    const loadAndScoreLocalities = useCallback(async (weights) => {
+    const handleRunAreasMatcher = useCallback(async (inputs) => {
+        if (!inputs) return;
+        setAreasInputs(inputs);
         try {
-            const targetCity = city || 'Chennai';
-            let list = await localityService.listActiveByCity(targetCity).catch(() => []);
-            if (!list || list.length === 0) {
-                list = FALLBACK_CHENNAI_LOCALITIES;
-            }
+            const matches = await localityMatcherService.findMatches({
+                destination: inputs.destination,
+                budget: inputs.budget,
+                commuteMode: inputs.commuteMode,
+                priorities: inputs.priorities,
+                city: city || 'Chennai',
+            });
 
-            const scored = list
-                .filter((loc) => loc.latitude && loc.longitude)
-                .map((locality) => {
-                    const result = areaScoreService.calculate({
-                        snapshot: locality.intelligence,
-                        city: targetCity,
-                        weights,
+            const candidates = matches.map((m) => ({
+                locality: {
+                    id: m.localityId,
+                    name: m.localityName,
+                    city: m.city,
+                    latitude: m.latitude,
+                    longitude: m.longitude,
+                    boundaries: m.boundaries || null,
+                    staysCount: m.staysCount ?? null,
+                    intelligence: m.intelligence || null,
+                    publishedScore: m.publishedScore || (m.areaScore != null ? { overallScore: m.areaScore } : null) || m.intelligence?.publishedScore || null,
+                },
+                score: m.areaScore ?? null,
+                areaScore: m.areaScore ?? null,
+                matchScore: m.matchScore ?? null,
+                typicalRentFormatted: m.typicalRentFormatted,
+                typicalRent: m.typicalRent,
+                inBudget: m.inBudget,
+                commute: m.commute,
+                highlights: m.highlights,
+                result: m,
+            }));
+
+            setScoredLocalities(candidates);
+            setIntelligencePhase(INTELLIGENCE_PHASES.MAP);
+            setAreasDrawerOpen(false);
+            setAreasMatcherRan(true);
+
+            if (candidates.length > 0) {
+                const targetId = route.params?.localityId;
+                const match = targetId ? candidates.find((s) => s.locality?.id === targetId) : null;
+                const top = match || candidates[0];
+                setSelectedLocality(top.locality);
+                setSelectedLocalityData(top);
+                setIsAreaDetailOpen(false);
+
+                if (top.locality.latitude && top.locality.longitude) {
+                    setFollowRegion({
+                        latitude: top.locality.latitude,
+                        longitude: top.locality.longitude,
+                        latitudeDelta: 0.045,
+                        longitudeDelta: 0.045,
                     });
-                    const score = result?.score != null ? result.score : (locality.id === 'adyar' ? 92 : locality.id === 'thiruvanmiyur' ? 88 : locality.id === 't_nagar' ? 85 : 80);
-                    return {
-                        locality,
-                        score,
-                        result,
-                    };
-                })
-                .sort((a, b) => b.score - a.score);
-
-            setScoredLocalities(scored);
-            if (scored.length > 0) {
-                setSelectedLocality(scored[0].locality);
-                setSelectedLocalityData(scored[0]);
+                }
+            } else {
+                setSelectedLocality(null);
+                setSelectedLocalityData(null);
+                setIsAreaDetailOpen(false);
             }
-        } catch (e) {
-            console.warn('[ExploreScreen] loadAndScoreLocalities failed', e);
+        } catch (err) {
+            console.warn('[ExploreScreen] handleRunAreasMatcher failed', err);
         }
-    }, [city]);
+    }, [city, route.params?.localityId, setAreasDrawerOpen]);
 
     useEffect(() => {
-        if (isIntelligenceMode && scoredLocalities.length === 0) {
-            const weights = computeWeightsFromAnswers(answers);
-            loadAndScoreLocalities(weights);
+        if (isIntelligenceMode && scoredLocalities.length === 0 && !areasDrawerOpen && !areasMatcherRan) {
+            setAreasDrawerOpen(true);
         }
-    }, [isIntelligenceMode, scoredLocalities.length, computeWeightsFromAnswers, loadAndScoreLocalities, answers]);
+    }, [isIntelligenceMode, scoredLocalities.length, areasDrawerOpen, areasMatcherRan, setAreasDrawerOpen]);
 
-    const handleToggleIntelligenceOption = useCallback((optionId) => {
-        const currentStep = stepOptions[stepIndex];
-        const currentSelected = answers[stepIndex] || [];
-
-        if (currentStep?.isMulti) {
-            if (currentSelected.includes(optionId)) {
-                setAnswers((prev) => ({
-                    ...prev,
-                    [stepIndex]: currentSelected.filter((id) => id !== optionId),
-                }));
-            } else if (currentSelected.length < 3) {
-                setAnswers((prev) => ({
-                    ...prev,
-                    [stepIndex]: [...currentSelected, optionId],
-                }));
-            }
-        } else {
-            setAnswers((prev) => ({
-                ...prev,
-                [stepIndex]: [optionId],
-            }));
+    useEffect(() => {
+        if (route.params?.intelligenceMode && !isIntelligenceMode) {
+            setIntelligenceMode(true);
+            setAreasDrawerOpen(true);
         }
-    }, [stepOptions, stepIndex, answers]);
-
-    const handleContinueIntelligenceStep = useCallback(async () => {
-        if (stepIndex < stepOptions.length - 1) {
-            setStepIndex((prev) => prev + 1);
-        } else {
-            const weights = computeWeightsFromAnswers(answers);
-            try {
-                await areaScorePreferenceService.save(weights);
-            } catch (_) {}
-            await loadAndScoreLocalities(weights);
-            setIntelligencePhase(INTELLIGENCE_PHASES.MAP);
-        }
-    }, [stepIndex, stepOptions.length, computeWeightsFromAnswers, answers, loadAndScoreLocalities]);
-
-    const handleBackIntelligenceStep = useCallback(() => {
-        if (stepIndex > 0) {
-            setStepIndex((prev) => prev - 1);
-        } else {
-            setIntelligencePhase(INTELLIGENCE_PHASES.INTRO);
-        }
-    }, [stepIndex]);
+    }, [route.params?.intelligenceMode, isIntelligenceMode, setIntelligenceMode, setAreasDrawerOpen]);
 
     const handleSelectLocality = useCallback((locality, item) => {
         setSelectedLocality(locality);
-        setSelectedLocalityData(item);
-        if (locality.latitude && locality.longitude) {
+        const matchData = item || scoredLocalities.find((s) => s.locality?.id === locality?.id) || null;
+        setSelectedLocalityData(matchData);
+        setIsAreaDetailOpen(false);
+        if (locality?.latitude && locality?.longitude) {
             setFollowRegion({
                 latitude: locality.latitude,
                 longitude: locality.longitude,
@@ -676,7 +638,7 @@ const ExploreScreen = () => {
                 longitudeDelta: 0.04,
             });
         }
-    }, []);
+    }, [scoredLocalities]);
 
     const handleExploreLocality = useCallback((locality) => {
         if (!locality) return;
@@ -751,48 +713,54 @@ const ExploreScreen = () => {
                         initialRegion={initialRegion}
                         followRegion={followRegion}
                         listings={isIntelligenceMode && intelligencePhase === INTELLIGENCE_PHASES.MAP ? mapLocalityProperties : displayedResults}
-                        selectedId={selectedListingId}
+                        selectedId={isIntelligenceMode ? selectedLocality?.id : selectedListingId}
                         userCoordinate={userCoordinate}
-                        onSelect={isIntelligenceMode ? (item) => handleSelectLocality(item?.locality || item) : onSelectMarker}
+                        onSelect={isIntelligenceMode ? (item) => handleSelectLocality(item?.locality || item, item) : onSelectMarker}
                         onRegionChangeComplete={onRegionChangeComplete}
                         onMapPress={() => {
                             if (isIntelligenceMode) {
                                 setSelectedLocality(null);
+                                setSelectedLocalityData(null);
+                                setIsAreaDetailOpen(false);
                             } else {
                                 setSelectedListingId(null);
                             }
                         }}
-                        intelligenceMode={isIntelligenceMode && intelligencePhase === INTELLIGENCE_PHASES.MAP}
+                        intelligenceMode={isIntelligenceMode}
                         localityRegions={scoredLocalities}
                     />
                 </View>
 
-                {/* Intelligence Overlay (Intro / Preferences / Map Overlay with top bar & detail sheet) */}
+                {/* Areas Mode Overlay (Croww | Areas header + Tune/Exit + Corner Legend + Compact Card + Gated Detail Sheet) */}
                 {isIntelligenceMode ? (
                     <AreaIntelligenceOverlay
-                        phase={intelligencePhase}
-                        stepIndex={stepIndex}
-                        answers={answers}
-                        stepOptions={stepOptions}
                         scoredLocalities={scoredLocalities}
                         selectedLocality={selectedLocality}
                         selectedLocalityData={selectedLocalityData}
-                        onStart={() => setIntelligencePhase(INTELLIGENCE_PHASES.PREFERENCES)}
-                        onSkip={() => setIntelligenceMode(false)}
-                        onToggleOption={handleToggleIntelligenceOption}
-                        onContinueStep={handleContinueIntelligenceStep}
-                        onBackStep={handleBackIntelligenceStep}
+                        isDetailOpen={isAreaDetailOpen}
+                        matcherRan={areasMatcherRan}
+                        city={city}
                         onResetPreferences={() => {
-                            setStepIndex(0);
-                            setIntelligencePhase(INTELLIGENCE_PHASES.PREFERENCES);
+                            setAreasMatcherRan(false);
+                            setAreasDrawerOpen(true);
                         }}
                         onSelectLocality={handleSelectLocality}
-                        onCloseLocalityDetail={() => {
+                        onOpenLocalityDetail={() => setIsAreaDetailOpen(true)}
+                        onCloseLocalityDetail={() => setIsAreaDetailOpen(false)}
+                        onExploreLocality={handleExploreLocality}
+                        onClose={() => {
+                            setIntelligenceMode(false);
+                            setAreasDrawerOpen(false);
+                            setAreasMatcherRan(false);
                             setSelectedLocality(null);
                             setSelectedLocalityData(null);
+                            setIsAreaDetailOpen(false);
                         }}
-                        onExploreLocality={handleExploreLocality}
-                        onClose={() => setIntelligenceMode(false)}
+                        onDismissLocality={() => {
+                            setSelectedLocality(null);
+                            setSelectedLocalityData(null);
+                            setIsAreaDetailOpen(false);
+                        }}
                     />
                 ) : (
                     <>
@@ -808,12 +776,22 @@ const ExploreScreen = () => {
                                         accessibilityRole="button"
                                         accessibilityLabel="Croww brand preview toggle"
                                     >
-                                        <Text style={styles.brandTitle}>Croww</Text>
+                                        <Image
+                                            source={require('../../../assets/croww-logo.png')}
+                                            style={styles.brandLogo}
+                                            resizeMode="contain"
+                                            accessibilityLabel="Croww"
+                                        />
                                         <View style={[styles.brandDot, qaPreviewEnabled && { backgroundColor: COLORS.accent }]} />
                                     </TouchableOpacity>
                                 ) : (
                                     <View style={styles.brandBadge}>
-                                        <Text style={styles.brandTitle}>Croww</Text>
+                                        <Image
+                                            source={require('../../../assets/croww-logo.png')}
+                                            style={styles.brandLogo}
+                                            resizeMode="contain"
+                                            accessibilityLabel="Croww"
+                                        />
                                         <View style={styles.brandDot} />
                                     </View>
                                 )}
@@ -829,22 +807,20 @@ const ExploreScreen = () => {
                                         style={styles.cityPill}
                                         hitSlop={TOUCH_TARGETS.hitSlop}
                                     >
-                                        <Ionicons name="location-sharp" size={13} color={COLORS.accent} style={{ marginRight: 4 }} />
+                                        <Ionicons name="location-sharp" size={13} color={COLORS.primary} style={{ marginRight: 4 }} />
                                         <Typography variant="caption" style={styles.cityPillText}>
                                             {city || 'Chennai'} ▾
                                         </Typography>
                                     </TouchableOpacity>
 
                                     <TouchableOpacity
-                                        onPress={() => {
-                                            navigation.navigate(user ? 'ProfileTab' : 'Login');
-                                        }}
+                                        onPress={() => navigation.navigate('Settings')}
                                         accessibilityRole="button"
-                                        accessibilityLabel="Notifications and profile"
+                                        accessibilityLabel="Settings"
                                         style={styles.profileBtn}
                                         hitSlop={TOUCH_TARGETS.hitSlop}
                                     >
-                                        <Ionicons name="notifications-outline" size={18} color={COLORS.primary} />
+                                        <Ionicons name="settings-outline" size={18} color={COLORS.primary} />
                                     </TouchableOpacity>
                                 </View>
                             </View>
@@ -861,6 +837,41 @@ const ExploreScreen = () => {
                                 </View>
                             </View>
 
+                            {/* Commute & Locality Matcher Banner */}
+                            <View style={styles.commuteMatcherBanner}>
+                                <TouchableOpacity
+                                    style={styles.commuteMatcherBannerTouch}
+                                    onPress={() => navigation.navigate('AreaMatcher')}
+                                    activeOpacity={0.85}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Where do you work or study? Find the best areas for your commute and budget"
+                                >
+                                    <View style={styles.commuteBannerIconCircle}>
+                                        <Ionicons name="compass-outline" size={16} color="#FFFFFF" />
+                                    </View>
+                                    <View style={{ flex: 1, marginLeft: 10 }}>
+                                        <Text style={styles.commuteBannerTitle} numberOfLines={1}>
+                                            Where do you work or study?
+                                        </Text>
+                                        <Text style={styles.commuteBannerSubtitle} numberOfLines={1}>
+                                            Match areas by your commute & rent budget
+                                        </Text>
+                                    </View>
+                                </TouchableOpacity>
+                                <TouchableOpacity
+                                    style={styles.commuteBannerMapBtn}
+                                    onPress={() => {
+                                        setIntelligenceMode(true);
+                                        setIntelligencePhase(INTELLIGENCE_PHASES.MAP);
+                                    }}
+                                    activeOpacity={0.8}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Open Area Intelligence Map"
+                                >
+                                    <Ionicons name="map-outline" size={16} color={COLORS.primary} />
+                                </TouchableOpacity>
+                            </View>
+
                             {/* Dynamic Stay Category Chips & Filters */}
                             <PropertyFilters
                                 filters={filters}
@@ -873,7 +884,7 @@ const ExploreScreen = () => {
                         <View style={[styles.floatingControls, { bottom: floatingControlsBottom }]} pointerEvents="box-none">
                             {refreshing ? (
                                 <View style={styles.refreshBadge}>
-                                    <ActivityIndicator size="small" color={COLORS.accent} />
+                                    <ActivityIndicator size="small" color={COLORS.primary} />
                                     <Typography variant="micro" style={styles.refreshText}>Updating</Typography>
                                 </View>
                             ) : null}
@@ -893,7 +904,7 @@ const ExploreScreen = () => {
                                     style={styles.floatingSaveBtn}
                                     hitSlop={TOUCH_TARGETS.hitSlop}
                                 >
-                                    <Ionicons name="bookmark-outline" size={18} color={COLORS.accent} />
+                                    <Ionicons name="bookmark-outline" size={18} color={COLORS.primary} />
                                     <Typography variant="caption" style={styles.floatingSaveText}>Save</Typography>
                                 </TouchableOpacity>
                             ) : null}
@@ -948,7 +959,7 @@ const ExploreScreen = () => {
                                                 style={{ marginTop: 8, paddingVertical: 4, alignItems: 'center' }}
                                                 accessibilityLabel="Preview Sample Map Inventory"
                                             >
-                                                <Typography variant="caption" style={{ color: COLORS.accent, fontWeight: '600' }}>
+                                                <Typography variant="caption" style={{ color: COLORS.primary, fontWeight: '600' }}>
                                                     Preview Sample Map Inventory
                                                 </Typography>
                                             </TouchableOpacity>
@@ -957,13 +968,35 @@ const ExploreScreen = () => {
                                 </View>
                             ) : (
                                 <View style={styles.carouselContainer} pointerEvents="box-none">
+                                    <View style={styles.carouselHeaderRow}>
+                                        <View style={styles.carouselCountBadge}>
+                                            <Typography variant="caption" style={styles.carouselCountText}>
+                                                {displayedResults.length} {displayedResults.length === 1 ? 'stay' : 'stays'} in view
+                                            </Typography>
+                                        </View>
+                                        <TouchableOpacity
+                                            onPress={() => setViewMode('list')}
+                                            style={styles.viewAllButton}
+                                            activeOpacity={0.8}
+                                            hitSlop={TOUCH_TARGETS.hitSlop}
+                                            accessibilityRole="button"
+                                            accessibilityLabel={`View all ${displayedResults.length} stays as list`}
+                                        >
+                                            <Typography variant="caption" style={styles.viewAllButtonText}>
+                                                View All
+                                            </Typography>
+                                            <Ionicons name="list-outline" size={14} color="#111827" style={{ marginLeft: 4 }} />
+                                        </TouchableOpacity>
+                                    </View>
                                     <FlatList
+                                        ref={carouselRef}
                                         horizontal
                                         data={displayedResults}
                                         keyExtractor={(item) => item.listingId}
                                         renderItem={({ item }) => (
                                             <PropertyResultCard
                                                 item={item}
+                                                layout="carousel"
                                                 selected={item.listingId === selectedListingId}
                                                 onDismiss={() => setSelectedListingId(null)}
                                                 onPress={() => {
@@ -972,16 +1005,39 @@ const ExploreScreen = () => {
                                                 }}
                                             />
                                         )}
+                                        getItemLayout={getItemLayout}
+                                        onScrollToIndexFailed={(info) => {
+                                            carouselRef.current?.scrollToOffset({
+                                                offset: info.index * CARD_SNAP,
+                                                animated: true,
+                                            });
+                                        }}
+                                        onViewableItemsChanged={onViewableItemsChanged}
+                                        viewabilityConfig={viewabilityConfig}
                                         showsHorizontalScrollIndicator={false}
                                         contentContainerStyle={styles.cardsList}
                                         extraData={selectedListingId}
-                                        snapToAlignment="center"
+                                        snapToInterval={CARD_SNAP}
+                                        snapToAlignment="start"
                                         decelerationRate="fast"
                                     />
                                 </View>
                             )}
                         </View>
                     </>
+                )}
+
+                {/* Progressive 4-Step Areas Questionnaire Drawer */}
+                {isIntelligenceMode && (
+                    <AreaQuestionnaireSheet
+                        visible={areasDrawerOpen}
+                        onClose={() => setAreasDrawerOpen(false)}
+                        onComplete={handleRunAreasMatcher}
+                        initialDestination={areasInputs.destination}
+                        initialBudget={areasInputs.budget}
+                        initialCommuteMode={areasInputs.commuteMode}
+                        initialPriorities={areasInputs.priorities}
+                    />
                 )}
             </View>
 
@@ -993,6 +1049,113 @@ const ExploreScreen = () => {
                 onClose={() => setSaveOpen(false)}
                 onSave={onSaveSearch}
             />
+
+            {/* List Results Mode (View All) */}
+            {viewMode === 'list' ? (
+                <View style={styles.listRootContainer}>
+                    {/* List Header */}
+                    <View style={[styles.listHeader, { paddingTop: insets.top + SPACING.s }]}>
+                        <View style={styles.listHeaderTopRow}>
+                            <TouchableOpacity
+                                onPress={() => setViewMode('map')}
+                                style={styles.listBackBtn}
+                                hitSlop={TOUCH_TARGETS.hitSlop}
+                                accessibilityRole="button"
+                                accessibilityLabel="Back to map"
+                            >
+                                <Ionicons name="arrow-back" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <View style={styles.listTitleContainer}>
+                                <Typography variant="titleMedium" style={styles.listTitleText}>
+                                    {displayedResults.length} {displayedResults.length === 1 ? 'Stay' : 'Stays'} in {city || 'Chennai'}
+                                </Typography>
+                                <Typography variant="caption" style={styles.listSubtitleText}>
+                                    {filters?.category ? `Filtered by ${filters.category}` : 'All verified stays'}
+                                </Typography>
+                            </View>
+                            <TouchableOpacity
+                                onPress={() => setViewMode('map')}
+                                style={styles.listMapToggleBtn}
+                                accessibilityRole="button"
+                                accessibilityLabel="View map"
+                            >
+                                <Ionicons name="map-outline" size={16} color={COLORS.primary} />
+                                <Typography variant="caption" style={styles.listMapToggleText}>Map</Typography>
+                            </TouchableOpacity>
+                        </View>
+
+                        {/* Reusable PropertyFilters */}
+                        <View style={styles.listFiltersWrapper}>
+                            <PropertyFilters
+                                filters={filters}
+                                onChange={setFilters}
+                                resultCount={displayedResults.length}
+                            />
+                        </View>
+                    </View>
+
+                    {/* Results or Clean Empty State */}
+                    {displayedResults.length === 0 ? (
+                        <View style={styles.listEmptyContainer}>
+                            <Typography variant="titleMedium" style={styles.listEmptyTitle}>
+                                No spaces match these filters.
+                            </Typography>
+                            <Typography variant="bodyMedium" style={styles.listEmptySubtitle}>
+                                Try clearing your category or budget filters to see more homes.
+                            </Typography>
+                            <TouchableOpacity
+                                onPress={() => setFilters(DEFAULT_EXPLORE_FILTERS)}
+                                style={styles.listResetFiltersBtn}
+                                accessibilityRole="button"
+                                accessibilityLabel="Change filters"
+                            >
+                                <Typography variant="bodyMedium" style={styles.listResetFiltersText}>
+                                    Change filters
+                                </Typography>
+                            </TouchableOpacity>
+                        </View>
+                    ) : (
+                        <FlatList
+                            data={displayedResults}
+                            keyExtractor={(item) => item.listingId}
+                            renderItem={({ item }) => (
+                                <View style={styles.listItemWrapper}>
+                                    <PropertyResultCard
+                                        item={item}
+                                        layout="list"
+                                        selected={item.listingId === selectedListingId}
+                                        onPress={() => {
+                                            setSelectedListingId(item.listingId);
+                                            openListing(item);
+                                        }}
+                                    />
+                                </View>
+                            )}
+                            contentContainerStyle={[
+                                styles.verticalListContent,
+                                { paddingBottom: insets.bottom + getFloatingNavbarClearance(insets, 40) }
+                            ]}
+                            showsVerticalScrollIndicator={false}
+                        />
+                    )}
+
+                    {/* Floating pill to switch back to Map */}
+                    <View style={[styles.floatingMapSwitchContainer, { bottom: insets.bottom + getFloatingNavbarClearance(insets, 14) }]} pointerEvents="box-none">
+                        <TouchableOpacity
+                            onPress={() => setViewMode('map')}
+                            style={styles.floatingMapSwitchBtn}
+                            activeOpacity={0.88}
+                            accessibilityRole="button"
+                            accessibilityLabel="Switch to Map view"
+                        >
+                            <Ionicons name="map" size={15} color="#FFFFFF" style={{ marginRight: 6 }} />
+                            <Typography variant="bodyMedium" style={styles.floatingMapSwitchText}>
+                                Map
+                            </Typography>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            ) : null}
 
             <AuthPromptModal
                 visible={authModalVisible}
@@ -1045,18 +1208,16 @@ const styles = StyleSheet.create({
         borderColor: COLORS.border,
         ...SHADOWS.subtle,
     },
-    brandTitle: {
-        fontSize: 17,
-        fontWeight: '900',
-        color: COLORS.primary,
-        letterSpacing: -0.4,
+    brandLogo: {
+        width: 66,
+        height: 22,
     },
     brandDot: {
         width: 6,
         height: 6,
         borderRadius: 3,
-        backgroundColor: COLORS.accent,
-        marginLeft: 3,
+        backgroundColor: COLORS.primary,
+        marginLeft: 4,
     },
     searchRow: {
         flexDirection: 'row',
@@ -1123,7 +1284,7 @@ const styles = StyleSheet.create({
         ...SHADOWS.soft,
     },
     floatingSaveText: {
-        color: COLORS.accent,
+        color: COLORS.primary,
         fontWeight: '700',
     },
     refreshBadge: {
@@ -1137,7 +1298,7 @@ const styles = StyleSheet.create({
         ...SHADOWS.subtle,
     },
     refreshText: {
-        color: COLORS.accent,
+        color: COLORS.primary,
         fontWeight: '700',
     },
     floatingBottom: {
@@ -1182,7 +1343,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     switchCityBtn: {
-        backgroundColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
         paddingHorizontal: SPACING.l,
         paddingVertical: 10,
         borderRadius: BORDER_RADIUS.round,
@@ -1192,6 +1353,204 @@ const styles = StyleSheet.create({
     switchCityText: {
         color: '#FFFFFF',
         fontWeight: '700',
+    },
+    commuteMatcherBanner: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.card,
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+        paddingLeft: SPACING.m,
+        paddingRight: SPACING.s,
+        paddingVertical: 7,
+        marginTop: SPACING.xs,
+        marginBottom: 2,
+        ...SHADOWS.floating,
+    },
+    commuteMatcherBannerTouch: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    commuteBannerMapBtn: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: COLORS.surfaceHighlight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginLeft: 8,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    commuteBannerIconCircle: {
+        width: 30,
+        height: 30,
+        borderRadius: 15,
+        backgroundColor: COLORS.primary,
+        alignItems: 'center',
+        justifyContent: 'center',
+    },
+    commuteBannerTitle: {
+        fontSize: FONT_SIZES.bodySmall,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    commuteBannerSubtitle: {
+        fontSize: FONT_SIZES.micro,
+        color: COLORS.secondary,
+        marginTop: 1,
+    },
+    carouselHeaderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.l,
+        marginBottom: 6,
+    },
+    carouselCountBadge: {
+        backgroundColor: 'rgba(255, 255, 255, 0.94)',
+        paddingHorizontal: 10,
+        paddingVertical: 3,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
+    },
+    carouselCountText: {
+        color: '#111827',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    viewAllButton: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: 'rgba(255, 255, 255, 0.94)',
+        paddingHorizontal: 12,
+        paddingVertical: 4,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: '#111827',
+        ...SHADOWS.subtle,
+    },
+    viewAllButtonText: {
+        color: '#111827',
+        fontSize: 11,
+        fontWeight: '700',
+    },
+    listRootContainer: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: COLORS.background,
+        zIndex: 50,
+    },
+    listHeader: {
+        backgroundColor: COLORS.surface,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+        paddingBottom: 4,
+    },
+    listHeaderTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: SPACING.m,
+        marginBottom: 6,
+        gap: SPACING.s,
+    },
+    listBackBtn: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: COLORS.surfaceHighlight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    listTitleContainer: {
+        flex: 1,
+    },
+    listTitleText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+    },
+    listSubtitleText: {
+        color: COLORS.secondary,
+    },
+    listMapToggleBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 10,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        gap: 4,
+    },
+    listMapToggleText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        fontSize: 12,
+    },
+    listFiltersWrapper: {
+        paddingBottom: 2,
+    },
+    verticalListContent: {
+        paddingTop: SPACING.m,
+        paddingHorizontal: SPACING.m,
+        gap: SPACING.m,
+    },
+    listItemWrapper: {
+        width: '100%',
+    },
+    listEmptyContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        paddingHorizontal: SPACING.xl,
+    },
+    listEmptyTitle: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        textAlign: 'center',
+        marginBottom: SPACING.xs,
+    },
+    listEmptySubtitle: {
+        color: COLORS.secondary,
+        textAlign: 'center',
+        marginBottom: SPACING.l,
+    },
+    listResetFiltersBtn: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: 10,
+        borderRadius: BORDER_RADIUS.round,
+    },
+    listResetFiltersText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+    },
+    floatingMapSwitchContainer: {
+        position: 'absolute',
+        left: 0,
+        right: 0,
+        alignItems: 'center',
+        zIndex: 60,
+    },
+    floatingMapSwitchBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: '#111827',
+        paddingHorizontal: 18,
+        paddingVertical: 10,
+        borderRadius: BORDER_RADIUS.pill,
+        ...SHADOWS.floating,
+    },
+    floatingMapSwitchText: {
+        color: '#FFFFFF',
+        fontWeight: '700',
+        fontSize: 13,
     },
 });
 

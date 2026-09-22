@@ -33,14 +33,17 @@ export function useExploreDiscovery() {
                 console.warn('[Explore] discovery failed', err?.message);
                 if (requestId.current !== id) return;
                 setError('Could not load listings for this area.');
-                setRawResults([]);
+                // Stale-While-Revalidate: preserve previously loaded listings so the screen doesn't abruptly blank
+                if (!loadedOnce.current) {
+                    setRawResults([]);
+                }
             } finally {
                 if (requestId.current === id) {
                     setLoading(false);
                     setRefreshing(false);
                 }
             }
-        }, loadedOnce.current ? EXPLORE_DEBOUNCE_MS : 80);
+        }, loadedOnce.current ? EXPLORE_DEBOUNCE_MS : 30);
 
         return () => clearTimeout(timer);
     }, [viewport, transactionType]);

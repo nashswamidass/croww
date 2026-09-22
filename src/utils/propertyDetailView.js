@@ -4,6 +4,7 @@
  */
 
 import { publicActorTrustFromUser, trustBadges as explicitTrustBadges } from '../domain/verification/index.ts';
+import { formatAvailabilityLabel } from '../domain/property/availability/formatting.ts';
 export function toMillis(value) {
     if (!value) return null;
     if (value instanceof Date) return value.getTime();
@@ -180,6 +181,20 @@ export function buildPropertyFacts(property = {}, listing = {}) {
     const plot = property.plotAreaSqft ?? listing.plotAreaSqft;
     const subtype = formatSubtypeLabel(property.subtype || listing.subtype);
     const type = formatCategoryLabel(category);
+
+    const availabilityData = listing.availability || property.availability || (
+        listing.availableCount != null
+            ? {
+                availableCount: listing.availableCount,
+                availabilityMode: listing.availabilityMode || 'BED',
+                availableFrom: listing.availableFrom || null,
+            }
+            : null
+    );
+    const availLabel = formatAvailabilityLabel(availabilityData);
+    if (availLabel) {
+        addFact(facts, 'Availability', availLabel);
+    }
 
     if (category === 'land') {
         addFact(facts, 'Type', type);

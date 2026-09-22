@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, ScrollView, TouchableOpacity, ActivityIndicator } from 'react-native';
+import { View, StyleSheet, ScrollView, TouchableOpacity } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
@@ -11,13 +11,14 @@ import { useExplore } from '../../context/ExploreContext';
 import { useAreaScorePreferences } from '../../context/AreaScorePreferencesContext';
 import { viewportFromLocality } from '../../domain/intelligence';
 import { buildLocalityViewModel } from '../../utils/localityIntelligenceView';
+import { SkeletonBox, MotionView } from '../../components/motion';
 import { COLORS, SPACING } from '../../constants/theme';
 
 const LocalityScreen = ({ route, navigation }) => {
     const localityId = route.params?.localityId || route.params?.id || null;
     const { focusLocality } = useExplore();
     const { weights, setWeights, resetWeights } = useAreaScorePreferences();
-    const [locality, setLocality] = useState(null);
+    const [locality, setLocality] = useState(route.params?.locality || (route.params?.name ? { name: route.params.name } : null));
     const [snapshot, setSnapshot] = useState(null);
     const [loading, setLoading] = useState(!!localityId);
 
@@ -92,11 +93,18 @@ const LocalityScreen = ({ route, navigation }) => {
                 <View style={styles.iconBtn} />
             </View>
             <ScrollView contentContainerStyle={styles.body}>
-                {loading ? <ActivityIndicator color={COLORS.accent} /> : null}
                 <Typography variant="h1" accessibilityRole="header">{headline}</Typography>
                 {place ? (
                     <Typography variant="body" style={styles.subtitle}>{place}</Typography>
                 ) : null}
+
+                {loading && !snapshot ? (
+                    <View style={{ marginVertical: SPACING.m }}>
+                        <SkeletonBox width="100%" height={160} borderRadius={16} style={{ marginBottom: SPACING.m }} />
+                        <SkeletonBox width="100%" height={240} borderRadius={16} />
+                    </View>
+                ) : null}
+
                 {!loading && !locality ? (
                     <Typography variant="body" style={styles.subtitle}>
                         {localityId
@@ -122,8 +130,8 @@ const LocalityScreen = ({ route, navigation }) => {
                     </View>
                 ) : null}
 
-                {!loading ? (
-                    <>
+                {snapshot ? (
+                    <MotionView fadeOnly duration={200}>
                         <CrowwAreaScoreCard
                             result={scoreResult}
                             weights={weights}
@@ -160,7 +168,7 @@ const LocalityScreen = ({ route, navigation }) => {
                                 { label: 'Freshness', value: view.notes.freshnessText, meta: view.notes.sampleHint },
                             ]}
                         />
-                    </>
+                    </MotionView>
                 ) : null}
             </ScrollView>
         </ScreenWrapper>

@@ -7,4 +7,5 @@ export * from './CrowwLocationShareState';
 export * from './CrowwPostProgress';
 export * from './CrowwEmptyState';
 export * from './CrowwSuccessNotification';
+export * from './CrowwLogo';
 export * from './specs';

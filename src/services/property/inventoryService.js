@@ -176,13 +176,23 @@ export const inventoryService = {
                 });
                 attached.push({ ...photo, mediaId: media.id, uri: url });
             } catch (error) {
-                wrap(error, 'MEDIA_NOT_PERMITTED', 'Could not upload photos');
+                console.warn('[inventoryService.attachLocalPhotos] upload/addMedia error:', error?.message || error);
+                wrap(error, 'MEDIA_NOT_PERMITTED', error?.message || 'Could not upload photos');
             }
         }
         const cover = attached.find((row) => row.uri === coverUri || row.localId === coverUri)
             || attached[0];
         if (cover?.mediaId) {
-            await inventoryService.setCoverMedia(cover.mediaId, 'listing', listingId);
+            try {
+                await inventoryService.setCoverMedia(cover.mediaId, 'listing', listingId);
+            } catch (coverErr) {
+                console.warn('[inventoryService.attachLocalPhotos] setCoverMedia failed, continuing with thumbnail:', coverErr?.message || coverErr);
+                if (cover.uri) {
+                    await listingService.setCoverThumbnail(listingId, cover.uri).catch(() => {});
+                }
+            }
+        } else if (cover?.uri) {
+            await listingService.setCoverThumbnail(listingId, cover.uri).catch(() => {});
         }
         return attached;
     },
@@ -275,6 +285,7 @@ export const inventoryService = {
             });
             return { listing, property };
         } catch (error) {
+            console.warn('[inventoryService.createListing] error:', error);
             wrap(error, 'INVALID_LISTING', 'Could not create listing');
         }
     },
@@ -362,7 +373,8 @@ export const inventoryService = {
             }
             return result;
         } catch (error) {
-            wrap(error, 'MEDIA_NOT_PERMITTED', 'Could not set cover media');
+            console.warn('[inventoryService.setCoverMedia] error:', error?.message || error);
+            wrap(error, 'MEDIA_NOT_PERMITTED', error?.message || 'Could not set cover media');
         }
     },
 

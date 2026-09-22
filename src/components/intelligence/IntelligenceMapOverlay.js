@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-    ScrollView,
+    Image,
     StyleSheet,
     Text,
     TouchableOpacity,
@@ -8,34 +8,42 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import CrowwAreaIntelligenceIcon from '../icons/CrowwAreaIntelligenceIcon';
 import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
 import { getFloatingNavbarClearance } from '../../constants/layout';
-import LocalityScoreBubble from './LocalityScoreBubble';
+import RelevanceLegend from './RelevanceLegend';
+import CompactAreaResultCard from './CompactAreaResultCard';
 
 export default function IntelligenceMapOverlay({
     scoredLocalities = [],
     selectedLocality,
+    selectedLocalityData,
+    matcherRan = false,
+    city = 'Chennai',
     onSelectLocality,
     onResetPreferences,
     onClose,
+    onExploreLocality,
+    onDismissLocality,
 }) {
     const insets = useSafeAreaInsets();
 
-    if (!scoredLocalities || scoredLocalities.length === 0) {
-        return null;
-    }
-
-    const topPadding = Math.max(insets.top, 16) + 10;
+    // Top padding: ScreenWrapper already applies insets.top, so use 8dp consistent with normal floatingTop
+    const topPadding = 8;
     const bottomClearance = getFloatingNavbarClearance(insets, 12);
 
     return (
         <View style={[styles.container, { paddingTop: topPadding }]} pointerEvents="box-none">
-            {/* Top header control bar: Area Intelligence + Tune + Exit */}
+            {/* Top header control bar: Croww Logo + Areas + Tune + Exit */}
             <View style={styles.headerRow} pointerEvents="box-none">
                 <View style={styles.brandPill}>
-                    <CrowwAreaIntelligenceIcon size={16} color={COLORS.accent} style={{ marginRight: 7 }} focused />
-                    <Text style={styles.brandText}>Area Intelligence</Text>
+                    <Image
+                        source={require('../../../assets/croww-logo.png')}
+                        style={styles.brandLogo}
+                        resizeMode="contain"
+                        accessibilityLabel="Croww"
+                    />
+                    <View style={styles.brandDivider} />
+                    <Text style={styles.brandText}>Areas</Text>
                 </View>
 
                 <View style={styles.controlsGroup}>
@@ -69,36 +77,52 @@ export default function IntelligenceMapOverlay({
                 </View>
             </View>
 
-            {/* Bottom horizontal carousel of top ranked areas */}
-            <View
-                style={[
-                    styles.bottomSection,
-                    { paddingBottom: bottomClearance },
-                ]}
-                pointerEvents="box-none"
-            >
-                <Text style={styles.stripTitle}>TOP AREAS FOR YOU</Text>
-                <ScrollView
-                    horizontal
-                    showsHorizontalScrollIndicator={false}
-                    contentContainerStyle={styles.bubbleScroll}
+            {/* Corner Relevance Legend: top-right below the controls group */}
+            {scoredLocalities.length > 0 && (
+                <View style={styles.legendCorner} pointerEvents="none">
+                    <RelevanceLegend orientation="vertical" />
+                </View>
+            )}
+
+            {/* Compact Area Result Card when a locality is selected */}
+            {selectedLocality && (
+                <CompactAreaResultCard
+                    locality={selectedLocality}
+                    matchResult={selectedLocalityData}
+                    onExplore={onExploreLocality}
+                    onDismiss={onDismissLocality}
+                />
+            )}
+
+            {/* Truthful Empty State Card when criteria yields 0 localities */}
+            {matcherRan && scoredLocalities.length === 0 && (
+                <View
+                    style={[styles.emptyCardWrapper, { bottom: bottomClearance }]}
+                    pointerEvents="box-none"
                 >
-                    {scoredLocalities.map((item) => {
-                        const isSelected = selectedLocality?.id === item.locality.id;
-                        return (
-                            <View key={item.locality.id} style={styles.bubbleWrapper}>
-                                <LocalityScoreBubble
-                                    name={item.locality.name}
-                                    score={item.score}
-                                    selected={isSelected}
-                                    variant="card"
-                                    onPress={() => onSelectLocality(item.locality, item)}
-                                />
-                            </View>
-                        );
-                    })}
-                </ScrollView>
-            </View>
+                    <View style={styles.emptyCard}>
+                        <View style={styles.emptyIconCircle}>
+                            <Ionicons name="search-outline" size={18} color={COLORS.primary} />
+                        </View>
+                        <Text style={styles.emptyTitle}>No matching areas found</Text>
+                        <Text style={styles.emptySubtitle}>
+                            No localities in {city || 'Chennai'} met all your commute and budget criteria.
+                        </Text>
+                        {onResetPreferences && (
+                            <TouchableOpacity
+                                style={styles.emptyTuneBtn}
+                                onPress={onResetPreferences}
+                                activeOpacity={0.85}
+                                accessibilityRole="button"
+                                accessibilityLabel="Tune search criteria"
+                            >
+                                <Ionicons name="options-outline" size={14} color="#FFFFFF" style={{ marginRight: 6 }} />
+                                <Text style={styles.emptyTuneBtnText}>Tune Preferences</Text>
+                            </TouchableOpacity>
+                        )}
+                    </View>
+                </View>
+            )}
         </View>
     );
 }
@@ -114,22 +138,37 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         paddingHorizontal: 16,
     },
+    legendCorner: {
+        position: 'absolute',
+        top: 52,
+        right: 16,
+    },
     brandPill: {
         height: 38,
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: '#FFFFFF',
         borderRadius: BORDER_RADIUS.pill,
-        paddingHorizontal: 13,
+        paddingHorizontal: 12,
         borderWidth: 1,
         borderColor: COLORS.borderSubtle,
         ...SHADOWS.soft,
     },
+    brandLogo: {
+        width: 58,
+        height: 18,
+    },
+    brandDivider: {
+        width: 1,
+        height: 14,
+        backgroundColor: 'rgba(0, 0, 0, 0.12)',
+        marginHorizontal: 8,
+    },
     brandText: {
         fontSize: FONT_SIZES.xs,
         fontWeight: '700',
-        color: COLORS.primary,
-        letterSpacing: 0.1,
+        color: '#111827',
+        letterSpacing: 0.2,
     },
     controlsGroup: {
         flexDirection: 'row',
@@ -152,23 +191,56 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: COLORS.primary,
     },
-    bottomSection: {
-        paddingHorizontal: 16,
+    emptyCardWrapper: {
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        zIndex: 35,
     },
-    stripTitle: {
-        fontSize: 10,
-        fontWeight: '800',
-        color: COLORS.secondary,
-        letterSpacing: 0.8,
+    emptyCard: {
+        backgroundColor: '#FFFFFF',
+        borderRadius: 20,
+        paddingHorizontal: 20,
+        paddingVertical: 18,
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: 'rgba(0, 0, 0, 0.08)',
+        ...SHADOWS.floating,
+    },
+    emptyIconCircle: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
         marginBottom: 8,
-        textShadowColor: 'rgba(255, 255, 255, 0.9)',
-        textShadowOffset: { width: 0, height: 1 },
-        textShadowRadius: 3,
     },
-    bubbleScroll: {
-        paddingRight: 24,
+    emptyTitle: {
+        fontSize: 16,
+        fontWeight: '700',
+        color: COLORS.primary,
+        marginBottom: 4,
+        textAlign: 'center',
     },
-    bubbleWrapper: {
-        marginRight: 8,
+    emptySubtitle: {
+        fontSize: 12,
+        color: '#6B7280',
+        textAlign: 'center',
+        marginBottom: 14,
+        lineHeight: 18,
+    },
+    emptyTuneBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
+        borderRadius: 12,
+    },
+    emptyTuneBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });

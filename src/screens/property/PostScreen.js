@@ -12,6 +12,7 @@ import { Ionicons } from '@expo/vector-icons';
 import ScreenWrapper from '../../components/ScreenWrapper';
 import Typography from '../../components/Typography';
 import AuthPromptModal from '../../components/auth/AuthPromptModal';
+import CrowwScreenHeader from '../../components/CrowwScreenHeader';
 import {
     BORDER_RADIUS,
     COLORS,
@@ -85,6 +86,7 @@ const PostScreen = () => {
 
     return (
         <ScreenWrapper edges={['top']}>
+            <CrowwScreenHeader navigation={navigation} withTopInset={false} />
             <ScrollView
                 contentContainerStyle={[
                     styles.scrollContent,
@@ -95,7 +97,7 @@ const PostScreen = () => {
                 {/* 1. Header — Launch-Oriented Focus */}
                 <View style={styles.header}>
                     <View style={styles.badge}>
-                        <Ionicons name="flash" size={13} color={COLORS.accent} />
+                        <Ionicons name="flash" size={13} color={COLORS.primary} />
                         <Text style={styles.badgeText}>COMMUNITY SHARING</Text>
                     </View>
                     <Typography variant="display" style={styles.title}>
@@ -148,7 +150,7 @@ const PostScreen = () => {
                                             <Ionicons
                                                 name={getCategoryIcon(item)}
                                                 size={20}
-                                                color={isSelected ? COLORS.accent : COLORS.primary}
+                                                color={COLORS.primary}
                                             />
                                         </View>
 
@@ -243,7 +245,7 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         alignSelf: 'flex-start',
-        backgroundColor: COLORS.accentMuted,
+        backgroundColor: COLORS.surfaceHighlight,
         paddingHorizontal: 10,
         paddingVertical: 4,
         borderRadius: BORDER_RADIUS.round,
@@ -251,7 +253,7 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     badgeText: {
-        color: COLORS.accent,
+        color: COLORS.primary,
         fontSize: 10,
         fontWeight: '800',
         letterSpacing: 0.6,
@@ -311,8 +313,8 @@ const styles = StyleSheet.create({
         width: '100%',
     },
     categoryCardSelected: {
-        backgroundColor: '#FAF8FE',
-        borderColor: COLORS.accent,
+        backgroundColor: COLORS.surface,
+        borderColor: COLORS.primary,
         borderWidth: 2,
         ...SHADOWS.soft,
     },
@@ -331,7 +333,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     iconWrapSelected: {
-        backgroundColor: '#EDE9FE',
+        backgroundColor: COLORS.surfaceHighlight,
     },
     radioCircle: {
         width: 20,
@@ -343,8 +345,8 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
     },
     radioCircleSelected: {
-        backgroundColor: COLORS.accent,
-        borderColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
     },
     cardTitle: {
         fontSize: 15,
@@ -353,7 +355,7 @@ const styles = StyleSheet.create({
         letterSpacing: -0.2,
     },
     cardTitleSelected: {
-        color: COLORS.accentDark,
+        color: COLORS.primary,
         fontWeight: '800',
     },
     cardDesc: {
@@ -363,7 +365,7 @@ const styles = StyleSheet.create({
     },
     continueBtn: {
         height: TOUCH_TARGETS.button,
-        backgroundColor: COLORS.accent,
+        backgroundColor: COLORS.primary,
         borderRadius: BORDER_RADIUS.button,
         flexDirection: 'row',
         alignItems: 'center',

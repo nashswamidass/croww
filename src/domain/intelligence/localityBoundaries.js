@@ -7392,6 +7392,74 @@ export const VERIFIED_LOCALITY_BOUNDARIES = {
         ]
       ]
     ]
+  },
+  "thiruvottiyur": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [80.3015, 13.1780],
+        [80.3040, 13.1690],
+        [80.3065, 13.1550],
+        [80.3075, 13.1420],
+        [80.2980, 13.1400],
+        [80.2910, 13.1450],
+        [80.2880, 13.1580],
+        [80.2870, 13.1710],
+        [80.2920, 13.1790],
+        [80.3015, 13.1780]
+      ]
+    ]
+  },
+  "chennai__thiruvottiyur": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [80.3015, 13.1780],
+        [80.3040, 13.1690],
+        [80.3065, 13.1550],
+        [80.3075, 13.1420],
+        [80.2980, 13.1400],
+        [80.2910, 13.1450],
+        [80.2880, 13.1580],
+        [80.2870, 13.1710],
+        [80.2920, 13.1790],
+        [80.3015, 13.1780]
+      ]
+    ]
+  },
+  "porur": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [80.1510, 13.0480],
+        [80.1620, 13.0495],
+        [80.1695, 13.0430],
+        [80.1710, 13.0330],
+        [80.1650, 13.0240],
+        [80.1550, 13.0220],
+        [80.1470, 13.0280],
+        [80.1450, 13.0380],
+        [80.1480, 13.0450],
+        [80.1510, 13.0480]
+      ]
+    ]
+  },
+  "chennai__porur": {
+    "type": "Polygon",
+    "coordinates": [
+      [
+        [80.1510, 13.0480],
+        [80.1620, 13.0495],
+        [80.1695, 13.0430],
+        [80.1710, 13.0330],
+        [80.1650, 13.0240],
+        [80.1550, 13.0220],
+        [80.1470, 13.0280],
+        [80.1450, 13.0380],
+        [80.1480, 13.0450],
+        [80.1510, 13.0480]
+      ]
+    ]
   }
 };
 
@@ -7408,10 +7476,16 @@ export function getLocalityBoundaryRings(locality) {
 
     // 2. Fall back to verified canonical municipal dataset if not in doc
     if (!geo) {
-        const idKey = (locality.id || '').toLowerCase().replace(/-/g, '_');
+        const rawId = (locality.id || '').toLowerCase();
+        const strippedId = rawId.replace(/^[a-z]+__/, '');
+        const idKey = strippedId.replace(/-/g, '_');
+        const rawKey = rawId.replace(/-/g, '_');
         const nameKey = (locality.name || '').toLowerCase().replace(/\s+/g, '_');
         geo = VERIFIED_LOCALITY_BOUNDARIES[locality.id] ||
+              VERIFIED_LOCALITY_BOUNDARIES[rawId] ||
+              VERIFIED_LOCALITY_BOUNDARIES[strippedId] ||
               VERIFIED_LOCALITY_BOUNDARIES[idKey] ||
+              VERIFIED_LOCALITY_BOUNDARIES[rawKey] ||
               VERIFIED_LOCALITY_BOUNDARIES[nameKey] ||
               null;
     }

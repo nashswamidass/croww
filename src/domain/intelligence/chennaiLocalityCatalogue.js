@@ -1,0 +1,3822 @@
+/**
+ * Canonical Chennai Locality Catalogue
+ * Master geographic dictionary reconciling all 188 areas from the Chennai Areas Deep Analysis dataset.
+ * Sourced from official Greater Chennai Corporation (GCC) municipal boundaries & surveyed centroids.
+ */
+
+export const CHENNAI_LOCALITY_CATALOGUE = {
+  "chennai__thiruvottiyur": {
+    "id": "chennai__thiruvottiyur",
+    "name": "Thiruvottiyur",
+    "rawName": "Thiruvottiyur / Tiruvottiyur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.16,
+    "longitude": 80.3,
+    "geohash": "tf34g78wt",
+    "aliases": [
+      "Thiruvottiyur / Tiruvottiyur",
+      "Thiruvottiyur",
+      "Thiruvottiyur Chennai",
+      "Tiruvottiyur",
+      "Tiruvottiyur Chennai"
+    ],
+    "geometryType": "Polygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__kathivakkam": {
+    "id": "chennai__kathivakkam",
+    "name": "Kathivakkam",
+    "rawName": "Kathivakkam / Kattivakkam",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.214,
+    "longitude": 80.321,
+    "geohash": "tf355txcn",
+    "aliases": [
+      "Kathivakkam / Kattivakkam",
+      "Kathivakkam",
+      "Kathivakkam Chennai",
+      "Kattivakkam",
+      "Kattivakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ennore": {
+    "id": "chennai__ennore",
+    "name": "Ennore",
+    "rawName": "Ennore",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.2,
+    "longitude": 80.32,
+    "geohash": "tf355dzpx",
+    "aliases": [
+      "Ennore",
+      "Ennore Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ernavoor": {
+    "id": "chennai__ernavoor",
+    "name": "Ernavoor",
+    "rawName": "Ernavoor / Eranavur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.182,
+    "longitude": 80.311,
+    "geohash": "tf34gx8wt",
+    "aliases": [
+      "Ernavoor / Eranavur",
+      "Ernavoor",
+      "Ernavoor Chennai",
+      "Eranavur",
+      "Eranavur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ajax": {
+    "id": "chennai__ajax",
+    "name": "Ajax",
+    "rawName": "Ajax",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.155,
+    "longitude": 80.302,
+    "geohash": "tf34g6f1k",
+    "aliases": [
+      "Ajax",
+      "Ajax Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kaladipet": {
+    "id": "chennai__kaladipet",
+    "name": "Kaladipet",
+    "rawName": "Kaladipet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.148,
+    "longitude": 80.298,
+    "geohash": "tf34g1x0x",
+    "aliases": [
+      "Kaladipet",
+      "Kaladipet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__rajakadai": {
+    "id": "chennai__rajakadai",
+    "name": "Rajakadai",
+    "rawName": "Rajakadai",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.142,
+    "longitude": 80.295,
+    "geohash": "tf34g0mj9",
+    "aliases": [
+      "Rajakadai",
+      "Rajakadai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kodungaiyur-west": {
+    "id": "chennai__kodungaiyur-west",
+    "name": "Kodungaiyur West",
+    "rawName": "Kodungaiyur (West)",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.14,
+    "longitude": 80.26,
+    "geohash": "tf34f25d1",
+    "aliases": [
+      "Kodungaiyur (West)",
+      "Kodungaiyur West",
+      "Kodungaiyur West Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kodungaiyur-east": {
+    "id": "chennai__kodungaiyur-east",
+    "name": "Kodungaiyur East",
+    "rawName": "Kodungaiyur (East)",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.142,
+    "longitude": 80.275,
+    "geohash": "tf34f8qmx",
+    "aliases": [
+      "Kodungaiyur (East)",
+      "Kodungaiyur East",
+      "Kodungaiyur East Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__rk-nagar": {
+    "id": "chennai__rk-nagar",
+    "name": "Dr. Radhakrishnan Nagar",
+    "rawName": "Dr. Radhakrishnan Nagar",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.129,
+    "longitude": 80.288,
+    "geohash": "tf34dypcv",
+    "aliases": [
+      "Dr. Radhakrishnan Nagar",
+      "Dr. Radhakrishnan Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__cheriyan-nagar": {
+    "id": "chennai__cheriyan-nagar",
+    "name": "Cheriyan Nagar",
+    "rawName": "Cheriyan Nagar",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.125,
+    "longitude": 80.292,
+    "geohash": "tf34ej6fe",
+    "aliases": [
+      "Cheriyan Nagar",
+      "Cheriyan Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__jeeva-nagar": {
+    "id": "chennai__jeeva-nagar",
+    "name": "Jeeva Nagar",
+    "rawName": "Jeeva Nagar",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.131,
+    "longitude": 80.29,
+    "geohash": "tf34en3ms",
+    "aliases": [
+      "Jeeva Nagar",
+      "Jeeva Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__manali": {
+    "id": "chennai__manali",
+    "name": "Manali",
+    "rawName": "Manali",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.17,
+    "longitude": 80.26,
+    "geohash": "tf34fme8c",
+    "aliases": [
+      "Manali",
+      "Manali Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__manali-new-town": {
+    "id": "chennai__manali-new-town",
+    "name": "Manali New Town",
+    "rawName": "Manali New Town",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.19,
+    "longitude": 80.25,
+    "geohash": "tf3541hm2",
+    "aliases": [
+      "Manali New Town",
+      "Manali New Town Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__edyanchavadi": {
+    "id": "chennai__edyanchavadi",
+    "name": "Edyanchavadi",
+    "rawName": "Edyanchavadi",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.195,
+    "longitude": 80.265,
+    "geohash": "tf3546p4q",
+    "aliases": [
+      "Edyanchavadi",
+      "Edyanchavadi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kadapakkam": {
+    "id": "chennai__kadapakkam",
+    "name": "Kadapakkam",
+    "rawName": "Kadapakkam",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.185,
+    "longitude": 80.235,
+    "geohash": "tf351b325",
+    "aliases": [
+      "Kadapakkam",
+      "Kadapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__theeyambakkam": {
+    "id": "chennai__theeyambakkam",
+    "name": "Theeyambakkam",
+    "rawName": "Theeyambakkam",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.175,
+    "longitude": 80.245,
+    "geohash": "tf34fn2tu",
+    "aliases": [
+      "Theeyambakkam",
+      "Theeyambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mathur": {
+    "id": "chennai__mathur",
+    "name": "Mathur",
+    "rawName": "Mathur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.162,
+    "longitude": 80.248,
+    "geohash": "tf34fh4f1",
+    "aliases": [
+      "Mathur",
+      "Mathur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sanjeevirayanpet": {
+    "id": "chennai__sanjeevirayanpet",
+    "name": "Sanjeevirayanpet",
+    "rawName": "Sanjeevirayanpet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.118,
+    "longitude": 80.288,
+    "geohash": "tf34dupcv",
+    "aliases": [
+      "Sanjeevirayanpet",
+      "Sanjeevirayanpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__grace-garden": {
+    "id": "chennai__grace-garden",
+    "name": "Grace Garden",
+    "rawName": "Grace Garden",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.112,
+    "longitude": 80.291,
+    "geohash": "tf34e4fng",
+    "aliases": [
+      "Grace Garden",
+      "Grace Garden Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__madhavaram": {
+    "id": "chennai__madhavaram",
+    "name": "Madhavaram",
+    "rawName": "Madhavaram",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.148,
+    "longitude": 80.23,
+    "geohash": "tf34c9t8w",
+    "aliases": [
+      "Madhavaram",
+      "Madhavaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__madhavaram-milk-colony": {
+    "id": "chennai__madhavaram-milk-colony",
+    "name": "Madhavaram Milk Colony",
+    "rawName": "Madhavaram Milk Colony",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.155,
+    "longitude": 80.235,
+    "geohash": "tf34cfc37",
+    "aliases": [
+      "Madhavaram Milk Colony",
+      "Madhavaram Milk Colony Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kavankarai": {
+    "id": "chennai__kavankarai",
+    "name": "Kavankarai",
+    "rawName": "Kavankarai",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.158,
+    "longitude": 80.21,
+    "geohash": "tf34c5r4u",
+    "aliases": [
+      "Kavankarai",
+      "Kavankarai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__puzhal": {
+    "id": "chennai__puzhal",
+    "name": "Puzhal",
+    "rawName": "Puzhal",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.16,
+    "longitude": 80.2,
+    "geohash": "tf34bgxye",
+    "aliases": [
+      "Puzhal",
+      "Puzhal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__red-hills": {
+    "id": "chennai__red-hills",
+    "name": "Red Hills",
+    "rawName": "Red Hills",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.19,
+    "longitude": 80.19,
+    "geohash": "tf350c0t6",
+    "aliases": [
+      "Red Hills",
+      "Red Hills Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__minjur": {
+    "id": "chennai__minjur",
+    "name": "Minjur",
+    "rawName": "Minjur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.28,
+    "longitude": 80.26,
+    "geohash": "tf35d3e99",
+    "aliases": [
+      "Minjur",
+      "Minjur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__tondiarpet": {
+    "id": "chennai__tondiarpet",
+    "name": "Tondiarpet",
+    "rawName": "Tondiarpet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.125,
+    "longitude": 80.29,
+    "geohash": "tf34ej36s",
+    "aliases": [
+      "Tondiarpet",
+      "Tondiarpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__royapuram": {
+    "id": "chennai__royapuram",
+    "name": "Royapuram",
+    "rawName": "Royapuram",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.11,
+    "longitude": 80.295,
+    "geohash": "tf34e4t53",
+    "aliases": [
+      "Royapuram",
+      "Royapuram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__washermanpet": {
+    "id": "chennai__washermanpet",
+    "name": "Washermanpet",
+    "rawName": "Washermanpet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.105,
+    "longitude": 80.285,
+    "geohash": "tf34dcty0",
+    "aliases": [
+      "Washermanpet",
+      "Washermanpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__new-washermanpet": {
+    "id": "chennai__new-washermanpet",
+    "name": "New Washermanpet",
+    "rawName": "New Washermanpet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.288,
+    "geohash": "tf34dgxbm",
+    "aliases": [
+      "New Washermanpet",
+      "New Washermanpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__perambur": {
+    "id": "chennai__perambur",
+    "name": "Perambur",
+    "rawName": "Perambur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.11,
+    "longitude": 80.24,
+    "geohash": "tf349fsgr",
+    "aliases": [
+      "Perambur",
+      "Perambur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__vyasarpadi": {
+    "id": "chennai__vyasarpadi",
+    "name": "Vyasarpadi",
+    "rawName": "Vyasarpadi",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.26,
+    "geohash": "tf34d7e83",
+    "aliases": [
+      "Vyasarpadi",
+      "Vyasarpadi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kolathur": {
+    "id": "chennai__kolathur",
+    "name": "Kolathur",
+    "rawName": "Kolathur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.125,
+    "longitude": 80.215,
+    "geohash": "tf349m6f8",
+    "aliases": [
+      "Kolathur",
+      "Kolathur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__moolakadai": {
+    "id": "chennai__moolakadai",
+    "name": "Moolakadai",
+    "rawName": "Moolakadai",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.13,
+    "longitude": 80.24,
+    "geohash": "tf349yhzz",
+    "aliases": [
+      "Moolakadai",
+      "Moolakadai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__korukkupet": {
+    "id": "chennai__korukkupet",
+    "name": "Korukkupet",
+    "rawName": "Korukkupet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.28,
+    "geohash": "tf34dgd07",
+    "aliases": [
+      "Korukkupet",
+      "Korukkupet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__basin-bridge": {
+    "id": "chennai__basin-bridge",
+    "name": "Basin Bridge",
+    "rawName": "Basin Bridge",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.1,
+    "longitude": 80.275,
+    "geohash": "tf34d8y3p",
+    "aliases": [
+      "Basin Bridge",
+      "Basin Bridge Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__vallalar-nagar": {
+    "id": "chennai__vallalar-nagar",
+    "name": "Vallalar Nagar",
+    "rawName": "Vallalar Nagar",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.102,
+    "longitude": 80.282,
+    "geohash": "tf34dc5sd",
+    "aliases": [
+      "Vallalar Nagar",
+      "Vallalar Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sholavaram": {
+    "id": "chennai__sholavaram",
+    "name": "Sholavaram",
+    "rawName": "Sholavaram",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.23,
+    "longitude": 80.15,
+    "geohash": "tf2grb7qq",
+    "aliases": [
+      "Sholavaram",
+      "Sholavaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__puthagaram": {
+    "id": "chennai__puthagaram",
+    "name": "Puthagaram",
+    "rawName": "Puthagaram",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.135,
+    "longitude": 80.205,
+    "geohash": "tf349p5kz",
+    "aliases": [
+      "Puthagaram",
+      "Puthagaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__icf-colony": {
+    "id": "chennai__icf-colony",
+    "name": "ICF Colony",
+    "rawName": "ICF Colony / Integral Coach Factory",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.098,
+    "longitude": 80.205,
+    "geohash": "tf34907mr",
+    "aliases": [
+      "ICF Colony / Integral Coach Factory",
+      "ICF Colony",
+      "ICF Colony Chennai",
+      "Integral Coach Factory",
+      "Integral Coach Factory Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__surapet": {
+    "id": "chennai__surapet",
+    "name": "Surapet",
+    "rawName": "Surapet",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.14,
+    "longitude": 80.18,
+    "geohash": "tf34b8161",
+    "aliases": [
+      "Surapet",
+      "Surapet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mkb-nagar": {
+    "id": "chennai__mkb-nagar",
+    "name": "MKB Nagar",
+    "rawName": "MKB Nagar",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.12,
+    "longitude": 80.26,
+    "geohash": "tf34dk7t9",
+    "aliases": [
+      "MKB Nagar",
+      "MKB Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__peravallur": {
+    "id": "chennai__peravallur",
+    "name": "Peravallur",
+    "rawName": "Peravallur",
+    "region": "North",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.118,
+    "longitude": 80.225,
+    "geohash": "tf349s41c",
+    "aliases": [
+      "Peravallur",
+      "Peravallur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__anna-nagar": {
+    "id": "chennai__anna-nagar",
+    "name": "Anna Nagar",
+    "rawName": "Anna Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.085,
+    "longitude": 80.21,
+    "geohash": "tf343np1s",
+    "aliases": [
+      "Anna Nagar",
+      "Anna Nagar Chennai"
+    ],
+    "geometryType": "MultiPolygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__nungambakkam": {
+    "id": "chennai__nungambakkam",
+    "name": "Nungambakkam",
+    "rawName": "Nungambakkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.06,
+    "longitude": 80.24,
+    "geohash": "tf343csbp",
+    "aliases": [
+      "Nungambakkam",
+      "Nungambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__t-nagar": {
+    "id": "chennai__t-nagar",
+    "name": "T. Nagar",
+    "rawName": "T. Nagar / Thyagaraya Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.0418,
+    "longitude": 80.2341,
+    "geohash": "tf341y0ty",
+    "aliases": [
+      "T. Nagar / Thyagaraya Nagar",
+      "T. Nagar",
+      "T. Nagar Chennai",
+      "Thyagaraya Nagar",
+      "Thyagaraya Nagar Chennai"
+    ],
+    "geometryType": "MultiPolygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__egmore": {
+    "id": "chennai__egmore",
+    "name": "Egmore",
+    "rawName": "Egmore",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.08,
+    "longitude": 80.26,
+    "geohash": "tf346m5s9",
+    "aliases": [
+      "Egmore",
+      "Egmore Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kilpauk": {
+    "id": "chennai__kilpauk",
+    "name": "Kilpauk",
+    "rawName": "Kilpauk",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.08,
+    "longitude": 80.24,
+    "geohash": "tf343vhux",
+    "aliases": [
+      "Kilpauk",
+      "Kilpauk Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kodambakkam": {
+    "id": "chennai__kodambakkam",
+    "name": "Kodambakkam",
+    "rawName": "Kodambakkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.05,
+    "longitude": 80.22,
+    "geohash": "tf341rwmv",
+    "aliases": [
+      "Kodambakkam",
+      "Kodambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__teynampet": {
+    "id": "chennai__teynampet",
+    "name": "Teynampet",
+    "rawName": "Teynampet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.04,
+    "longitude": 80.25,
+    "geohash": "tf344ju78",
+    "aliases": [
+      "Teynampet",
+      "Teynampet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mylapore": {
+    "id": "chennai__mylapore",
+    "name": "Mylapore",
+    "rawName": "Mylapore",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.033,
+    "longitude": 80.267,
+    "geohash": "tf344s8ds",
+    "aliases": [
+      "Mylapore",
+      "Mylapore Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__royapettah": {
+    "id": "chennai__royapettah",
+    "name": "Royapettah",
+    "rawName": "Royapettah",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.055,
+    "longitude": 80.265,
+    "geohash": "tf3462x4y",
+    "aliases": [
+      "Royapettah",
+      "Royapettah Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__alwarpet": {
+    "id": "chennai__alwarpet",
+    "name": "Alwarpet",
+    "rawName": "Alwarpet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.035,
+    "longitude": 80.25,
+    "geohash": "tf344huq2",
+    "aliases": [
+      "Alwarpet",
+      "Alwarpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__gopalapuram": {
+    "id": "chennai__gopalapuram",
+    "name": "Gopalapuram",
+    "rawName": "Gopalapuram",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.05,
+    "longitude": 80.255,
+    "geohash": "tf344pxvv",
+    "aliases": [
+      "Gopalapuram",
+      "Gopalapuram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__chetpet": {
+    "id": "chennai__chetpet",
+    "name": "Chetpet",
+    "rawName": "Chetpet / Chetput",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.07,
+    "longitude": 80.24,
+    "geohash": "tf343gkfr",
+    "aliases": [
+      "Chetpet / Chetput",
+      "Chetpet",
+      "Chetpet Chennai",
+      "Chetput",
+      "Chetput Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__shenoy-nagar": {
+    "id": "chennai__shenoy-nagar",
+    "name": "Shenoy Nagar",
+    "rawName": "Shenoy Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.078,
+    "longitude": 80.225,
+    "geohash": "tf343sf0c",
+    "aliases": [
+      "Shenoy Nagar",
+      "Shenoy Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__aminjikarai": {
+    "id": "chennai__aminjikarai",
+    "name": "Aminjikarai",
+    "rawName": "Aminjikarai",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.072,
+    "longitude": 80.22,
+    "geohash": "tf3437wmv",
+    "aliases": [
+      "Aminjikarai",
+      "Aminjikarai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__arumbakkam": {
+    "id": "chennai__arumbakkam",
+    "name": "Arumbakkam",
+    "rawName": "Arumbakkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.07,
+    "longitude": 80.205,
+    "geohash": "tf343576r",
+    "aliases": [
+      "Arumbakkam",
+      "Arumbakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__koyambedu": {
+    "id": "chennai__koyambedu",
+    "name": "Koyambedu",
+    "rawName": "Koyambedu",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.07,
+    "longitude": 80.19,
+    "geohash": "tf342g2d6",
+    "aliases": [
+      "Koyambedu",
+      "Koyambedu Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ashok-nagar": {
+    "id": "chennai__ashok-nagar",
+    "name": "Ashok Nagar",
+    "rawName": "Ashok Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.035,
+    "longitude": 80.21,
+    "geohash": "tf341hznk",
+    "aliases": [
+      "Ashok Nagar",
+      "Ashok Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__vadapalani": {
+    "id": "chennai__vadapalani",
+    "name": "Vadapalani",
+    "rawName": "Vadapalani",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.05,
+    "longitude": 80.21,
+    "geohash": "tf341pxju",
+    "aliases": [
+      "Vadapalani",
+      "Vadapalani Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__saidapet": {
+    "id": "chennai__saidapet",
+    "name": "Saidapet",
+    "rawName": "Saidapet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.02,
+    "longitude": 80.22,
+    "geohash": "tf3416nqv",
+    "aliases": [
+      "Saidapet",
+      "Saidapet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__guindy": {
+    "id": "chennai__guindy",
+    "name": "Guindy",
+    "rawName": "Guindy",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.0067,
+    "longitude": 80.2025,
+    "geohash": "tf31cpc9t",
+    "aliases": [
+      "Guindy",
+      "Guindy Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__choolaimedu": {
+    "id": "chennai__choolaimedu",
+    "name": "Choolaimedu",
+    "rawName": "Choolaimedu",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.065,
+    "longitude": 80.225,
+    "geohash": "tf343d6j1",
+    "aliases": [
+      "Choolaimedu",
+      "Choolaimedu Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nandanam": {
+    "id": "chennai__nandanam",
+    "name": "Nandanam",
+    "rawName": "Nandanam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.03,
+    "longitude": 80.24,
+    "geohash": "tf341uhcr",
+    "aliases": [
+      "Nandanam",
+      "Nandanam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thousand-lights": {
+    "id": "chennai__thousand-lights",
+    "name": "Thousand Lights",
+    "rawName": "Thousand Lights",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.06,
+    "longitude": 80.255,
+    "geohash": "tf3461xbj",
+    "aliases": [
+      "Thousand Lights",
+      "Thousand Lights Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__little-mount": {
+    "id": "chennai__little-mount",
+    "name": "Little Mount",
+    "rawName": "Little Mount",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.015,
+    "longitude": 80.225,
+    "geohash": "tf341961c",
+    "aliases": [
+      "Little Mount",
+      "Little Mount Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ekkaduthangal": {
+    "id": "chennai__ekkaduthangal",
+    "name": "Ekkaduthangal",
+    "rawName": "Ekkaduthangal / Ekkattuthangal",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.02,
+    "longitude": 80.2,
+    "geohash": "tf340fpyg",
+    "aliases": [
+      "Ekkaduthangal / Ekkattuthangal",
+      "Ekkaduthangal",
+      "Ekkaduthangal Chennai",
+      "Ekkattuthangal",
+      "Ekkattuthangal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__chepauk": {
+    "id": "chennai__chepauk",
+    "name": "Chepauk",
+    "rawName": "Chepauk",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.065,
+    "longitude": 80.28,
+    "geohash": "tf346f6j5",
+    "aliases": [
+      "Chepauk",
+      "Chepauk Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__chintadripet": {
+    "id": "chennai__chintadripet",
+    "name": "Chintadripet",
+    "rawName": "Chintadripet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.075,
+    "longitude": 80.27,
+    "geohash": "tf346s4z6",
+    "aliases": [
+      "Chintadripet",
+      "Chintadripet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__park-town": {
+    "id": "chennai__park-town",
+    "name": "Park Town",
+    "rawName": "Park Town",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.08,
+    "longitude": 80.275,
+    "geohash": "tf346tnkx",
+    "aliases": [
+      "Park Town",
+      "Park Town Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pudupet": {
+    "id": "chennai__pudupet",
+    "name": "Pudupet",
+    "rawName": "Pudupet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.068,
+    "longitude": 80.265,
+    "geohash": "tf3466znw",
+    "aliases": [
+      "Pudupet",
+      "Pudupet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__triplicane": {
+    "id": "chennai__triplicane",
+    "name": "Triplicane",
+    "rawName": "Triplicane / Tiruvallikeni",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.055,
+    "longitude": 80.275,
+    "geohash": "tf3468w6z",
+    "aliases": [
+      "Triplicane / Tiruvallikeni",
+      "Triplicane",
+      "Triplicane Chennai",
+      "Tiruvallikeni",
+      "Tiruvallikeni Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sowcarpet": {
+    "id": "chennai__sowcarpet",
+    "name": "Sowcarpet",
+    "rawName": "Sowcarpet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.095,
+    "longitude": 80.28,
+    "geohash": "tf346zf5g",
+    "aliases": [
+      "Sowcarpet",
+      "Sowcarpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__george-town": {
+    "id": "chennai__george-town",
+    "name": "George Town",
+    "rawName": "George Town",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.09,
+    "longitude": 80.285,
+    "geohash": "tf346yvyb",
+    "aliases": [
+      "George Town",
+      "George Town Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__parrys-corner": {
+    "id": "chennai__parrys-corner",
+    "name": "Parry's Corner",
+    "rawName": "Parry's Corner",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.09,
+    "longitude": 80.29,
+    "geohash": "tf347ncqu",
+    "aliases": [
+      "Parry's Corner",
+      "Parry's Corner Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mannadi": {
+    "id": "chennai__mannadi",
+    "name": "Mannadi",
+    "rawName": "Mannadi",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.095,
+    "longitude": 80.288,
+    "geohash": "tf346zzgv",
+    "aliases": [
+      "Mannadi",
+      "Mannadi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__fort-st-george": {
+    "id": "chennai__fort-st-george",
+    "name": "Fort St. George",
+    "rawName": "Fort St. George",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.08,
+    "longitude": 80.287,
+    "geohash": "tf346vphw",
+    "aliases": [
+      "Fort St. George",
+      "Fort St. George Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__government-estate": {
+    "id": "chennai__government-estate",
+    "name": "Government Estate",
+    "rawName": "Government Estate",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.07,
+    "longitude": 80.275,
+    "geohash": "tf346eq6r",
+    "aliases": [
+      "Government Estate",
+      "Government Estate Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__united-india-colony": {
+    "id": "chennai__united-india-colony",
+    "name": "United India Colony",
+    "rawName": "United India Colony",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.055,
+    "longitude": 80.225,
+    "geohash": "tf3438d4c",
+    "aliases": [
+      "United India Colony",
+      "United India Colony Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__purasaiwalkam": {
+    "id": "chennai__purasaiwalkam",
+    "name": "Purasaiwalkam",
+    "rawName": "Purasaiwalkam / Purasawalkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.09,
+    "longitude": 80.255,
+    "geohash": "tf346nzyv",
+    "aliases": [
+      "Purasaiwalkam / Purasawalkam",
+      "Purasaiwalkam",
+      "Purasaiwalkam Chennai",
+      "Purasawalkam",
+      "Purasawalkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__otteri": {
+    "id": "chennai__otteri",
+    "name": "Otteri",
+    "rawName": "Otteri",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.095,
+    "longitude": 80.25,
+    "geohash": "tf346pu7b",
+    "aliases": [
+      "Otteri",
+      "Otteri Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pulianthope": {
+    "id": "chennai__pulianthope",
+    "name": "Pulianthope",
+    "rawName": "Pulianthope",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.098,
+    "longitude": 80.265,
+    "geohash": "tf34d2rjq",
+    "aliases": [
+      "Pulianthope",
+      "Pulianthope Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ayanavaram": {
+    "id": "chennai__ayanavaram",
+    "name": "Ayanavaram",
+    "rawName": "Ayanavaram",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.1,
+    "longitude": 80.23,
+    "geohash": "tf3498v9n",
+    "aliases": [
+      "Ayanavaram",
+      "Ayanavaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__choolai": {
+    "id": "chennai__choolai",
+    "name": "Choolai",
+    "rawName": "Choolai",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.09,
+    "longitude": 80.265,
+    "geohash": "tf346qzny",
+    "aliases": [
+      "Choolai",
+      "Choolai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__periamet": {
+    "id": "chennai__periamet",
+    "name": "Periamet",
+    "rawName": "Periamet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.085,
+    "longitude": 80.27,
+    "geohash": "tf346w4cd",
+    "aliases": [
+      "Periamet",
+      "Periamet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thiru-vi-ka-nagar": {
+    "id": "chennai__thiru-vi-ka-nagar",
+    "name": "Thiru. Vi. Ka. Nagar",
+    "rawName": "Thiru. Vi. Ka. Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.11,
+    "longitude": 80.235,
+    "geohash": "tf349f977",
+    "aliases": [
+      "Thiru. Vi. Ka. Nagar",
+      "Thiru. Vi. Ka. Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__villivakkam": {
+    "id": "chennai__villivakkam",
+    "name": "Villivakkam",
+    "rawName": "Villivakkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.105,
+    "longitude": 80.205,
+    "geohash": "tf3491eqp",
+    "aliases": [
+      "Villivakkam",
+      "Villivakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thirumangalam": {
+    "id": "chennai__thirumangalam",
+    "name": "Thirumangalam",
+    "rawName": "Thirumangalam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.085,
+    "longitude": 80.195,
+    "geohash": "tf342yh1w",
+    "aliases": [
+      "Thirumangalam",
+      "Thirumangalam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__west-mambalam": {
+    "id": "chennai__west-mambalam",
+    "name": "West Mambalam",
+    "rawName": "West Mambalam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.038,
+    "longitude": 80.225,
+    "geohash": "tf341t6pc",
+    "aliases": [
+      "West Mambalam",
+      "West Mambalam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kk-nagar": {
+    "id": "chennai__kk-nagar",
+    "name": "K.K. Nagar",
+    "rawName": "K.K. Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.04,
+    "longitude": 80.2,
+    "geohash": "tf340vzge",
+    "aliases": [
+      "K.K. Nagar",
+      "K.K. Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__saligramam": {
+    "id": "chennai__saligramam",
+    "name": "Saligramam",
+    "rawName": "Saligramam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.055,
+    "longitude": 80.195,
+    "geohash": "tf342bs4y",
+    "aliases": [
+      "Saligramam",
+      "Saligramam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__virugambakkam": {
+    "id": "chennai__virugambakkam",
+    "name": "Virugambakkam",
+    "rawName": "Virugambakkam",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.05,
+    "longitude": 80.19,
+    "geohash": "tf340z8tf",
+    "aliases": [
+      "Virugambakkam",
+      "Virugambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__jafferkhanpet": {
+    "id": "chennai__jafferkhanpet",
+    "name": "Jafferkhanpet",
+    "rawName": "Jafferkhanpet",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.03,
+    "longitude": 80.205,
+    "geohash": "tf341h53r",
+    "aliases": [
+      "Jafferkhanpet",
+      "Jafferkhanpet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mgr-nagar": {
+    "id": "chennai__mgr-nagar",
+    "name": "MGR Nagar",
+    "rawName": "MGR Nagar",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.035,
+    "longitude": 80.195,
+    "geohash": "tf340uunq",
+    "aliases": [
+      "MGR Nagar",
+      "MGR Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__boat-club-poes-garden": {
+    "id": "chennai__boat-club-poes-garden",
+    "name": "Boat Club Road / Poes Garden",
+    "rawName": "Boat Club Road / Poes Garden",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.025,
+    "longitude": 80.252,
+    "geohash": "tf3445jsp",
+    "aliases": [
+      "Boat Club Road / Poes Garden",
+      "Boat Club Road / Poes Garden Chennai",
+      "Boat Club Road",
+      "Boat Club Road Chennai",
+      "Poes Garden",
+      "Poes Garden Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__ra-puram": {
+    "id": "chennai__ra-puram",
+    "name": "RA Puram",
+    "rawName": "RA Puram / Raja Annamalai Puram",
+    "region": "Central",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.025,
+    "longitude": 80.26,
+    "geohash": "tf34475s1",
+    "aliases": [
+      "RA Puram / Raja Annamalai Puram",
+      "RA Puram",
+      "RA Puram Chennai",
+      "Raja Annamalai Puram",
+      "Raja Annamalai Puram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__adyar": {
+    "id": "chennai__adyar",
+    "name": "Adyar",
+    "rawName": "Adyar",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.0012,
+    "longitude": 80.2565,
+    "geohash": "tf31fqbcr",
+    "aliases": [
+      "Adyar",
+      "Adyar Chennai"
+    ],
+    "geometryType": "MultiPolygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__besant-nagar": {
+    "id": "chennai__besant-nagar",
+    "name": "Besant Nagar",
+    "rawName": "Besant Nagar",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.998,
+    "longitude": 80.267,
+    "geohash": "tf31fw0wu",
+    "aliases": [
+      "Besant Nagar",
+      "Besant Nagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thiruvanmiyur": {
+    "id": "chennai__thiruvanmiyur",
+    "name": "Thiruvanmiyur",
+    "rawName": "Thiruvanmiyur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.983,
+    "longitude": 80.259,
+    "geohash": "tf31f76z6",
+    "aliases": [
+      "Thiruvanmiyur",
+      "Thiruvanmiyur Chennai"
+    ],
+    "geometryType": "MultiPolygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__velachery": {
+    "id": "chennai__velachery",
+    "name": "Velachery",
+    "rawName": "Velachery",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.975,
+    "longitude": 80.22,
+    "geohash": "tf31c6n2v",
+    "aliases": [
+      "Velachery",
+      "Velachery Chennai"
+    ],
+    "geometryType": "MultiPolygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__taramani": {
+    "id": "chennai__taramani",
+    "name": "Taramani",
+    "rawName": "Taramani / Tharamani",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.98,
+    "longitude": 80.24,
+    "geohash": "tf31cfuvz",
+    "aliases": [
+      "Taramani / Tharamani",
+      "Taramani",
+      "Taramani Chennai",
+      "Tharamani",
+      "Tharamani Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__perungudi": {
+    "id": "chennai__perungudi",
+    "name": "Perungudi",
+    "rawName": "Perungudi",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.965,
+    "longitude": 80.245,
+    "geohash": "tf31f00ws",
+    "aliases": [
+      "Perungudi",
+      "Perungudi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thoraipakkam": {
+    "id": "chennai__thoraipakkam",
+    "name": "Thoraipakkam",
+    "rawName": "Thoraipakkam / Thuraipakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.94,
+    "longitude": 80.235,
+    "geohash": "tf319g9kg",
+    "aliases": [
+      "Thoraipakkam / Thuraipakkam",
+      "Thoraipakkam",
+      "Thoraipakkam Chennai",
+      "Thuraipakkam",
+      "Thuraipakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sholinganallur": {
+    "id": "chennai__sholinganallur",
+    "name": "Sholinganallur",
+    "rawName": "Sholinganallur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.9,
+    "longitude": 80.228,
+    "geohash": "tf313sk5z",
+    "aliases": [
+      "Sholinganallur",
+      "Sholinganallur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pallikaranai": {
+    "id": "chennai__pallikaranai",
+    "name": "Pallikaranai",
+    "rawName": "Pallikaranai",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.935,
+    "longitude": 80.215,
+    "geohash": "tf3196dzb",
+    "aliases": [
+      "Pallikaranai",
+      "Pallikaranai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__medavakkam": {
+    "id": "chennai__medavakkam",
+    "name": "Medavakkam",
+    "rawName": "Medavakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.915,
+    "longitude": 80.19,
+    "geohash": "tf312z0e6",
+    "aliases": [
+      "Medavakkam",
+      "Medavakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__perumbakkam": {
+    "id": "chennai__perumbakkam",
+    "name": "Perumbakkam",
+    "rawName": "Perumbakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.9,
+    "longitude": 80.195,
+    "geohash": "tf312uk5y",
+    "aliases": [
+      "Perumbakkam",
+      "Perumbakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__madipakkam": {
+    "id": "chennai__madipakkam",
+    "name": "Madipakkam",
+    "rawName": "Madipakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.965,
+    "longitude": 80.195,
+    "geohash": "tf31bbhnw",
+    "aliases": [
+      "Madipakkam",
+      "Madipakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nanganallur": {
+    "id": "chennai__nanganallur",
+    "name": "Nanganallur",
+    "rawName": "Nanganallur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.98,
+    "longitude": 80.19,
+    "geohash": "tf31bfbtf",
+    "aliases": [
+      "Nanganallur",
+      "Nanganallur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__adambakkam": {
+    "id": "chennai__adambakkam",
+    "name": "Adambakkam",
+    "rawName": "Adambakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.985,
+    "longitude": 80.205,
+    "geohash": "tf31c5g7p",
+    "aliases": [
+      "Adambakkam",
+      "Adambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__alandur": {
+    "id": "chennai__alandur",
+    "name": "Alandur",
+    "rawName": "Alandur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13,
+    "longitude": 80.2,
+    "geohash": "tf31byxf7",
+    "aliases": [
+      "Alandur",
+      "Alandur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__st-thomas-mount": {
+    "id": "chennai__st-thomas-mount",
+    "name": "St. Thomas Mount",
+    "rawName": "St. Thomas Mount",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.005,
+    "longitude": 80.195,
+    "geohash": "tf31bzkpw",
+    "aliases": [
+      "St. Thomas Mount",
+      "St. Thomas Mount Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__chrompet": {
+    "id": "chennai__chrompet",
+    "name": "Chrompet",
+    "rawName": "Chrompet / Chromepet",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.95,
+    "longitude": 80.14,
+    "geohash": "tf2cxtkpj",
+    "aliases": [
+      "Chrompet / Chromepet",
+      "Chrompet",
+      "Chrompet Chennai",
+      "Chromepet",
+      "Chromepet Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pallavaram": {
+    "id": "chennai__pallavaram",
+    "name": "Pallavaram",
+    "rawName": "Pallavaram",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.965,
+    "longitude": 80.15,
+    "geohash": "tf2czb5qw",
+    "aliases": [
+      "Pallavaram",
+      "Pallavaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__tambaram": {
+    "id": "chennai__tambaram",
+    "name": "Tambaram",
+    "rawName": "Tambaram",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.925,
+    "longitude": 80.12,
+    "geohash": "tf2cx0vte",
+    "aliases": [
+      "Tambaram",
+      "Tambaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__neelankarai": {
+    "id": "chennai__neelankarai",
+    "name": "Neelankarai",
+    "rawName": "Neelankarai",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.95,
+    "longitude": 80.26,
+    "geohash": "tf31dm7x1",
+    "aliases": [
+      "Neelankarai",
+      "Neelankarai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__injambakkam": {
+    "id": "chennai__injambakkam",
+    "name": "Injambakkam",
+    "rawName": "Injambakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.92,
+    "longitude": 80.255,
+    "geohash": "tf31d0pbm",
+    "aliases": [
+      "Injambakkam",
+      "Injambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__karapakkam": {
+    "id": "chennai__karapakkam",
+    "name": "Karapakkam",
+    "rawName": "Karapakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.915,
+    "longitude": 80.23,
+    "geohash": "tf313xjeq",
+    "aliases": [
+      "Karapakkam",
+      "Karapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__navalur": {
+    "id": "chennai__navalur",
+    "name": "Navalur",
+    "rawName": "Navalur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.845,
+    "longitude": 80.225,
+    "geohash": "tf311d659",
+    "aliases": [
+      "Navalur",
+      "Navalur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__siruseri": {
+    "id": "chennai__siruseri",
+    "name": "Siruseri",
+    "rawName": "Siruseri",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.825,
+    "longitude": 80.22,
+    "geohash": "tf30cqwrj",
+    "aliases": [
+      "Siruseri",
+      "Siruseri Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kottivakkam": {
+    "id": "chennai__kottivakkam",
+    "name": "Kottivakkam",
+    "rawName": "Kottivakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.968,
+    "longitude": 80.26,
+    "geohash": "tf31f2g81",
+    "aliases": [
+      "Kottivakkam",
+      "Kottivakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__palavakkam": {
+    "id": "chennai__palavakkam",
+    "name": "Palavakkam",
+    "rawName": "Palavakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.958,
+    "longitude": 80.26,
+    "geohash": "tf31dqgtc",
+    "aliases": [
+      "Palavakkam",
+      "Palavakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__santhome": {
+    "id": "chennai__santhome",
+    "name": "Santhome",
+    "rawName": "Santhome",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.03,
+    "longitude": 80.28,
+    "geohash": "tf344u417",
+    "aliases": [
+      "Santhome",
+      "Santhome Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mandaveli": {
+    "id": "chennai__mandaveli",
+    "name": "Mandaveli",
+    "rawName": "Mandaveli",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.025,
+    "longitude": 80.27,
+    "geohash": "tf344e4u4",
+    "aliases": [
+      "Mandaveli",
+      "Mandaveli Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kotturpuram": {
+    "id": "chennai__kotturpuram",
+    "name": "Kotturpuram",
+    "rawName": "Kotturpuram",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.015,
+    "longitude": 80.24,
+    "geohash": "tf341ckcz",
+    "aliases": [
+      "Kotturpuram",
+      "Kotturpuram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kottur": {
+    "id": "chennai__kottur",
+    "name": "Kottur",
+    "rawName": "Kottur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.012,
+    "longitude": 80.242,
+    "geohash": "tf341by2q",
+    "aliases": [
+      "Kottur",
+      "Kottur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__meenambakkam": {
+    "id": "chennai__meenambakkam",
+    "name": "Meenambakkam",
+    "rawName": "Meenambakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.98,
+    "longitude": 80.175,
+    "geohash": "tf31b6vtu",
+    "aliases": [
+      "Meenambakkam",
+      "Meenambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__tirusulam": {
+    "id": "chennai__tirusulam",
+    "name": "Tirusulam",
+    "rawName": "Tirusulam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.975,
+    "longitude": 80.165,
+    "geohash": "tf31b4n2g",
+    "aliases": [
+      "Tirusulam",
+      "Tirusulam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pammal": {
+    "id": "chennai__pammal",
+    "name": "Pammal",
+    "rawName": "Pammal",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.97,
+    "longitude": 80.13,
+    "geohash": "tf2cz3hgs",
+    "aliases": [
+      "Pammal",
+      "Pammal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pozhichalur": {
+    "id": "chennai__pozhichalur",
+    "name": "Pozhichalur",
+    "rawName": "Pozhichalur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.98,
+    "longitude": 80.14,
+    "geohash": "tf2czdujv",
+    "aliases": [
+      "Pozhichalur",
+      "Pozhichalur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__selaiyur": {
+    "id": "chennai__selaiyur",
+    "name": "Selaiyur",
+    "rawName": "Selaiyur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.91,
+    "longitude": 80.14,
+    "geohash": "tf2crwhnj",
+    "aliases": [
+      "Selaiyur",
+      "Selaiyur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sembakkam": {
+    "id": "chennai__sembakkam",
+    "name": "Sembakkam",
+    "rawName": "Sembakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.92,
+    "longitude": 80.15,
+    "geohash": "tf2cxb52q",
+    "aliases": [
+      "Sembakkam",
+      "Sembakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__keelkattalai": {
+    "id": "chennai__keelkattalai",
+    "name": "Keelkattalai",
+    "rawName": "Keelkattalai",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.955,
+    "longitude": 80.18,
+    "geohash": "tf318w3k3",
+    "aliases": [
+      "Keelkattalai",
+      "Keelkattalai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sithalapakkam": {
+    "id": "chennai__sithalapakkam",
+    "name": "Sithalapakkam",
+    "rawName": "Sithalapakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.89,
+    "longitude": 80.185,
+    "geohash": "tf312dsct",
+    "aliases": [
+      "Sithalapakkam",
+      "Sithalapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mudichur": {
+    "id": "chennai__mudichur",
+    "name": "Mudichur",
+    "rawName": "Mudichur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.91,
+    "longitude": 80.08,
+    "geohash": "tf2cqq0qp",
+    "aliases": [
+      "Mudichur",
+      "Mudichur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__guduvancheri": {
+    "id": "chennai__guduvancheri",
+    "name": "Guduvancheri",
+    "rawName": "Guduvancheri",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.845,
+    "longitude": 80.06,
+    "geohash": "tf2cjf3gt",
+    "aliases": [
+      "Guduvancheri",
+      "Guduvancheri Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__vandalur": {
+    "id": "chennai__vandalur",
+    "name": "Vandalur",
+    "rawName": "Vandalur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.89,
+    "longitude": 80.08,
+    "geohash": "tf2cq683x",
+    "aliases": [
+      "Vandalur",
+      "Vandalur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__madambakkam": {
+    "id": "chennai__madambakkam",
+    "name": "Madambakkam",
+    "rawName": "Madambakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.89,
+    "longitude": 80.155,
+    "geohash": "tf2crfx1d",
+    "aliases": [
+      "Madambakkam",
+      "Madambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nanmangalam": {
+    "id": "chennai__nanmangalam",
+    "name": "Nanmangalam",
+    "rawName": "Nanmangalam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.93,
+    "longitude": 80.175,
+    "geohash": "tf3183vds",
+    "aliases": [
+      "Nanmangalam",
+      "Nanmangalam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pazhavanthangal": {
+    "id": "chennai__pazhavanthangal",
+    "name": "Pazhavanthangal",
+    "rawName": "Pazhavanthangal",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.99,
+    "longitude": 80.185,
+    "geohash": "tf31bsubj",
+    "aliases": [
+      "Pazhavanthangal",
+      "Pazhavanthangal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__peerkankaranai": {
+    "id": "chennai__peerkankaranai",
+    "name": "Peerkankaranai",
+    "rawName": "Peerkankaranai",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.905,
+    "longitude": 80.095,
+    "geohash": "tf2cqt73h",
+    "aliases": [
+      "Peerkankaranai",
+      "Peerkankaranai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__perungalathur": {
+    "id": "chennai__perungalathur",
+    "name": "Perungalathur",
+    "rawName": "Perungalathur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.9,
+    "longitude": 80.09,
+    "geohash": "tf2cqkrgb",
+    "aliases": [
+      "Perungalathur",
+      "Perungalathur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__chitlapakkam": {
+    "id": "chennai__chitlapakkam",
+    "name": "Chitlapakkam",
+    "rawName": "Chitlapakkam",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.935,
+    "longitude": 80.14,
+    "geohash": "tf2cxdspv",
+    "aliases": [
+      "Chitlapakkam",
+      "Chitlapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__iit-madras-area": {
+    "id": "chennai__iit-madras-area",
+    "name": "IIT Madras Area",
+    "rawName": "IIT Madras area",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.9915,
+    "longitude": 80.2337,
+    "geohash": "tf31cv02u",
+    "aliases": [
+      "IIT Madras area",
+      "IIT Madras Area",
+      "IIT Madras Area Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__raj-bhavan": {
+    "id": "chennai__raj-bhavan",
+    "name": "Raj Bhavan",
+    "rawName": "Raj Bhavan",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.0076,
+    "longitude": 80.2205,
+    "geohash": "tf31cryyc",
+    "aliases": [
+      "Raj Bhavan",
+      "Raj Bhavan Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__foreshore-estate": {
+    "id": "chennai__foreshore-estate",
+    "name": "Foreshore Estate",
+    "rawName": "Foreshore Estate",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.028,
+    "longitude": 80.278,
+    "geohash": "tf344g8ts",
+    "aliases": [
+      "Foreshore Estate",
+      "Foreshore Estate Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Institutional / Survey Centroid",
+    "isSpecialArea": true
+  },
+  "chennai__kazhipattur": {
+    "id": "chennai__kazhipattur",
+    "name": "Kazhipattur",
+    "rawName": "Kazhipattur",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.815,
+    "longitude": 80.225,
+    "geohash": "tf30csfhc",
+    "aliases": [
+      "Kazhipattur",
+      "Kazhipattur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__semmencheri": {
+    "id": "chennai__semmencheri",
+    "name": "Semmencheri",
+    "rawName": "Semmencheri / Semmencherry",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.87,
+    "longitude": 80.225,
+    "geohash": "tf311wfj1",
+    "aliases": [
+      "Semmencheri / Semmencherry",
+      "Semmencheri",
+      "Semmencheri Chennai",
+      "Semmencherry",
+      "Semmencherry Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__puzhuthivakkam": {
+    "id": "chennai__puzhuthivakkam",
+    "name": "Puzhuthivakkam",
+    "rawName": "Puzhuthivakkam / Ullagaram",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.97,
+    "longitude": 80.198,
+    "geohash": "tf31bcn7s",
+    "aliases": [
+      "Puzhuthivakkam / Ullagaram",
+      "Puzhuthivakkam",
+      "Puzhuthivakkam Chennai",
+      "Ullagaram",
+      "Ullagaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thiruneermalai": {
+    "id": "chennai__thiruneermalai",
+    "name": "Thiruneermalai",
+    "rawName": "Thiruneermalai",
+    "region": "South / OMR / ECR",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.96,
+    "longitude": 80.11,
+    "geohash": "tf2cwzq36",
+    "aliases": [
+      "Thiruneermalai",
+      "Thiruneermalai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__porur": {
+    "id": "chennai__porur",
+    "name": "Porur",
+    "rawName": "Porur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.0382,
+    "longitude": 80.1565,
+    "geohash": "tf340j81j",
+    "aliases": [
+      "Porur",
+      "Porur Chennai"
+    ],
+    "geometryType": "Polygon",
+    "boundaryStatus": "VERIFIED",
+    "boundarySource": "GCC Municipal Spatial Dataset (localityBoundaries.js)",
+    "isSpecialArea": false
+  },
+  "chennai__ambattur": {
+    "id": "chennai__ambattur",
+    "name": "Ambattur",
+    "rawName": "Ambattur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.155,
+    "geohash": "tf2fxgx06",
+    "aliases": [
+      "Ambattur",
+      "Ambattur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mogappair": {
+    "id": "chennai__mogappair",
+    "name": "Mogappair",
+    "rawName": "Mogappair",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.085,
+    "longitude": 80.17,
+    "geohash": "tf342q418",
+    "aliases": [
+      "Mogappair",
+      "Mogappair Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__korattur": {
+    "id": "chennai__korattur",
+    "name": "Korattur",
+    "rawName": "Korattur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.11,
+    "longitude": 80.18,
+    "geohash": "tf348d973",
+    "aliases": [
+      "Korattur",
+      "Korattur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__padi": {
+    "id": "chennai__padi",
+    "name": "Padi",
+    "rawName": "Padi",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.095,
+    "longitude": 80.185,
+    "geohash": "tf342xugv",
+    "aliases": [
+      "Padi",
+      "Padi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__maduravoyal": {
+    "id": "chennai__maduravoyal",
+    "name": "Maduravoyal",
+    "rawName": "Maduravoyal",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.065,
+    "longitude": 80.165,
+    "geohash": "tf3424qm5",
+    "aliases": [
+      "Maduravoyal",
+      "Maduravoyal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__valasaravakkam": {
+    "id": "chennai__valasaravakkam",
+    "name": "Valasaravakkam",
+    "rawName": "Valasaravakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.045,
+    "longitude": 80.175,
+    "geohash": "tf340qv8s",
+    "aliases": [
+      "Valasaravakkam",
+      "Valasaravakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__avadi": {
+    "id": "chennai__avadi",
+    "name": "Avadi",
+    "rawName": "Avadi",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.1,
+    "geohash": "tf2fwex03",
+    "aliases": [
+      "Avadi",
+      "Avadi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__poonamallee": {
+    "id": "chennai__poonamallee",
+    "name": "Poonamallee",
+    "rawName": "Poonamallee",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.05,
+    "longitude": 80.08,
+    "geohash": "tf2fnr8mz",
+    "aliases": [
+      "Poonamallee",
+      "Poonamallee Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kundrathur": {
+    "id": "chennai__kundrathur",
+    "name": "Kundrathur",
+    "rawName": "Kundrathur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 12.995,
+    "longitude": 80.095,
+    "geohash": "tf2cytemk",
+    "aliases": [
+      "Kundrathur",
+      "Kundrathur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__iyyapanthangal": {
+    "id": "chennai__iyyapanthangal",
+    "name": "Iyyapanthangal",
+    "rawName": "Iyyapanthangal",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.04,
+    "longitude": 80.14,
+    "geohash": "tf2fptu5t",
+    "aliases": [
+      "Iyyapanthangal",
+      "Iyyapanthangal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__manapakkam": {
+    "id": "chennai__manapakkam",
+    "name": "Manapakkam",
+    "rawName": "Manapakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.02,
+    "longitude": 80.18,
+    "geohash": "tf340d1qc",
+    "aliases": [
+      "Manapakkam",
+      "Manapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mugalivakkam": {
+    "id": "chennai__mugalivakkam",
+    "name": "Mugalivakkam",
+    "rawName": "Mugalivakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.015,
+    "longitude": 80.165,
+    "geohash": "tf3401q3g",
+    "aliases": [
+      "Mugalivakkam",
+      "Mugalivakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ramapuram": {
+    "id": "chennai__ramapuram",
+    "name": "Ramapuram",
+    "rawName": "Ramapuram",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.03,
+    "longitude": 80.18,
+    "geohash": "tf340s133",
+    "aliases": [
+      "Ramapuram",
+      "Ramapuram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__alwarthirunagar": {
+    "id": "chennai__alwarthirunagar",
+    "name": "Alwarthirunagar",
+    "rawName": "Alwarthirunagar",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.04,
+    "longitude": 80.185,
+    "geohash": "tf340tugt",
+    "aliases": [
+      "Alwarthirunagar",
+      "Alwarthirunagar Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nesapakkam": {
+    "id": "chennai__nesapakkam",
+    "name": "Nesapakkam",
+    "rawName": "Nesapakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.035,
+    "longitude": 80.19,
+    "geohash": "tf340ubw6",
+    "aliases": [
+      "Nesapakkam",
+      "Nesapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nolambur": {
+    "id": "chennai__nolambur",
+    "name": "Nolambur",
+    "rawName": "Nolambur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.08,
+    "longitude": 80.16,
+    "geohash": "tf342j4sx",
+    "aliases": [
+      "Nolambur",
+      "Nolambur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__noombal": {
+    "id": "chennai__noombal",
+    "name": "Noombal",
+    "rawName": "Noombal",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.06,
+    "longitude": 80.135,
+    "geohash": "tf2fr9880",
+    "aliases": [
+      "Noombal",
+      "Noombal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__vanagaram": {
+    "id": "chennai__vanagaram",
+    "name": "Vanagaram",
+    "rawName": "Vanagaram",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.06,
+    "longitude": 80.15,
+    "geohash": "tf2frce2n",
+    "aliases": [
+      "Vanagaram",
+      "Vanagaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__mangadu": {
+    "id": "chennai__mangadu",
+    "name": "Mangadu",
+    "rawName": "Mangadu",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.045,
+    "longitude": 80.115,
+    "geohash": "tf2fpncbw",
+    "aliases": [
+      "Mangadu",
+      "Mangadu Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kovur": {
+    "id": "chennai__kovur",
+    "name": "Kovur",
+    "rawName": "Kovur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.015,
+    "longitude": 80.12,
+    "geohash": "tf2fp1m9g",
+    "aliases": [
+      "Kovur",
+      "Kovur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thirumullaivoyal": {
+    "id": "chennai__thirumullaivoyal",
+    "name": "Thirumullaivoyal",
+    "rawName": "Thirumullaivoyal",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.13,
+    "longitude": 80.13,
+    "geohash": "tf2fxqhzu",
+    "aliases": [
+      "Thirumullaivoyal",
+      "Thirumullaivoyal Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__thiruninravur": {
+    "id": "chennai__thiruninravur",
+    "name": "Thiruninravur",
+    "rawName": "Thiruninravur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.12,
+    "longitude": 79.98,
+    "geohash": "tf2feurtt",
+    "aliases": [
+      "Thiruninravur",
+      "Thiruninravur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pattabiram": {
+    "id": "chennai__pattabiram",
+    "name": "Pattabiram",
+    "rawName": "Pattabiram",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.12,
+    "longitude": 80.06,
+    "geohash": "tf2ftu3vt",
+    "aliases": [
+      "Pattabiram",
+      "Pattabiram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__annanur": {
+    "id": "chennai__annanur",
+    "name": "Annanur",
+    "rawName": "Annanur",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.118,
+    "longitude": 80.125,
+    "geohash": "tf2fxk11z",
+    "aliases": [
+      "Annanur",
+      "Annanur Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__tiruverkadu": {
+    "id": "chennai__tiruverkadu",
+    "name": "Tiruverkadu",
+    "rawName": "Tiruverkadu",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.07,
+    "longitude": 80.12,
+    "geohash": "tf2fr5md7",
+    "aliases": [
+      "Tiruverkadu",
+      "Tiruverkadu Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__velappanchavadi": {
+    "id": "chennai__velappanchavadi",
+    "name": "Velappanchavadi",
+    "rawName": "Velappanchavadi",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.06,
+    "longitude": 80.14,
+    "geohash": "tf2fr9s0j",
+    "aliases": [
+      "Velappanchavadi",
+      "Velappanchavadi Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__alapakkam": {
+    "id": "chennai__alapakkam",
+    "name": "Alapakkam",
+    "rawName": "Alapakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.045,
+    "longitude": 80.16,
+    "geohash": "tf340nf8x",
+    "aliases": [
+      "Alapakkam",
+      "Alapakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__karambakkam": {
+    "id": "chennai__karambakkam",
+    "name": "Karambakkam",
+    "rawName": "Karambakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.04,
+    "longitude": 80.155,
+    "geohash": "tf2fpvz5d",
+    "aliases": [
+      "Karambakkam",
+      "Karambakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__moulivakkam": {
+    "id": "chennai__moulivakkam",
+    "name": "Moulivakkam",
+    "rawName": "Moulivakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.025,
+    "longitude": 80.155,
+    "geohash": "tf2fpgph4",
+    "aliases": [
+      "Moulivakkam",
+      "Moulivakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__sikkarayapuram": {
+    "id": "chennai__sikkarayapuram",
+    "name": "Sikkarayapuram",
+    "rawName": "Sikkarayapuram",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.005,
+    "longitude": 80.125,
+    "geohash": "tf2czr3px",
+    "aliases": [
+      "Sikkarayapuram",
+      "Sikkarayapuram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__ramavaram": {
+    "id": "chennai__ramavaram",
+    "name": "Ramavaram",
+    "rawName": "Ramavaram",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.025,
+    "longitude": 80.175,
+    "geohash": "tf3407jsh",
+    "aliases": [
+      "Ramavaram",
+      "Ramavaram Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__beemannapettai": {
+    "id": "chennai__beemannapettai",
+    "name": "Beemannapettai",
+    "rawName": "Beemannapettai",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.038,
+    "longitude": 80.255,
+    "geohash": "tf344jrzv",
+    "aliases": [
+      "Beemannapettai",
+      "Beemannapettai Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pakkam": {
+    "id": "chennai__pakkam",
+    "name": "Pakkam",
+    "rawName": "Pakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.15,
+    "longitude": 79.97,
+    "geohash": "tf2fgcbkk",
+    "aliases": [
+      "Pakkam",
+      "Pakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__pattaravakkam": {
+    "id": "chennai__pattaravakkam",
+    "name": "Pattaravakkam",
+    "rawName": "Pattaravakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.105,
+    "longitude": 80.165,
+    "geohash": "tf3481wq5",
+    "aliases": [
+      "Pattaravakkam",
+      "Pattaravakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__nemilichery": {
+    "id": "chennai__nemilichery",
+    "name": "Nemilichery",
+    "rawName": "Nemilichery",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.115,
+    "longitude": 80.02,
+    "geohash": "tf2fsgsb3",
+    "aliases": [
+      "Nemilichery",
+      "Nemilichery Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  },
+  "chennai__kattupakkam": {
+    "id": "chennai__kattupakkam",
+    "name": "Kattupakkam",
+    "rawName": "Kattupakkam",
+    "region": "West",
+    "city": "Chennai",
+    "state": "Tamil Nadu",
+    "country": "India",
+    "latitude": 13.045,
+    "longitude": 80.13,
+    "geohash": "tf2fpqubs",
+    "aliases": [
+      "Kattupakkam",
+      "Kattupakkam Chennai"
+    ],
+    "geometryType": "POINT",
+    "boundaryStatus": "POINT_ONLY",
+    "boundarySource": "Chennai Municipal Survey Centroid",
+    "isSpecialArea": false
+  }
+};
+
+export const CHENNAI_LOCALITY_LIST = Object.values(CHENNAI_LOCALITY_CATALOGUE);
