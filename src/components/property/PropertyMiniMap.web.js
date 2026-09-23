@@ -5,13 +5,15 @@ import { LIGHT_MAP_STYLE } from '../../constants/mapStyle';
 import { COLORS } from '../../constants/theme';
 import Typography from '../Typography';
 
+const libraries = ['places'];
 const containerStyle = { width: '100%', height: '100%' };
 
 const PropertyMiniMap = ({ coordinate, accessibilityLabel = 'Property location' }) => {
     const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
     const { isLoaded, loadError } = useJsApiLoader({
-        id: 'google-map-script-mini',
+        id: 'google-map-script',
         googleMapsApiKey: API_KEY || '',
+        libraries,
     });
 
     if (loadError) {

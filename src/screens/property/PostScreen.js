@@ -23,6 +23,7 @@ import {
 } from '../../constants/theme';
 import { useAuth } from '../../context/AuthContext';
 import { useTaxonomy } from '../../hooks/useTaxonomy';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 // Robust icon mapper for accommodation categories
 const getCategoryIcon = (item) => {
@@ -57,6 +58,7 @@ const PostScreen = () => {
     const navigation = useNavigation();
     const insets = useSafeAreaInsets();
     const { user } = useAuth();
+    const { isDesktop } = useResponsiveLayout();
     const [authModalVisible, setAuthModalVisible] = useState(false);
     const [authContext, setAuthContext] = useState('post');
 
@@ -85,11 +87,12 @@ const PostScreen = () => {
     };
 
     return (
-        <ScreenWrapper edges={['top']}>
-            <CrowwScreenHeader navigation={navigation} withTopInset={false} />
+        <ScreenWrapper edges={isDesktop ? [] : ['top']}>
+            {!isDesktop && <CrowwScreenHeader navigation={navigation} withTopInset={false} />}
             <ScrollView
                 contentContainerStyle={[
                     styles.scrollContent,
+                    isDesktop && styles.desktopScrollContent,
                     { paddingBottom: Math.max(insets.bottom, 16) + 120 },
                 ]}
                 showsVerticalScrollIndicator={false}
@@ -117,8 +120,8 @@ const PostScreen = () => {
                         </Text>
                     </View>
 
-                    {/* 3. Compact 2-Column Responsive Card Grid */}
-                    <View style={styles.gridContainer}>
+                    {/* 3. Compact Responsive Card Grid */}
+                    <View style={[styles.gridContainer, isDesktop && styles.desktopGridContainer]}>
                         {postingItems.map((item, index) => {
                             const itemId = item.typeId || item.id;
                             const isSelected = normalizeId(selectedType) === normalizeId(itemId);
@@ -131,7 +134,9 @@ const PostScreen = () => {
                                     key={itemId}
                                     style={[
                                         styles.categoryCard,
-                                        isFullWidth ? styles.cardFullWidth : styles.cardHalfWidth,
+                                        isDesktop
+                                            ? styles.desktopCardWidth
+                                            : (isFullWidth ? styles.cardFullWidth : styles.cardHalfWidth),
                                         isSelected && styles.categoryCardSelected,
                                     ]}
                                     activeOpacity={0.82}
@@ -390,6 +395,22 @@ const styles = StyleSheet.create({
         color: COLORS.secondary,
         fontWeight: '600',
         fontSize: FONT_SIZES.s,
+    },
+    desktopScrollContent: {
+        maxWidth: 880,
+        width: '100%',
+        alignSelf: 'center',
+        paddingTop: SPACING.l,
+    },
+    desktopGridContainer: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 12,
+        marginBottom: 20,
+    },
+    desktopCardWidth: {
+        width: '31.8%',
+        minWidth: 240,
     },
 });
 

@@ -21,6 +21,7 @@ import Typography from '../../components/Typography';
 import NotionInput from '../../components/NotionInput';
 import GooglePlacesInput from '../../components/GooglePlacesInput';
 import PostPinMap from '../../components/property/post/PostPinMap';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import {
     BORDER_RADIUS,
     COLORS,
@@ -200,6 +201,7 @@ const PostListingScreen = () => {
     const navigation = useNavigation();
     const route = useRoute();
     const insets = useSafeAreaInsets();
+    const { isDesktop } = useResponsiveLayout();
 
     const initialTypeParam = route.params?.initialType;
     const listingIdParam = route.params?.listingId;
@@ -638,9 +640,9 @@ const PostListingScreen = () => {
     }
 
     return (
-        <ScreenWrapper edges={['top']}>
+        <ScreenWrapper edges={isDesktop ? [] : ['top']}>
             {/* 1. Header with category badge & Save Draft */}
-            <View style={styles.topBar}>
+            <View style={[styles.topBar, isDesktop && styles.desktopTopBar]}>
                 <TouchableOpacity
                     style={styles.backBtn}
                     onPress={() => navigation.goBack()}
@@ -675,6 +677,7 @@ const PostListingScreen = () => {
                     ref={scrollRef}
                     contentContainerStyle={[
                         styles.scrollContent,
+                        isDesktop && styles.desktopScrollContent,
                         { paddingBottom: Math.max(insets.bottom, 16) + 110 },
                     ]}
                     showsVerticalScrollIndicator={false}
@@ -1127,7 +1130,7 @@ const PostListingScreen = () => {
             </KeyboardAvoidingView>
 
             {/* STICKY BOTTOM POST CTA */}
-            <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
+            <View style={[styles.bottomBar, isDesktop && styles.desktopBottomBar, { paddingBottom: Math.max(insets.bottom, 14) }]}>
                 <TouchableOpacity
                     style={[styles.primarySubmitBtn, busy && styles.primarySubmitBtnDisabled]}
                     onPress={handlePostSpace}
@@ -1686,6 +1689,23 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontSize: 15,
         fontWeight: '700',
+    },
+    desktopTopBar: {
+        maxWidth: 960,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopScrollContent: {
+        maxWidth: 960,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopBottomBar: {
+        maxWidth: 960,
+        width: '100%',
+        alignSelf: 'center',
+        left: 'auto',
+        right: 'auto',
     },
 });
 

@@ -11,6 +11,7 @@ import {
     GeoPoint,
 } from 'firebase/firestore';
 import { auth, db } from '../firebaseConfig';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import {
     COLLECTIONS,
     DEFAULT_COUNTRY,
@@ -36,6 +37,74 @@ function isPermissionDenied(error) {
     return code === 'permission-denied' || code === 'firestore/permission-denied';
 }
 
+const ASYNC_STORAGE_PREFIX = '@croww_locality_cache:';
+const LOCALITY_CACHE_TTL_MS = 60 * 60 * 1000; // 1 hour TTL
+
+// In-memory cache: city -> { timestamp, data }
+const inMemoryLocalityCache = new Map();
+// In-flight request deduplication: city -> Promise
+const inFlightLocalityRequests = new Map();
+
+async function getCachedLocalities(city) {
+    const inMem = inMemoryLocalityCache.get(city);
+    if (inMem && Array.isArray(inMem.data)) {
+        const isStale = Date.now() - inMem.timestamp > LOCALITY_CACHE_TTL_MS;
+        return { data: inMem.data, isStale };
+    }
+
+    try {
+        const stored = await AsyncStorage.getItem(ASYNC_STORAGE_PREFIX + city);
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            if (parsed && Array.isArray(parsed.data)) {
+                inMemoryLocalityCache.set(city, parsed);
+                const isStale = Date.now() - parsed.timestamp > LOCALITY_CACHE_TTL_MS;
+                return { data: parsed.data, isStale };
+            }
+        }
+    } catch {
+        // Fallback silently if storage unavailable
+    }
+
+    return null;
+}
+
+async function saveCachedLocalities(city, data) {
+    const record = { timestamp: Date.now(), data };
+    inMemoryLocalityCache.set(city, record);
+    try {
+        await AsyncStorage.setItem(ASYNC_STORAGE_PREFIX + city, JSON.stringify(record));
+    } catch {
+        // Ignore storage write failures (e.g. quota or unsupported platform)
+    }
+}
+
+async function fetchAndCacheLocalities(city) {
+    if (inFlightLocalityRequests.has(city)) {
+        return inFlightLocalityRequests.get(city);
+    }
+
+    const promise = (async () => {
+        try {
+            const q = query(
+                collection(db, COLLECTIONS.localities),
+                where('city', '==', city),
+                where('status', '==', 'ACTIVE'),
+                orderBy('name', 'asc')
+            );
+            const snap = await withTimeout(getDocs(q), 10000, 'listActiveByCity');
+            const records = snap.docs.map(toRecord);
+            await saveCachedLocalities(city, records);
+            return records;
+        } finally {
+            inFlightLocalityRequests.delete(city);
+        }
+    })();
+
+    inFlightLocalityRequests.set(city, promise);
+    return promise;
+}
+
 export const localityService = {
     async getLocality(localityId) {
         if (!localityId) return null;
@@ -53,14 +122,40 @@ export const localityService = {
     },
 
     async listActiveByCity(city) {
-        const q = query(
-            collection(db, COLLECTIONS.localities),
-            where('city', '==', city),
-            where('status', '==', 'ACTIVE'),
-            orderBy('name', 'asc')
-        );
-        const snap = await withTimeout(getDocs(q), 10000, 'listActiveByCity');
-        return snap.docs.map(toRecord);
+        if (!city) return [];
+        const cached = await getCachedLocalities(city);
+        if (cached) {
+            if (cached.isStale) {
+                // Background revalidation (stale-while-revalidate)
+                fetchAndCacheLocalities(city).catch((err) => {
+                    console.warn('[localityService] Background revalidation failed:', err?.message);
+                });
+            }
+            return cached.data;
+        }
+        return fetchAndCacheLocalities(city);
+    },
+
+    async clearLocalityCache(city = null) {
+        if (city) {
+            inMemoryLocalityCache.delete(city);
+            try {
+                await AsyncStorage.removeItem(ASYNC_STORAGE_PREFIX + city);
+            } catch {
+                // Ignore storage error
+            }
+        } else {
+            inMemoryLocalityCache.clear();
+            try {
+                const keys = await AsyncStorage.getAllKeys();
+                const localityKeys = keys.filter((k) => k.startsWith(ASYNC_STORAGE_PREFIX));
+                if (localityKeys.length) {
+                    await AsyncStorage.multiRemove(localityKeys);
+                }
+            } catch {
+                // Ignore storage error
+            }
+        }
     },
 
     /**
@@ -102,6 +197,7 @@ export const localityService = {
             10000,
             'createLocality'
         );
+        await this.clearLocalityCache(payload.city);
         return { id: ref.id, ...payload };
     },
 };

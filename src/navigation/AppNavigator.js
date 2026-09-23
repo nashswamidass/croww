@@ -79,6 +79,9 @@ import VerifyIdentityScreen from '../screens/verification/VerifyIdentityScreen';
 import BusinessVerificationScreen from '../screens/verification/BusinessVerificationScreen';
 
 export const navigationRef = createNavigationContainerRef();
+if (typeof window !== 'undefined') {
+    window.__crowwNavigation = navigationRef;
+}
 
 const Stack = createNativeStackNavigator();
 

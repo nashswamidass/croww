@@ -6,26 +6,41 @@ import { COLORS, SPACING, BORDER_RADIUS, FONT_SIZES } from '../constants/theme';
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-// Dynamically load Google Maps JS SDK on web (avoids needing a manual script tag in index.html)
+// Dynamically load Google Maps JS SDK on web (avoids duplicate script tags if PropertyMap already loaded it)
 const loadGoogleMapsScript = () => {
     if (Platform.OS !== 'web') return Promise.resolve(false);
+    if (typeof window === 'undefined') return Promise.resolve(false);
     if (window.google?.maps?.places) return Promise.resolve(true);
+
+    if (document.getElementById('google-map-script') || document.querySelector('script[src*="maps.googleapis.com"]')) {
+        return new Promise((resolve) => {
+            const check = setInterval(() => {
+                if (window.google?.maps?.places) {
+                    clearInterval(check);
+                    resolve(true);
+                }
+            }, 100);
+            setTimeout(() => {
+                clearInterval(check);
+                resolve(!!window.google?.maps?.places);
+            }, 5000);
+        });
+    }
 
     // Check if script is already being loaded
     if (window.__googleMapsLoading) return window.__googleMapsLoading;
 
     window.__googleMapsLoading = new Promise((resolve) => {
         const script = document.createElement('script');
+        script.id = 'google-places-script';
         script.src = `https://maps.googleapis.com/maps/api/js?key=${API_KEY}&libraries=places&loading=async&callback=__googleMapsCallback`;
         script.async = true;
         script.defer = true;
         
         window.__googleMapsCallback = () => {
-            console.log('Google Maps JS SDK loaded');
             resolve(true);
         };
         script.onerror = () => {
-            console.error('Failed to load Google Maps JS SDK');
             resolve(false);
         };
         document.head.appendChild(script);
@@ -34,12 +49,30 @@ const loadGoogleMapsScript = () => {
     return window.__googleMapsLoading;
 };
 
-const GooglePlacesInput = ({ label, placeholder, onSelect, initialValue = '' }) => {
+function generateSessionToken() {
+    return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
+        const r = (Math.random() * 16) | 0;
+        const v = c === 'x' ? r : (r & 0x3) | 0x8;
+        return v.toString(16);
+    });
+}
+
+export function useGooglePlacesAutocomplete({
+    initialValue = '',
+    onSelect,
+    country = 'in',
+} = {}) {
     const [query, setQuery] = useState(initialValue);
     const [suggestions, setSuggestions] = useState([]);
     const [loading, setLoading] = useState(false);
     const [showSuggestions, setShowSuggestions] = useState(false);
-    const [mapsReady, setMapsReady] = useState(Platform.OS !== 'web' || !!window?.google?.maps?.places);
+    const [mapsReady, setMapsReady] = useState(Platform.OS !== 'web' || !!(typeof window !== 'undefined' && window?.google?.maps?.places));
+
+    // Google Places session token management
+    const sessionTokenRef = React.useRef(generateSessionToken());
+    const webSessionTokenRef = React.useRef(null);
+    const activeRequestIdRef = React.useRef(0);
+    const queryCacheRef = React.useRef(new Map());
 
     // Load Google Maps SDK on web mount
     useEffect(() => {
@@ -48,107 +81,181 @@ const GooglePlacesInput = ({ label, placeholder, onSelect, initialValue = '' }) 
                 setMapsReady(loaded);
             });
         }
-    }, []);
+    }, [mapsReady]);
 
-    const fetchSuggestions = async (text) => {
-        if (!text || text.length < 3) {
+    const fetchSuggestions = React.useCallback(async (text) => {
+        const trimmed = (text || '').trim();
+        if (!trimmed || trimmed.length < 3) {
             setSuggestions([]);
+            setLoading(false);
             return;
         }
 
-        setLoading(true);
-        try {
-            if (Platform.OS === 'web' && window.google?.maps?.places) {
-                // Web specific implementation using Google Maps JS SDK (Avoids CORS)
-                const autocompleteService = new window.google.maps.places.AutocompleteService();
-                const sessionToken = new window.google.maps.places.AutocompleteSessionToken();
+        // Return cached suggestions if already fetched in this session
+        if (queryCacheRef.current.has(trimmed)) {
+            setSuggestions(queryCacheRef.current.get(trimmed));
+            setLoading(false);
+            return;
+        }
 
+        const requestId = ++activeRequestIdRef.current;
+        setLoading(true);
+
+        try {
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.google?.maps?.places) {
+                // Web implementation using AutocompleteService with session token
+                if (!webSessionTokenRef.current) {
+                    webSessionTokenRef.current = new window.google.maps.places.AutocompleteSessionToken();
+                }
+
+                const autocompleteService = new window.google.maps.places.AutocompleteService();
                 autocompleteService.getPlacePredictions({
-                    input: text,
-                    componentRestrictions: { country: 'in' },
-                    sessionToken: sessionToken
+                    input: trimmed,
+                    componentRestrictions: { country },
+                    sessionToken: webSessionTokenRef.current,
                 }, (predictions, status) => {
+                    if (requestId !== activeRequestIdRef.current) return; // Stale request
                     if (status === 'OK' && predictions) {
+                        queryCacheRef.current.set(trimmed, predictions);
                         setSuggestions(predictions);
                     } else {
                         setSuggestions([]);
                     }
                     setLoading(false);
                 });
-                return; // Exit early as the callback handles state
+                return;
             }
 
-            // Native/Fallback implementation using direct fetch
-            const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(text)}&key=${API_KEY}&components=country:in`;
-            const response = await fetch(url);
-            const data = await response.json();
-            if (data.status === 'OK') {
-                setSuggestions(data.predictions);
+            // Native implementation with session token parameter
+            if (API_KEY) {
+                const token = sessionTokenRef.current;
+                const url = `https://maps.googleapis.com/maps/api/place/autocomplete/json?input=${encodeURIComponent(trimmed)}&key=${API_KEY}&components=country:${country}&sessiontoken=${token}`;
+                const response = await fetch(url);
+                const data = await response.json();
+
+                if (requestId !== activeRequestIdRef.current) return; // Stale response
+
+                if (data.status === 'OK' && Array.isArray(data.predictions)) {
+                    queryCacheRef.current.set(trimmed, data.predictions);
+                    setSuggestions(data.predictions);
+                } else {
+                    setSuggestions([]);
+                }
             } else {
                 setSuggestions([]);
             }
         } catch (error) {
-            console.error('Autocomplete Error:', error);
-            setSuggestions([]);
+            if (requestId === activeRequestIdRef.current) {
+                console.error('Autocomplete Error:', error);
+                setSuggestions([]);
+            }
         } finally {
-            if (Platform.OS !== 'web') {
+            if (Platform.OS !== 'web' && requestId === activeRequestIdRef.current) {
                 setLoading(false);
             }
         }
-    };
+    }, [country]);
 
+    // 400ms debounce
     useEffect(() => {
         if (!showSuggestions) return;
 
         const delayDebounceFn = setTimeout(() => {
             fetchSuggestions(query);
-        }, 500);
+        }, 400);
 
         return () => clearTimeout(delayDebounceFn);
-    }, [query]);
+    }, [query, showSuggestions, fetchSuggestions]);
 
-    const handleSelect = async (placeId, description) => {
+    const handleSelect = React.useCallback(async (placeId, description, extraCoords) => {
         setQuery(description);
         setSuggestions([]);
         setShowSuggestions(false);
         setLoading(true);
 
+        const currentSessionToken = sessionTokenRef.current;
+        const currentWebToken = webSessionTokenRef.current;
+
+        // Reset session tokens for next interaction
+        sessionTokenRef.current = generateSessionToken();
+        webSessionTokenRef.current = null;
+        queryCacheRef.current.clear();
+
+        if (extraCoords?.latitude && extraCoords?.longitude) {
+            onSelect?.({
+                name: description,
+                coordinate: {
+                    latitude: extraCoords.latitude,
+                    longitude: extraCoords.longitude,
+                },
+                latitude: extraCoords.latitude,
+                longitude: extraCoords.longitude,
+                place_id: placeId,
+                placeId,
+                formatted_address: description,
+                formattedAddress: description,
+                label: description,
+            });
+            setLoading(false);
+            return;
+        }
+
         try {
-            if (Platform.OS === 'web' && window.google?.maps?.places) {
-                // Web specific implementation using Google Maps JS SDK (Details)
+            if (Platform.OS === 'web' && typeof window !== 'undefined' && window.google?.maps?.places) {
                 const placesService = new window.google.maps.places.PlacesService(document.createElement('div'));
                 placesService.getDetails({
                     placeId: placeId,
-                    fields: ['geometry', 'name', 'formatted_address']
+                    fields: ['geometry', 'name', 'formatted_address'],
+                    sessionToken: currentWebToken,
                 }, (place, status) => {
-                    if (status === 'OK' && place.geometry && place.geometry.location) {
-                        onSelect({
-                            name: description,
+                    if (status === 'OK' && place?.geometry?.location) {
+                        const lat = place.geometry.location.lat();
+                        const lng = place.geometry.location.lng();
+                        const formattedAddress = place.formatted_address || description;
+                        onSelect?.({
+                            name: place.name || description,
                             coordinate: {
-                                latitude: place.geometry.location.lat(),
-                                longitude: place.geometry.location.lng(),
-                            }
+                                latitude: lat,
+                                longitude: lng,
+                            },
+                            latitude: lat,
+                            longitude: lng,
+                            place_id: placeId,
+                            placeId,
+                            formatted_address: formattedAddress,
+                            formattedAddress,
+                            label: formattedAddress,
                         });
                     }
                     setLoading(false);
                 });
-                return; // Exit early
+                return;
             }
 
-            // Native/Fallback implementation
-            const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${API_KEY}`;
-            const response = await fetch(url);
-            const data = await response.json();
+            // Native/Fallback implementation with sessiontoken termination
+            if (API_KEY) {
+                const url = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${placeId}&key=${API_KEY}&sessiontoken=${currentSessionToken}`;
+                const response = await fetch(url);
+                const data = await response.json();
 
-            if (data.status === 'OK') {
-                const { lat, lng } = data.result.geometry.location;
-                onSelect({
-                    name: description,
-                    coordinate: {
+                if (data.status === 'OK' && data.result?.geometry?.location) {
+                    const { lat, lng } = data.result.geometry.location;
+                    const formattedAddress = data.result.formatted_address || description;
+                    onSelect?.({
+                        name: data.result.name || description,
+                        coordinate: {
+                            latitude: lat,
+                            longitude: lng,
+                        },
                         latitude: lat,
                         longitude: lng,
-                    }
-                });
+                        place_id: placeId,
+                        placeId,
+                        formatted_address: formattedAddress,
+                        formattedAddress,
+                        label: formattedAddress,
+                    });
+                }
             }
         } catch (error) {
             console.error('Place Details Error:', error);
@@ -157,10 +264,50 @@ const GooglePlacesInput = ({ label, placeholder, onSelect, initialValue = '' }) 
                 setLoading(false);
             }
         }
+    }, [onSelect]);
+
+    const clearSearch = React.useCallback(() => {
+        setQuery('');
+        setSuggestions([]);
+        setShowSuggestions(false);
+    }, []);
+
+    return {
+        query,
+        setQuery,
+        suggestions,
+        loading,
+        showSuggestions,
+        setShowSuggestions,
+        handleSelect,
+        clearSearch,
     };
+}
+
+const GooglePlacesInput = ({
+    label,
+    placeholder,
+    onSelect,
+    initialValue = '',
+    style,
+    inputStyle,
+    suggestionsStyle,
+}) => {
+    const {
+        query,
+        setQuery,
+        suggestions,
+        loading,
+        showSuggestions,
+        setShowSuggestions,
+        handleSelect,
+    } = useGooglePlacesAutocomplete({
+        initialValue,
+        onSelect,
+    });
 
     return (
-        <View style={styles.container}>
+        <View style={[styles.container, style]}>
             {label && (
                 <Typography variant="caption" style={styles.label}>
                     {label}
@@ -168,7 +315,7 @@ const GooglePlacesInput = ({ label, placeholder, onSelect, initialValue = '' }) 
             )}
             <View style={styles.inputWrapper}>
                 <TextInput
-                    style={styles.input}
+                    style={[styles.input, inputStyle]}
                     value={query}
                     onChangeText={(text) => {
                         setQuery(text);
@@ -185,7 +332,7 @@ const GooglePlacesInput = ({ label, placeholder, onSelect, initialValue = '' }) 
             </View>
 
             {showSuggestions && suggestions.length > 0 && (
-                <View style={styles.suggestionsContainer}>
+                <View style={[styles.suggestionsContainer, !label && { top: 52 }, suggestionsStyle]}>
                     {suggestions.map((item) => (
                         <TouchableOpacity
                             key={item.place_id}

@@ -17,9 +17,11 @@ import { useExplore } from '../../context/ExploreContext';
 import { useSavedItems } from '../../context/SavedItemsContext';
 import { showAlert } from '../../utils/showAlert';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 const SavedScreen = ({ navigation }) => {
     const { user } = useAuth();
+    const { isDesktop } = useResponsiveLayout();
     const { applySavedSearch } = useExplore();
     const { unsaveListing, unsaveProperty, refresh: refreshIds } = useSavedItems();
     const [section, setSection] = useState('listings');
@@ -134,17 +136,32 @@ const SavedScreen = ({ navigation }) => {
     }
 
     return (
-        <ScreenWrapper edges={['top']}>
-            <CrowwScreenHeader navigation={navigation} withTopInset={false} />
-            <View style={styles.header}>
-                <Typography variant="display" style={styles.title}>Saved</Typography>
-                <Typography variant="bodyLarge" style={styles.subtitle}>
-                    Properties, listings, and publication alert monitors.
-                </Typography>
+        <ScreenWrapper edges={isDesktop ? [] : ['top']}>
+            {!isDesktop && <CrowwScreenHeader navigation={navigation} withTopInset={false} />}
+            <View style={[styles.header, isDesktop && styles.desktopHeader]}>
+                <View>
+                    <Typography variant="display" style={styles.title}>Saved</Typography>
+                    <Typography variant="bodyLarge" style={styles.subtitle}>
+                        Properties, listings, and publication alert monitors.
+                    </Typography>
+                </View>
+                {isDesktop && (
+                    <TouchableOpacity
+                        onPress={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                        style={styles.desktopExploreMapBtn}
+                        accessibilityRole="button"
+                        accessibilityLabel="View map"
+                    >
+                        <Ionicons name="map-outline" size={16} color={COLORS.primary} style={{ marginRight: 6 }} />
+                        <Typography variant="bodyMedium" style={styles.desktopExploreMapBtnText}>
+                            View on Map
+                        </Typography>
+                    </TouchableOpacity>
+                )}
             </View>
 
             {/* Segmented Filter Pills */}
-            <View style={styles.chipsRow}>
+            <View style={[styles.chipsRow, isDesktop && styles.desktopChipsRow]}>
                 {sections.map((item) => {
                     const selected = item.id === section;
                     return (
@@ -181,7 +198,7 @@ const SavedScreen = ({ navigation }) => {
                 </View>
             ) : (
                 <ScrollView
-                    contentContainerStyle={styles.body}
+                    contentContainerStyle={[styles.body, isDesktop && styles.desktopBody]}
                     refreshControl={(
                         <RefreshControl refreshing={refreshing} onRefresh={() => load(true)} tintColor={COLORS.primary} />
                     )}
@@ -189,24 +206,27 @@ const SavedScreen = ({ navigation }) => {
                     {error ? <Typography variant="caption" style={styles.error}>{error}</Typography> : null}
 
                     {section === 'listings' ? (
-                        listings.length ? listings.map((item) => (
-                            <SavedListingCard
-                                key={item.id}
-                                item={item}
-                                onPress={() => {
-                                    const listingId = item.listingId || item.id;
-                                    if (item.missing && item.propertyId) {
-                                        navigation.navigate('Property', { propertyId: item.propertyId });
-                                        return;
-                                    }
-                                    navigation.navigate('Listing', { listingId, initialListing: item });
-                                }}
-                                onUnsave={async () => {
-                                    await unsaveListing(item.listingId || item.id);
-                                    setListings((prev) => prev.filter((row) => row.id !== item.id));
-                                }}
-                            />
-                        )) : (
+                        listings.length ? (
+                            listings.map((item) => (
+                                <View key={item.id} style={isDesktop ? styles.desktopCardWrapper : null}>
+                                    <SavedListingCard
+                                        item={item}
+                                        onPress={() => {
+                                            const listingId = item.listingId || item.id;
+                                            if (item.missing && item.propertyId) {
+                                                navigation.navigate('Property', { propertyId: item.propertyId });
+                                                return;
+                                            }
+                                            navigation.navigate('Listing', { listingId, initialListing: item });
+                                        }}
+                                        onUnsave={async () => {
+                                            await unsaveListing(item.listingId || item.id);
+                                            setListings((prev) => prev.filter((row) => row.id !== item.id));
+                                        }}
+                                    />
+                                </View>
+                            ))
+                        ) : (
                             <CrowwEmptyState
                                 type="saved"
                                 title="No saved listings yet"
@@ -219,17 +239,20 @@ const SavedScreen = ({ navigation }) => {
                     ) : null}
 
                     {section === 'properties' ? (
-                        properties.length ? properties.map((item) => (
-                            <SavedPropertyCard
-                                key={item.id}
-                                item={item}
-                                onPress={() => navigation.navigate('Property', { propertyId: item.propertyId || item.id })}
-                                onUnsave={async () => {
-                                    await unsaveProperty(item.propertyId || item.id);
-                                    setProperties((prev) => prev.filter((row) => row.id !== item.id));
-                                }}
-                            />
-                        )) : (
+                        properties.length ? (
+                            properties.map((item) => (
+                                <View key={item.id} style={isDesktop ? styles.desktopCardWrapper : null}>
+                                    <SavedPropertyCard
+                                        item={item}
+                                        onPress={() => navigation.navigate('Property', { propertyId: item.propertyId || item.id })}
+                                        onUnsave={async () => {
+                                            await unsaveProperty(item.propertyId || item.id);
+                                            setProperties((prev) => prev.filter((row) => row.id !== item.id));
+                                        }}
+                                    />
+                                </View>
+                            ))
+                        ) : (
                             <CrowwEmptyState
                                 type="saved"
                                 title="No saved properties"
@@ -242,16 +265,19 @@ const SavedScreen = ({ navigation }) => {
                     ) : null}
 
                     {section === 'searches' ? (
-                        searches.length ? searches.map((search) => (
-                            <SavedSearchCard
-                                key={search.id}
-                                search={search}
-                                onOpen={() => openSearch(search)}
-                                onEdit={() => navigation.navigate('SavedSearch', { searchId: search.id, search })}
-                                onToggleAlerts={() => toggleAlerts(search)}
-                                onDelete={() => deleteSearch(search)}
-                            />
-                        )) : (
+                        searches.length ? (
+                            searches.map((search) => (
+                                <View key={search.id} style={isDesktop ? styles.desktopCardWrapper : null}>
+                                    <SavedSearchCard
+                                        search={search}
+                                        onOpen={() => openSearch(search)}
+                                        onEdit={() => navigation.navigate('SavedSearch', { searchId: search.id, search })}
+                                        onToggleAlerts={() => toggleAlerts(search)}
+                                        onDelete={() => deleteSearch(search)}
+                                    />
+                                </View>
+                            ))
+                        ) : (
                             <CrowwEmptyState
                                 type="discovery"
                                 title="No search alerts"
@@ -402,6 +428,48 @@ const styles = StyleSheet.create({
         maxWidth: 320,
         height: 52,
         borderRadius: 14,
+    },
+    desktopHeader: {
+        maxWidth: 1200,
+        width: '100%',
+        alignSelf: 'center',
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.l,
+        paddingTop: SPACING.l,
+    },
+    desktopExploreMapBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 10,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    desktopExploreMapBtnText: {
+        color: COLORS.primary,
+        fontWeight: '700',
+        fontSize: 13,
+    },
+    desktopChipsRow: {
+        maxWidth: 1200,
+        width: '100%',
+        alignSelf: 'center',
+    },
+    desktopBody: {
+        maxWidth: 1200,
+        width: '100%',
+        alignSelf: 'center',
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: SPACING.m,
+    },
+    desktopCardWrapper: {
+        width: '49%',
+        minWidth: 320,
     },
 });
 

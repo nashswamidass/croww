@@ -1,5 +1,5 @@
 import React from 'react';
-import { StyleSheet, View, Text, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, Text } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -14,6 +14,9 @@ import SavedScreen from '../screens/property/SavedScreen';
 import PostScreen from '../screens/property/PostScreen';
 import CrowwAreaIntelligenceIcon from '../components/icons/CrowwAreaIntelligenceIcon';
 import ChatListScreen from '../screens/main/ChatListScreen';
+
+import { useResponsiveLayout } from '../hooks/useResponsiveLayout';
+import DesktopShell from '../components/desktop/DesktopShell';
 
 const Tab = createBottomTabNavigator();
 
@@ -38,14 +41,36 @@ const TAB_LABELS = {
  * Tabs: Home | Saved | Post | Areas | Messages
  * Profile is accessible via the main stack (Settings button, ChatList nav, deep link).
  */
-const PropertyTabNavigator = () => {
+const PropertyTabNavigator = ({ navigation }) => {
     const insets = useSafeAreaInsets();
-    const { width } = useWindowDimensions();
-    const isDesktop = width >= 960;
+    const { isDesktop, isTablet } = useResponsiveLayout();
     const { isIntelligenceMode, setIntelligenceMode, openAreasMode } = useExplore();
+    const [activeTab, setActiveTab] = React.useState(TABS.Explore);
 
-    return (
+    const handleDesktopTabSelect = React.useCallback((tabName) => {
+        if (tabName === TABS.Areas) {
+            navigation.navigate('Tabs', { screen: TABS.Explore });
+            openAreasMode(true);
+            setActiveTab(TABS.Areas);
+        } else {
+            if (isIntelligenceMode) {
+                setIntelligenceMode(false);
+            }
+            navigation.navigate('Tabs', { screen: tabName });
+            setActiveTab(tabName);
+        }
+    }, [navigation, openAreasMode, isIntelligenceMode, setIntelligenceMode]);
+
+    const tabNavigator = (
         <Tab.Navigator
+            screenListeners={{
+                state: (e) => {
+                    const currentRoute = e.data.state.routes[e.data.state.index];
+                    if (currentRoute) {
+                        setActiveTab(currentRoute.name);
+                    }
+                },
+            }}
             screenOptions={({ route }) => {
                 const isExploreTab = route.name === TABS.Explore;
                 const isAreasTab = route.name === TABS.Areas;
@@ -54,23 +79,25 @@ const PropertyTabNavigator = () => {
                     headerShown: false,
                     tabBarActiveTintColor: COLORS.navActive || '#FFFFFF',
                     tabBarInactiveTintColor: COLORS.navInactive || 'rgba(255, 255, 255, 0.60)',
-                    tabBarStyle: [
-                        styles.tabBar,
-                        {
-                            bottom: Math.max(insets.bottom, 12),
-                            ...(isDesktop
-                                ? {
-                                    left: '50%',
-                                    right: 'auto',
-                                    width: 520,
-                                    transform: [{ translateX: -260 }],
-                                }
-                                : {
-                                    left: 16,
-                                    right: 16,
-                                }),
-                        },
-                    ],
+                    tabBarStyle: isDesktop
+                        ? { display: 'none' }
+                        : [
+                            styles.tabBar,
+                            {
+                                bottom: Math.max(insets.bottom, 12),
+                                ...(isTablet
+                                    ? {
+                                        left: '50%',
+                                        right: 'auto',
+                                        width: 520,
+                                        transform: [{ translateX: -260 }],
+                                    }
+                                    : {
+                                        left: 16,
+                                        right: 16,
+                                    }),
+                            },
+                        ],
                     tabBarShowLabel: true,
                     tabBarLabel: ({ focused }) => {
                         const effectiveFocused = isExploreTab
@@ -155,10 +182,10 @@ const PropertyTabNavigator = () => {
             <Tab.Screen
                 name={TABS.Areas}
                 component={ExploreScreen}
-                listeners={({ navigation }) => ({
+                listeners={({ navigation: tabNav }) => ({
                     tabPress: (e) => {
                         e.preventDefault();
-                        navigation.navigate(TABS.Explore);
+                        tabNav.navigate(TABS.Explore);
                         openAreasMode(true);
                     },
                 })}
@@ -176,6 +203,20 @@ const PropertyTabNavigator = () => {
             />
         </Tab.Navigator>
     );
+
+    if (isDesktop) {
+        return (
+            <DesktopShell
+                activeTab={activeTab}
+                onTabSelect={handleDesktopTabSelect}
+                isIntelligenceMode={isIntelligenceMode}
+            >
+                {tabNavigator}
+            </DesktopShell>
+        );
+    }
+
+    return tabNavigator;
 };
 
 const styles = StyleSheet.create({

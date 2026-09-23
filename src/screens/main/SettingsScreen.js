@@ -10,11 +10,13 @@ import { SPACING, COLORS, BORDER_RADIUS } from '../../constants/theme';
 import { Ionicons } from '@expo/vector-icons';
 import { authService } from '../../services/authService';
 import { useAuth } from '../../context/AuthContext';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 
 const SETTINGS_KEY = '@croww_user_settings';
 
 const SettingsScreen = ({ navigation }) => {
     const { user: currentUser } = useAuth();
+    const { isDesktop } = useResponsiveLayout();
     const [locationServices, setLocationServices] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
 
@@ -144,9 +146,9 @@ const SettingsScreen = ({ navigation }) => {
     );
 
     return (
-        <ScreenWrapper edges={['top', 'bottom']}>
+        <ScreenWrapper edges={isDesktop ? ['bottom'] : ['top', 'bottom']}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, isDesktop && styles.desktopHeader]}>
                 <TouchableOpacity
                     onPress={() => navigation.goBack()}
                     style={styles.backButton}
@@ -158,7 +160,7 @@ const SettingsScreen = ({ navigation }) => {
             </View>
 
             <ScrollView
-                contentContainerStyle={styles.content}
+                contentContainerStyle={[styles.content, isDesktop && styles.desktopContent]}
                 showsVerticalScrollIndicator={false}
             >
                 {/* Account Section */}
@@ -392,6 +394,19 @@ const styles = StyleSheet.create({
         height: 1,
         backgroundColor: COLORS.border,
         marginLeft: 68, // Icon width + margin
+    },
+    desktopHeader: {
+        maxWidth: 680,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: SPACING.m,
+        paddingTop: SPACING.l,
+    },
+    desktopContent: {
+        maxWidth: 680,
+        width: '100%',
+        alignSelf: 'center',
+        paddingHorizontal: SPACING.m,
     },
 });
 

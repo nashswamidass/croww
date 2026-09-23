@@ -6,20 +6,30 @@ import AntigravityButton from '../../components/AntigravityButton';
 import FloatingCard from '../../components/FloatingCard';
 import CrowwEmptyState from '../../components/rive/CrowwEmptyState';
 import CrowwScreenHeader from '../../components/CrowwScreenHeader';
-import { SPACING, COLORS, TOUCH_TARGETS } from '../../constants/theme';
+import { SPACING, COLORS, TOUCH_TARGETS, BORDER_RADIUS } from '../../constants/theme';
 import { chatService } from '../../services/chatService';
 import { userService } from '../../services/userService';
 import { useAuth } from '../../context/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
 import { formatDistanceToNow } from 'date-fns';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import ChatScreen from './ChatScreen';
 
 const ChatListScreen = ({ navigation }) => {
     const { user: authUser } = useAuth();
+    const { isDesktop } = useResponsiveLayout();
     const [chats, setChats] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [selectedChatId, setSelectedChatId] = useState(null);
 
     // Cache avatars/names so we don't re-fetch on every snapshot
     const profileCache = useRef({});
+
+    useEffect(() => {
+        if (isDesktop && chats.length > 0 && !selectedChatId) {
+            setSelectedChatId(chats[0].id);
+        }
+    }, [isDesktop, chats, selectedChatId]);
 
     useEffect(() => {
         const currentUserId = authUser?.id || authUser?.uid;
@@ -85,16 +95,23 @@ const ChatListScreen = ({ navigation }) => {
             : '';
 
         const unreadCount = item.unreadCounts?.[currentUserId] || 0;
+        const isSelected = isDesktop && item.id === selectedChatId;
 
         return (
             <TouchableOpacity
-                style={styles.chatItem}
+                style={[styles.chatItem, isSelected && styles.chatItemSelected]}
                 activeOpacity={0.75}
-                onPress={() => navigation.navigate('Chat', {
-                    recipientId: item.recipient?.isGroup ? 'GROUP' : item.recipient?.id,
-                    recipientName: item.recipient?.name,
-                    chatId: item.id
-                })}
+                onPress={() => {
+                    if (isDesktop) {
+                        setSelectedChatId(item.id);
+                    } else {
+                        navigation.navigate('Chat', {
+                            recipientId: item.recipient?.isGroup ? 'GROUP' : item.recipient?.id,
+                            recipientName: item.recipient?.name,
+                            chatId: item.id
+                        });
+                    }
+                }}
             >
                 {/* Avatar */}
                 {item.recipient?.isGroup ? (
@@ -175,6 +192,77 @@ const ChatListScreen = ({ navigation }) => {
                             style={{ width: '100%', maxWidth: 300, height: 52, borderRadius: 14 }}
                         />
                     </FloatingCard>
+                </View>
+            </ScreenWrapper>
+        );
+    }
+
+    if (isDesktop) {
+        const selectedChat = chats.find(c => c.id === selectedChatId) || chats[0] || null;
+        return (
+            <ScreenWrapper edges={[]}>
+                <View style={styles.desktopTwoPaneRoot}>
+                    <View style={styles.desktopLeftPane}>
+                        <View style={styles.desktopLeftHeader}>
+                            <Typography variant="titleLarge" style={styles.desktopTitleText}>
+                                Messages
+                            </Typography>
+                            {chats.length > 0 && (
+                                <View style={styles.desktopCountBadge}>
+                                    <Typography variant="caption" style={styles.desktopCountText}>
+                                        {chats.length}
+                                    </Typography>
+                                </View>
+                            )}
+                        </View>
+                        {loading ? (
+                            <ActivityIndicator size="small" color={COLORS.primary} style={{ marginTop: SPACING.l }} />
+                        ) : (
+                            <FlatList
+                                data={chats}
+                                renderItem={renderItem}
+                                keyExtractor={item => item.id}
+                                contentContainerStyle={chats.length === 0 ? styles.emptyContainer : styles.desktopChatList}
+                                ListEmptyComponent={
+                                    <CrowwEmptyState
+                                        type="messages"
+                                        title="No messages yet"
+                                        subtitle="Inquire about properties or request exact location details."
+                                        actionTitle="Explore Properties"
+                                        actionIcon="compass-outline"
+                                        onAction={() => navigation.navigate('Tabs', { screen: 'Explore' })}
+                                    />
+                                }
+                            />
+                        )}
+                    </View>
+                    <View style={styles.desktopRightPane}>
+                        {selectedChat ? (
+                            <ChatScreen
+                                key={selectedChat.id}
+                                route={{
+                                    params: {
+                                        chatId: selectedChat.id,
+                                        recipientId: selectedChat.recipient?.isGroup ? 'GROUP' : selectedChat.recipient?.id,
+                                        recipientName: selectedChat.recipient?.name,
+                                        recipientRole: selectedChat.recipient?.role,
+                                    }
+                                }}
+                                navigation={navigation}
+                                embedded={true}
+                            />
+                        ) : (
+                            <View style={styles.desktopNoChatSelected}>
+                                <Ionicons name="chatbubbles-outline" size={54} color={COLORS.secondary} style={{ marginBottom: 12 }} />
+                                <Typography variant="titleMedium" style={{ color: COLORS.primary, fontWeight: '700' }}>
+                                    Select a conversation
+                                </Typography>
+                                <Typography variant="bodyMedium" style={{ color: COLORS.secondary, marginTop: 4, textAlign: 'center', maxWidth: 300 }}>
+                                    Choose a conversation from the list to view messages and property inquiries.
+                                </Typography>
+                            </View>
+                        )}
+                    </View>
                 </View>
             </ScreenWrapper>
         );
@@ -323,6 +411,64 @@ const styles = StyleSheet.create({
         textAlign: 'center',
         marginTop: 4,
         lineHeight: 20,
+    },
+    desktopTwoPaneRoot: {
+        flex: 1,
+        flexDirection: 'row',
+        height: '100%',
+        backgroundColor: COLORS.background,
+    },
+    desktopLeftPane: {
+        width: 360,
+        height: '100%',
+        borderRightWidth: 1,
+        borderRightColor: COLORS.border,
+        backgroundColor: COLORS.surface,
+    },
+    desktopLeftHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 14,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    desktopTitleText: {
+        fontWeight: '800',
+        color: COLORS.primary,
+    },
+    desktopCountBadge: {
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    desktopCountText: {
+        fontWeight: '700',
+        color: COLORS.primary,
+        fontSize: 12,
+    },
+    desktopChatList: {
+        paddingVertical: SPACING.xs,
+    },
+    chatItemSelected: {
+        backgroundColor: COLORS.surfaceHighlight,
+        borderLeftWidth: 3,
+        borderLeftColor: COLORS.primary,
+    },
+    desktopRightPane: {
+        flex: 1,
+        height: '100%',
+        backgroundColor: COLORS.background,
+    },
+    desktopNoChatSelected: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: SPACING.xl,
     },
 });
 

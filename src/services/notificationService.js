@@ -7,6 +7,7 @@ import {
     query,
     where,
     orderBy,
+    limit,
     serverTimestamp,
     onSnapshot
 } from 'firebase/firestore';
@@ -37,24 +38,26 @@ export const notificationService = {
     },
 
     /**
-     * Get notifications for the current user
+     * Get notifications for the current user with bounded query and clean unsubscribe
      */
-    getNotifications: (callback) => {
+    getNotifications: (callback, { limitCount = 50 } = {}) => {
         const user = auth.currentUser;
         if (!user || !user.uid) {
             console.warn("No active user for notification listener");
             return () => { };
         }
 
-        console.log("Starting notification listener for user:", user.uid);
+        const size = Math.min(Math.max(Number(limitCount) || 50, 1), 100);
+        let activeUnsubscribe = () => { };
 
         const q = query(
             collection(db, NOTIFICATIONS_COLLECTION),
             where('toUserId', '==', user.uid),
-            orderBy('createdAt', 'desc')
+            orderBy('createdAt', 'desc'),
+            limit(size)
         );
 
-        return onSnapshot(q, (snapshot) => {
+        activeUnsubscribe = onSnapshot(q, (snapshot) => {
             const notifications = snapshot.docs.map(doc => ({
                 id: doc.id,
                 ...doc.data()
@@ -63,25 +66,34 @@ export const notificationService = {
         }, (error) => {
             console.error("Notifications listener FIREBASE ERROR:", error.code, error.message);
 
-            // If it's an index error, we can try a fallback query without ordering 
-            // to at least show SOME notifications while the index builds.
+            // Fallback for index issues — query without ordering, preserving limit
             if (error.code === 'failed-precondition') {
                 console.warn("Attempting fallback notification query (no index)...");
                 const fallbackQ = query(
                     collection(db, NOTIFICATIONS_COLLECTION),
-                    where('toUserId', '==', user.uid)
+                    where('toUserId', '==', user.uid),
+                    limit(size)
                 );
-                onSnapshot(fallbackQ, (snapshot) => {
+                activeUnsubscribe = onSnapshot(fallbackQ, (snapshot) => {
                     const notifications = snapshot.docs.map(doc => ({
                         id: doc.id,
                         ...doc.data()
                     })).sort((a, b) => (b.createdAt?.seconds || 0) - (a.createdAt?.seconds || 0));
                     callback(notifications);
+                }, (fallbackError) => {
+                    console.error("Fallback notification listener failed:", fallbackError?.message);
+                    callback([]);
                 });
+            } else {
+                callback([]);
             }
-
-            callback([]);
         });
+
+        return () => {
+            if (typeof activeUnsubscribe === 'function') {
+                activeUnsubscribe();
+            }
+        };
     },
 
     /**

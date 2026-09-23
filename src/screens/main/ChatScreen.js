@@ -42,7 +42,7 @@ const EMOJI_CATEGORIES = [
 const STICKER_INDICATOR = '__STICKER__';
 const GIPHY_INDICATOR   = '__GIPHY__:';
 
-const ChatScreen = ({ route, navigation }) => {
+const ChatScreen = ({ route, navigation, embedded = false }) => {
     const { recipientId, recipientName, recipientRole, listingId, propertyId } = route.params || {};
     const [message, setMessage] = useState('');
     const [messages, setMessages] = useState([]);
@@ -180,7 +180,7 @@ const ChatScreen = ({ route, navigation }) => {
         };
 
         initChat();
-    }, [recipientId, listingId, propertyId]);
+    }, [recipientId, listingId, propertyId, route?.params?.chatId]);
 
     const sendMessage = async () => {
         if (!message.trim()) return;
@@ -315,6 +315,13 @@ const ChatScreen = ({ route, navigation }) => {
     };
 
     if (loading) {
+        if (embedded) {
+            return (
+                <View style={[styles.center, { flex: 1, backgroundColor: COLORS.background }]}>
+                    <ActivityIndicator size="large" color={COLORS.primary} />
+                </View>
+            );
+        }
         return (
             <ScreenWrapper>
                 <View style={styles.center}>
@@ -324,21 +331,26 @@ const ChatScreen = ({ route, navigation }) => {
         );
     }
 
+    const Container = embedded ? View : ScreenWrapper;
+    const containerProps = embedded ? { style: { flex: 1, backgroundColor: COLORS.background } } : { edges: ['top'] };
+
     return (
-        <ScreenWrapper edges={['top']}>
+        <Container {...containerProps}>
             <View style={styles.header}>
-                <TouchableOpacity 
-                    onPress={() => {
-                        if (navigation.canGoBack()) {
-                            navigation.goBack();
-                        } else {
-                            navigation.navigate('ChatList');
-                        }
-                    }} 
-                    style={styles.backButton}
-                >
-                    <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
-                </TouchableOpacity>
+                {!embedded && (
+                    <TouchableOpacity
+                        onPress={() => {
+                            if (navigation.canGoBack()) {
+                                navigation.goBack();
+                            } else {
+                                navigation.navigate('ChatList');
+                            }
+                        }}
+                        style={styles.backButton}
+                    >
+                        <Ionicons name="chevron-back" size={24} color={COLORS.primary} />
+                    </TouchableOpacity>
+                )}
                 <TouchableOpacity
                     style={styles.headerInfo}
                     onPress={() => {
@@ -490,7 +502,7 @@ const ChatScreen = ({ route, navigation }) => {
                     </View>
                 )}
             </KeyboardAvoidingView>
-        </ScreenWrapper>
+        </Container>
     );
 };
 

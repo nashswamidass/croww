@@ -14,7 +14,7 @@ import {
     arrayRemove
 } from 'firebase/firestore';
 
-import { signInAnonymously, onAuthStateChanged } from 'firebase/auth';
+import { onAuthStateChanged } from 'firebase/auth';
 import { db, auth } from './firebaseConfig';
 
 const CHATS_COLLECTION = 'chats';
@@ -271,24 +271,29 @@ export const chatService = {
     },
 
     /**
-     * Subscribe to user's chat list
+     * Subscribe to user's chat list with bounded query and clean unsubscribe
      * @param {string} userId 
      * @param {function} callback 
+     * @param {object} options
      * @returns {function} - Unsubscribe function
      */
-    subscribeToUserChats: (userId, callback) => {
+    subscribeToUserChats: (userId, callback, { limitCount = 50 } = {}) => {
         if (!userId || typeof userId !== 'string') {
             console.warn("Invalid userId passed to subscribeToUserChats:", userId);
             return () => { };
         }
 
+        const size = Math.min(Math.max(Number(limitCount) || 50, 1), 100);
+        let activeUnsubscribe = () => { };
+
         const q = query(
             collection(db, CHATS_COLLECTION),
             where('participantIds', 'array-contains', userId),
-            orderBy('lastMessageTimestamp', 'desc')
+            orderBy('lastMessageTimestamp', 'desc'),
+            limit(size)
         );
 
-        return onSnapshot(q, (snapshot) => {
+        activeUnsubscribe = onSnapshot(q, (snapshot) => {
             const chats = snapshot.docs.map(docSnapshot => ({
                 id: docSnapshot.id,
                 ...docSnapshot.data()
@@ -297,29 +302,34 @@ export const chatService = {
         }, (error) => {
             console.error('Chat list listener FIREBASE ERROR:', error.code, error.message);
 
-            // Fallback for index issues — query without orderBy
+            // Fallback for index issues — query without orderBy, preserving bounded size
             if (error.code === 'failed-precondition') {
                 console.warn("Attempting fallback chat list query (no index)...");
                 const fallbackQ = query(
                     collection(db, CHATS_COLLECTION),
-                    where('participantIds', 'array-contains', userId)
+                    where('participantIds', 'array-contains', userId),
+                    limit(size)
                 );
-                onSnapshot(fallbackQ, (snapshot) => {
+                activeUnsubscribe = onSnapshot(fallbackQ, (snapshot) => {
                     const chats = snapshot.docs.map(docSnapshot => ({
                         id: docSnapshot.id,
                         ...docSnapshot.data()
                     })).sort((a, b) => (b.lastMessageTimestamp?.seconds || 0) - (a.lastMessageTimestamp?.seconds || 0));
                     callback(chats);
                 }, (fallbackError) => {
-                    console.error('Fallback chat list query also failed:', fallbackError.message);
-                    // Always resolve so the screen stops loading
+                    console.error('Fallback chat list query also failed:', fallbackError?.message);
                     callback([]);
                 });
             } else {
-                // For any other error, resolve with empty list to stop infinite loading
                 callback([]);
             }
         });
+
+        return () => {
+            if (typeof activeUnsubscribe === 'function') {
+                activeUnsubscribe();
+            }
+        };
     },
 
     /**

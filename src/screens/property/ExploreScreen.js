@@ -33,8 +33,13 @@ import { EMPTY_STATES_RIVE_SPEC } from '../../components/rive/specs/emptyStates.
 import { useTaxonomy } from '../../hooks/useTaxonomy';
 import AreaIntelligenceOverlay, { INTELLIGENCE_PHASES } from '../../components/intelligence/AreaIntelligenceOverlay';
 import AreaQuestionnaireSheet from '../../components/intelligence/AreaQuestionnaireSheet';
+import LocalityDetailSheet from '../../components/intelligence/LocalityDetailSheet';
 import { localityMatcherService } from '../../services/intelligence/localityMatcherService';
 import { getFloatingNavbarClearance } from '../../constants/layout';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
+import DesktopRightPanel from '../../components/desktop/DesktopRightPanel';
+import DesktopAreaIntelligencePanel from '../../components/desktop/DesktopAreaIntelligencePanel';
+import CrowwAreaIntelligenceIcon from '../../components/icons/CrowwAreaIntelligenceIcon';
 
 const CARD_WIDTH = 220;
 const CARD_GAP = 10;
@@ -238,6 +243,8 @@ const ExploreScreen = () => {
     const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const route = useRoute();
+    const { isDesktop, isTablet, isMobile } = useResponsiveLayout();
+    const desktopListRef = useRef(null);
     const {
         viewport,
         setViewport,
@@ -447,26 +454,41 @@ const ExploreScreen = () => {
         if (!item?.listingId) return;
         setSelectedListingId(item.listingId);
         const index = displayedResults.findIndex(r => r.listingId === item.listingId);
-        if (index !== -1 && carouselRef.current) {
-            isProgrammaticScrollRef.current = true;
-            if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
-            try {
-                carouselRef.current.scrollToIndex({
-                    index,
-                    animated: true,
-                    viewPosition: 0.5,
-                });
-            } catch (_err) {
-                carouselRef.current.scrollToOffset({
-                    offset: index * CARD_SNAP,
-                    animated: true,
-                });
+        if (index !== -1) {
+            if (isDesktop && desktopListRef.current) {
+                try {
+                    desktopListRef.current.scrollToIndex({
+                        index,
+                        animated: true,
+                        viewPosition: 0.1,
+                    });
+                } catch (_err) {
+                    desktopListRef.current.scrollToOffset({
+                        offset: index * 240,
+                        animated: true,
+                    });
+                }
+            } else if (carouselRef.current) {
+                isProgrammaticScrollRef.current = true;
+                if (scrollTimeoutRef.current) clearTimeout(scrollTimeoutRef.current);
+                try {
+                    carouselRef.current.scrollToIndex({
+                        index,
+                        animated: true,
+                        viewPosition: 0.5,
+                    });
+                } catch (_err) {
+                    carouselRef.current.scrollToOffset({
+                        offset: index * CARD_SNAP,
+                        animated: true,
+                    });
+                }
+                scrollTimeoutRef.current = setTimeout(() => {
+                    isProgrammaticScrollRef.current = false;
+                }, 350);
             }
-            scrollTimeoutRef.current = setTimeout(() => {
-                isProgrammaticScrollRef.current = false;
-            }, 350);
         }
-    }, [displayedResults, setSelectedListingId]);
+    }, [displayedResults, isDesktop, setSelectedListingId]);
 
     const onSelectCard = useCallback((item) => {
         setSelectedListingId(item.listingId);
@@ -671,6 +693,89 @@ const ExploreScreen = () => {
         setIntelligenceMode(false);
     }, [focusLocality, city, setCity, setViewport, setIntelligenceMode]);
 
+    const renderDesktopLocalityCard = useCallback(({ item, index }) => {
+        const isSelected = item.locality?.id === selectedLocality?.id;
+        const score = item.score != null ? item.score : item.areaScore;
+        const matchPct = item.matchScore != null ? item.matchScore : null;
+
+        return (
+            <TouchableOpacity
+                style={[styles.desktopLocalityCard, isSelected && styles.desktopLocalityCardSelected]}
+                onPress={() => {
+                    handleSelectLocality(item.locality, item);
+                    setSelectedLocalityData(item);
+                }}
+                activeOpacity={0.85}
+            >
+                <View style={styles.locCardTopRow}>
+                    <View style={styles.locCardRankBadge}>
+                        <Text style={styles.locCardRankText}>#{index + 1}</Text>
+                    </View>
+                    <View style={{ flex: 1, marginHorizontal: 8 }}>
+                        <Text style={styles.locCardName} numberOfLines={1}>{item.locality?.name}</Text>
+                        <Text style={styles.locCardCity}>{item.locality?.city || 'Chennai'}</Text>
+                    </View>
+                    {score != null && (
+                        <View style={styles.locCardScoreBadge}>
+                            <Text style={styles.locCardScoreValue}>{score}</Text>
+                            <Text style={styles.locCardScoreLabel}>Area Score</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Metrics Row: Commute + Rent + Personal Match */}
+                <View style={styles.locCardMetricsRow}>
+                    {matchPct != null && (
+                        <View style={styles.locMetricPill}>
+                            <Ionicons name="sparkles" size={12} color={COLORS.primary} style={{ marginRight: 4 }} />
+                            <Text style={styles.locMetricText}>{matchPct}% Match</Text>
+                        </View>
+                    )}
+                    {item.commute?.durationMinutes != null && (
+                        <View style={styles.locMetricPill}>
+                            <Ionicons name="time-outline" size={12} color={COLORS.secondary} style={{ marginRight: 4 }} />
+                            <Text style={styles.locMetricText}>~{item.commute.durationMinutes} min</Text>
+                        </View>
+                    )}
+                    {item.typicalRentFormatted && (
+                        <View style={styles.locMetricPill}>
+                            <Ionicons name="wallet-outline" size={12} color={COLORS.secondary} style={{ marginRight: 4 }} />
+                            <Text style={styles.locMetricText}>{item.typicalRentFormatted}</Text>
+                        </View>
+                    )}
+                </View>
+
+                {/* Highlights */}
+                {Array.isArray(item.highlights) && item.highlights.length > 0 && (
+                    <Text style={styles.locCardHighlights} numberOfLines={2}>
+                        {item.highlights.join(' · ')}
+                    </Text>
+                )}
+
+                {/* Actions */}
+                <View style={styles.locCardActionsRow}>
+                    <TouchableOpacity
+                        style={styles.locDetailsBtn}
+                        onPress={() => {
+                            handleSelectLocality(item.locality, item);
+                            setSelectedLocalityData(item);
+                            setIsAreaDetailOpen(true);
+                        }}
+                    >
+                        <Text style={styles.locDetailsBtnText}>View Area Intelligence</Text>
+                        <Ionicons name="arrow-forward" size={13} color={COLORS.primary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                        style={styles.locExploreBtn}
+                        onPress={() => handleExploreLocality(item.locality)}
+                    >
+                        <Text style={styles.locExploreBtnText}>Explore Stays</Text>
+                    </TouchableOpacity>
+                </View>
+            </TouchableOpacity>
+        );
+    }, [handleSelectLocality, handleExploreLocality, selectedLocality?.id]);
+
     const mapLocalityProperties = useMemo(() => {
         return scoredLocalities.map((item) => ({
             listingId: item.locality.id,
@@ -705,10 +810,10 @@ const ExploreScreen = () => {
     const floatingControlsBottom = cardCarouselBottom + (emptyMessage ? 175 : 205);
 
     return (
-        <ScreenWrapper edges={['top']}>
-            <View style={styles.root}>
-                {/* 1. Map Canvas occupying 75-80% viewport */}
-                <View style={styles.mapCanvas}>
+        <ScreenWrapper edges={isDesktop ? [] : ['top']}>
+            <View style={[styles.root, isDesktop && styles.desktopRoot]}>
+                {/* 1. Map Canvas */}
+                <View style={[styles.mapCanvas, isDesktop && styles.desktopMapContainer]}>
                     <PropertyMap
                         initialRegion={initialRegion}
                         followRegion={followRegion}
@@ -729,10 +834,179 @@ const ExploreScreen = () => {
                         intelligenceMode={isIntelligenceMode}
                         localityRegions={scoredLocalities}
                     />
+
+                    {/* Floating Map Controls on Desktop (recenter & save) */}
+                    {isDesktop && (
+                        <View style={styles.desktopFloatingControls} pointerEvents="box-none">
+                            {refreshing ? (
+                                <View style={styles.refreshBadge}>
+                                    <ActivityIndicator size="small" color={COLORS.primary} />
+                                    <Typography variant="micro" style={styles.refreshText}>Updating</Typography>
+                                </View>
+                            ) : null}
+
+                            {canSaveSearch ? (
+                                <TouchableOpacity
+                                    onPress={() => {
+                                        if (!user) {
+                                            setAuthModalVisible(true);
+                                            return;
+                                        }
+                                        setSaveError(null);
+                                        setSaveOpen(true);
+                                    }}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Save search"
+                                    style={styles.floatingSaveBtn}
+                                    hitSlop={TOUCH_TARGETS.hitSlop}
+                                >
+                                    <Ionicons name="bookmark-outline" size={18} color={COLORS.primary} />
+                                    <Typography variant="caption" style={styles.floatingSaveText}>Save</Typography>
+                                </TouchableOpacity>
+                            ) : null}
+
+                            <TouchableOpacity
+                                style={styles.recenterBtn}
+                                onPress={goToMe}
+                                accessibilityRole="button"
+                                accessibilityLabel="Center on my location"
+                                hitSlop={TOUCH_TARGETS.hitSlop}
+                                activeOpacity={0.85}
+                            >
+                                <Ionicons name="locate" size={22} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        </View>
+                    )}
                 </View>
 
-                {/* Areas Mode Overlay (Croww | Areas header + Tune/Exit + Corner Legend + Compact Card + Gated Detail Sheet) */}
-                {isIntelligenceMode ? (
+                {/* Desktop Contextual Right Panel */}
+                {isDesktop && (
+                    <DesktopRightPanel
+                        width={460}
+                        title={
+                            isIntelligenceMode
+                                ? (isAreaDetailOpen && selectedLocality ? selectedLocality.name : 'Area Intelligence')
+                                : `${displayedResults.length} Verified Stays`
+                        }
+                        subtitle={
+                            isIntelligenceMode
+                                ? (isAreaDetailOpen && selectedLocality ? (selectedLocality.city || city || 'Chennai') : `Ranked for ${areasInputs.destination?.name || 'Chennai'}`)
+                                : (filters?.category ? `Filtered by ${filters.category}` : `Verified homes in ${city || 'Chennai'}`)
+                        }
+                        headerRight={
+                            isIntelligenceMode && !areasDrawerOpen && scoredLocalities.length > 0 ? (
+                                <TouchableOpacity
+                                    style={styles.desktopTuneBtn}
+                                    onPress={() => setAreasDrawerOpen(true)}
+                                    accessibilityRole="button"
+                                    accessibilityLabel="Tune Area Intelligence Preferences"
+                                >
+                                    <Ionicons name="options-outline" size={15} color={COLORS.primary} style={{ marginRight: 4 }} />
+                                    <Text style={styles.desktopTuneBtnText}>Tune</Text>
+                                </TouchableOpacity>
+                            ) : null
+                        }
+                        onClose={
+                            isIntelligenceMode
+                                ? (isAreaDetailOpen ? () => setIsAreaDetailOpen(false) : () => setIntelligenceMode(false))
+                                : null
+                        }
+                    >
+                        {isIntelligenceMode ? (
+                            areasDrawerOpen || scoredLocalities.length === 0 ? (
+                                <DesktopAreaIntelligencePanel
+                                    initialDestination={areasInputs.destination}
+                                    initialBudget={areasInputs.budget}
+                                    initialCommuteMode={areasInputs.commuteMode}
+                                    initialPriorities={areasInputs.priorities}
+                                    onComplete={handleRunAreasMatcher}
+                                    onClose={scoredLocalities.length > 0 ? () => setAreasDrawerOpen(false) : null}
+                                />
+                            ) : isAreaDetailOpen && selectedLocality ? (
+                                <LocalityDetailSheet
+                                    locality={selectedLocality}
+                                    scoreResult={selectedLocalityData?.result || selectedLocalityData}
+                                    onExplore={handleExploreLocality}
+                                    onClose={() => setIsAreaDetailOpen(false)}
+                                    isDesktop
+                                />
+                            ) : (
+                                <FlatList
+                                    data={scoredLocalities}
+                                    keyExtractor={(item) => item.locality?.id || String(item.score)}
+                                    renderItem={renderDesktopLocalityCard}
+                                    contentContainerStyle={styles.desktopListContent}
+                                    showsVerticalScrollIndicator={false}
+                                />
+                            )
+                        ) : (
+                            <View style={styles.desktopExploreRightContent}>
+                                <View style={styles.desktopFiltersWrapper}>
+                                    <PropertyFilters
+                                        filters={filters}
+                                        onChange={setFilters}
+                                        resultCount={displayedResults.length}
+                                    />
+                                </View>
+
+                                {displayedResults.length === 0 ? (
+                                    <View style={styles.desktopEmptyState}>
+                                        <CrowwRive
+                                            artboard={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                            artboardName={EMPTY_STATES_RIVE_SPEC.artboards.discovery}
+                                            stateMachineName={EMPTY_STATES_RIVE_SPEC.stateMachine}
+                                            inputs={{ isActive: true }}
+                                            fallbackType="empty-discovery"
+                                            fallbackSize={48}
+                                            style={{ width: 48, height: 48, marginBottom: 8 }}
+                                        />
+                                        <Typography variant="titleSmall" style={styles.emptyTitle}>
+                                            No spaces match these filters
+                                        </Typography>
+                                        <Typography variant="caption" style={styles.emptySubtitle}>
+                                            Try adjusting category or rent range to discover verified homes.
+                                        </Typography>
+                                        <TouchableOpacity
+                                            onPress={() => setFilters(DEFAULT_EXPLORE_FILTERS)}
+                                            style={styles.switchCityBtn}
+                                        >
+                                            <Typography variant="bodyMedium" style={styles.switchCityText}>
+                                                Reset Filters
+                                            </Typography>
+                                        </TouchableOpacity>
+                                    </View>
+                                ) : (
+                                    <FlatList
+                                        ref={desktopListRef}
+                                        data={displayedResults}
+                                        keyExtractor={(item) => item.listingId}
+                                        renderItem={({ item }) => (
+                                            <View style={styles.desktopListItemWrapper}>
+                                                <PropertyResultCard
+                                                    item={item}
+                                                    layout="list"
+                                                    selected={item.listingId === selectedListingId}
+                                                    onPress={() => {
+                                                        onSelectCard(item);
+                                                        openListing(item);
+                                                    }}
+                                                />
+                                            </View>
+                                        )}
+                                        contentContainerStyle={styles.desktopListContent}
+                                        showsVerticalScrollIndicator={false}
+                                    />
+                                )}
+                            </View>
+                        )}
+                    </DesktopRightPanel>
+                )}
+
+                {/* Mobile Overlays: Only rendered when !isDesktop */}
+                {!isDesktop && (
+                    <>
+                        {/* Areas Mode Overlay (Croww | Areas header + Tune/Exit + Corner Legend + Compact Card + Gated Detail Sheet) */}
+                        {isIntelligenceMode ? (
                     <AreaIntelligenceOverlay
                         scoredLocalities={scoredLocalities}
                         selectedLocality={selectedLocality}
@@ -1039,6 +1313,8 @@ const ExploreScreen = () => {
                         initialPriorities={areasInputs.priorities}
                     />
                 )}
+                    </>
+                )}
             </View>
 
             <SaveSearchModal
@@ -1050,8 +1326,8 @@ const ExploreScreen = () => {
                 onSave={onSaveSearch}
             />
 
-            {/* List Results Mode (View All) */}
-            {viewMode === 'list' ? (
+            {/* List Results Mode (View All) - Mobile Only */}
+            {viewMode === 'list' && !isDesktop ? (
                 <View style={styles.listRootContainer}>
                     {/* List Header */}
                     <View style={[styles.listHeader, { paddingTop: insets.top + SPACING.s }]}>
@@ -1551,6 +1827,177 @@ const styles = StyleSheet.create({
         color: '#FFFFFF',
         fontWeight: '700',
         fontSize: 13,
+    },
+    desktopRoot: {
+        flexDirection: 'row',
+        height: '100%',
+        width: '100%',
+        overflow: 'hidden',
+    },
+    desktopMapContainer: {
+        position: 'relative',
+        flex: 1,
+        height: '100%',
+        width: 'auto',
+    },
+    desktopFloatingControls: {
+        position: 'absolute',
+        right: 20,
+        bottom: 24,
+        zIndex: 20,
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        gap: SPACING.s,
+    },
+    desktopTuneBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingHorizontal: 10,
+        paddingVertical: 4,
+        borderRadius: BORDER_RADIUS.pill,
+        backgroundColor: COLORS.surfaceHighlight,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    desktopTuneBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    desktopExploreRightContent: {
+        flex: 1,
+    },
+    desktopFiltersWrapper: {
+        paddingVertical: SPACING.s,
+        borderBottomWidth: 1,
+        borderBottomColor: COLORS.border,
+    },
+    desktopEmptyState: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: SPACING.xl,
+    },
+    desktopListItemWrapper: {
+        marginBottom: SPACING.m,
+    },
+    desktopListContent: {
+        padding: SPACING.m,
+        paddingBottom: 40,
+    },
+    desktopLocalityCard: {
+        backgroundColor: COLORS.surface,
+        borderRadius: BORDER_RADIUS.medium,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        padding: SPACING.m,
+        marginBottom: SPACING.m,
+        ...SHADOWS.subtle,
+    },
+    desktopLocalityCardSelected: {
+        borderColor: COLORS.primary,
+        backgroundColor: COLORS.surfaceHighlight,
+    },
+    locCardTopRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    locCardRankBadge: {
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 8,
+        paddingVertical: 3,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+    },
+    locCardRankText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    locCardName: {
+        fontSize: 15,
+        fontWeight: '700',
+        color: COLORS.primary,
+    },
+    locCardCity: {
+        fontSize: 12,
+        color: COLORS.secondary,
+    },
+    locCardScoreBadge: {
+        alignItems: 'flex-end',
+    },
+    locCardScoreValue: {
+        fontSize: 18,
+        fontWeight: '800',
+        color: COLORS.primary,
+    },
+    locCardScoreLabel: {
+        fontSize: 10,
+        color: COLORS.secondary,
+        textTransform: 'uppercase',
+    },
+    locCardMetricsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 10,
+    },
+    locMetricPill: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surfaceHighlight,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: BORDER_RADIUS.pill,
+    },
+    locMetricText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    locCardHighlights: {
+        fontSize: 12,
+        color: COLORS.secondary,
+        marginTop: 8,
+        lineHeight: 16,
+    },
+    locCardActionsRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        marginTop: 12,
+    },
+    locDetailsBtn: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 4,
+        paddingVertical: 8,
+        borderRadius: BORDER_RADIUS.round,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        backgroundColor: COLORS.surface,
+    },
+    locDetailsBtnText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    locExploreBtn: {
+        flex: 1,
+        paddingVertical: 8,
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderRadius: BORDER_RADIUS.round,
+        backgroundColor: COLORS.primary,
+    },
+    locExploreBtnText: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#FFFFFF',
     },
 });
 

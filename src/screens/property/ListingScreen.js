@@ -21,15 +21,17 @@ import ListingActorCard from '../../components/property/ListingActorCard';
 import PropertyFreshness from '../../components/property/PropertyFreshness';
 import PropertyVerification from '../../components/property/PropertyVerification';
 import Property3DSection from '../../components/property/Property3DSection';
+import PropertyMap from '../../components/property/PropertyMap';
 import { propertyDetailService, locationShareService } from '../../services/property';
 import { useAuth } from '../../context/AuthContext';
 import { useSavedItems } from '../../context/SavedItemsContext';
 import SaveButton from '../../components/property/saved/SaveButton';
 import { ListingDetailSkeleton, MotionView } from '../../components/motion';
-import { COLORS, SPACING, SHADOWS } from '../../constants/theme';
+import { COLORS, SPACING, SHADOWS, BORDER_RADIUS } from '../../constants/theme';
 import { showAlert } from '../../utils/showAlert';
 import { formatOfferPrice } from '../../utils/propertyFormat';
 import AuthPromptModal from '../../components/auth/AuthPromptModal';
+import { useResponsiveLayout } from '../../hooks/useResponsiveLayout';
 import {
     buildListingShare,
     canContactListing,
@@ -47,6 +49,7 @@ const ListingScreen = ({ route, navigation }) => {
     const { isListingSaved, saveListing, unsaveListing } = useSavedItems();
     const insets = useSafeAreaInsets();
     const { width } = useWindowDimensions();
+    const { isDesktop } = useResponsiveLayout();
     const split = width >= 900;
 
     const [status, setStatus] = useState(initialListing ? 'ready' : (listingId ? 'loading' : 'missing'));
@@ -152,6 +155,29 @@ const ListingScreen = ({ route, navigation }) => {
         if (inactiveProperty) return 'This property is no longer active. The offering is shown for context only.';
         return null;
     }, [listing, offerState, inactiveProperty]);
+
+    const mapRegion = useMemo(() => {
+        if (mapCoordinate?.latitude && mapCoordinate?.longitude) {
+            return {
+                latitude: mapCoordinate.latitude,
+                longitude: mapCoordinate.longitude,
+                latitudeDelta: 0.015,
+                longitudeDelta: 0.015,
+            };
+        }
+        return null;
+    }, [mapCoordinate]);
+
+    const mapListingItem = useMemo(() => {
+        if (!listing || !mapCoordinate) return [];
+        return [{
+            ...listing,
+            listingId: listing.id || listing.listingId,
+            mapCoordinate,
+            latitude: mapCoordinate.latitude,
+            longitude: mapCoordinate.longitude,
+        }];
+    }, [listing, mapCoordinate]);
 
     const onShare = useCallback(async () => {
         const payload = buildListingShare({
@@ -385,36 +411,88 @@ const ListingScreen = ({ route, navigation }) => {
 
             {status === 'ready' && listing ? (
                 <MotionView fadeOnly duration={180} style={{ flex: 1 }}>
-                    <ScrollView
-                        contentContainerStyle={{
-                            paddingBottom: (showContact ? 88 : SPACING.xl) + insets.bottom,
-                        }}
-                    >
-                        {split ? (
-                            <View style={styles.split}>
-                                <View style={styles.mediaPane}>
-                                    <PropertyMediaGallery media={media} />
+                    {isDesktop ? (
+                        <View style={styles.desktopSplitRoot}>
+                            <View style={styles.desktopLeftMapPane}>
+                                {mapRegion ? (
+                                    <PropertyMap
+                                        initialRegion={mapRegion}
+                                        followRegion={mapRegion}
+                                        listings={mapListingItem}
+                                        selectedId={listing?.id}
+                                    />
+                                ) : (
+                                    <View style={styles.desktopMapFallback}>
+                                        <Ionicons name="map-outline" size={48} color={COLORS.secondary} />
+                                        <Typography variant="body" style={styles.muted}>
+                                            {locality?.name ? `${locality.name}, ${listing?.city || 'Chennai'}` : 'Location map unavailable'}
+                                        </Typography>
+                                    </View>
+                                )}
+                                <View style={styles.desktopMapOverlayPill}>
+                                    <Ionicons name="location-sharp" size={14} color={COLORS.primary} style={{ marginRight: 4 }} />
+                                    <Typography variant="caption" style={styles.desktopMapOverlayText}>
+                                        {locality?.name || listing?.city || 'Verified Location'} · {locationPrecision === 'exact' || isExactShared ? 'Exact Pin' : 'Approximate Area'}
+                                    </Typography>
                                 </View>
-                                {details}
                             </View>
-                        ) : (
-                            <>
-                                <PropertyMediaGallery media={media} />
-                                {details}
-                            </>
-                        )}
-                    </ScrollView>
-                    {showContact ? (
-                        <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, SPACING.m) }]}>
-                            <AntigravityButton
-                                title={contactCtaLabel(listing.listedByRole)}
-                                size="large"
-                                icon="chatbubble-outline"
-                                onPress={onContact}
-                                accessibilityLabel={contactCtaLabel(listing.listedByRole)}
-                            />
+                            <View style={styles.desktopRightDetailsPane}>
+                                <ScrollView
+                                    contentContainerStyle={{
+                                        paddingBottom: (showContact ? 88 : SPACING.xl) + insets.bottom,
+                                    }}
+                                    showsVerticalScrollIndicator={false}
+                                >
+                                    <PropertyMediaGallery media={media} />
+                                    {details}
+                                </ScrollView>
+                                {showContact ? (
+                                    <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, SPACING.m) }]}>
+                                        <AntigravityButton
+                                            title={contactCtaLabel(listing.listedByRole)}
+                                            size="large"
+                                            icon="chatbubble-outline"
+                                            onPress={onContact}
+                                            accessibilityLabel={contactCtaLabel(listing.listedByRole)}
+                                        />
+                                    </View>
+                                ) : null}
+                            </View>
                         </View>
-                    ) : null}
+                    ) : (
+                        <>
+                            <ScrollView
+                                contentContainerStyle={{
+                                    paddingBottom: (showContact ? 88 : SPACING.xl) + insets.bottom,
+                                }}
+                            >
+                                {split ? (
+                                    <View style={styles.split}>
+                                        <View style={styles.mediaPane}>
+                                            <PropertyMediaGallery media={media} />
+                                        </View>
+                                        {details}
+                                    </View>
+                                ) : (
+                                    <>
+                                        <PropertyMediaGallery media={media} />
+                                        {details}
+                                    </>
+                                )}
+                            </ScrollView>
+                            {showContact ? (
+                                <View style={[styles.cta, { paddingBottom: Math.max(insets.bottom, SPACING.m) }]}>
+                                    <AntigravityButton
+                                        title={contactCtaLabel(listing.listedByRole)}
+                                        size="large"
+                                        icon="chatbubble-outline"
+                                        onPress={onContact}
+                                        accessibilityLabel={contactCtaLabel(listing.listedByRole)}
+                                    />
+                                </View>
+                            ) : null}
+                        </>
+                    )}
                 </MotionView>
             ) : null}
 
@@ -517,6 +595,52 @@ const styles = StyleSheet.create({
         borderTopWidth: 1,
         borderTopColor: COLORS.border,
         ...SHADOWS.card,
+    },
+    desktopSplitRoot: {
+        flex: 1,
+        flexDirection: 'row',
+        height: '100%',
+        overflow: 'hidden',
+    },
+    desktopLeftMapPane: {
+        flex: 1.1,
+        height: '100%',
+        position: 'relative',
+        backgroundColor: COLORS.surfaceHighlight,
+        borderRightWidth: 1,
+        borderRightColor: COLORS.border,
+    },
+    desktopRightDetailsPane: {
+        flex: 1,
+        height: '100%',
+        position: 'relative',
+        backgroundColor: COLORS.background,
+    },
+    desktopMapFallback: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: SPACING.xl,
+    },
+    desktopMapOverlayPill: {
+        position: 'absolute',
+        top: SPACING.m,
+        left: SPACING.m,
+        zIndex: 10,
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: COLORS.surface,
+        paddingHorizontal: SPACING.m,
+        paddingVertical: 6,
+        borderRadius: BORDER_RADIUS.pill,
+        borderWidth: 1,
+        borderColor: COLORS.border,
+        ...SHADOWS.subtle,
+    },
+    desktopMapOverlayText: {
+        color: COLORS.primary,
+        fontWeight: '600',
+        fontSize: 12,
     },
 });
 

@@ -28,6 +28,7 @@ export default function LocalityDetailSheet({
     scoreResult,
     onExplore,
     onClose,
+    isDesktop = false,
 }) {
     if (!locality) return null;
 
@@ -54,10 +55,12 @@ export default function LocalityDetailSheet({
     const metroAvailable = transport.metroAvailable;
 
     return (
-        <View style={styles.container}>
-            <View style={styles.handleContainer}>
-                <View style={styles.handle} />
-            </View>
+        <View style={[styles.container, isDesktop && styles.desktopContainer]}>
+            {!isDesktop && (
+                <View style={styles.handleContainer}>
+                    <View style={styles.handle} />
+                </View>
+            )}
 
             <View style={styles.header}>
                 <View style={styles.titleArea}>
@@ -101,7 +104,7 @@ export default function LocalityDetailSheet({
             </View>
 
             <ScrollView
-                style={styles.scroll}
+                style={[styles.scroll, isDesktop && styles.desktopScroll]}
                 contentContainerStyle={styles.scrollContent}
                 showsVerticalScrollIndicator={false}
             >
@@ -259,6 +262,19 @@ const styles = StyleSheet.create({
         overflow: 'hidden',
         maxHeight: 520,
         ...SHADOWS.floating,
+    },
+    desktopContainer: {
+        borderTopLeftRadius: 0,
+        borderTopRightRadius: 0,
+        borderWidth: 0,
+        maxHeight: '100%',
+        flex: 1,
+        shadowOpacity: 0,
+        elevation: 0,
+    },
+    desktopScroll: {
+        maxHeight: 9000,
+        flex: 1,
     },
     handleContainer: {
         alignItems: 'center',
