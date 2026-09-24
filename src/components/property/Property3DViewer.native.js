@@ -33,7 +33,7 @@ function buildViewerHtml(assetUrl, posterUrl, title = 'Spatial Walkthrough') {
 <script type="importmap">
 {
   "imports": {
-    "three": "https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.js",
+    "three": "https://cdn.jsdelivr.net/npm/three@0.172.0/+esm",
     "@mkkellogg/gaussian-splats-3d": "https://cdn.jsdelivr.net/npm/@mkkellogg/gaussian-splats-3d@0.4.7/+esm"
   }
 }

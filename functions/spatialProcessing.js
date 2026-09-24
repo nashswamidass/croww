@@ -287,13 +287,42 @@ exports.spatialWorkerCallback = onRequest({ cors: true, invoker: "public" }, asy
 
         // Handle READY completion (Phase 8 & 25 quality gate verification)
         if (status === "READY") {
-            // Must have mobile output and valid outputs
-            if (!outputs || !outputs.mobile?.url) {
-                response.status(400).send({ error: "INVALID_OUTPUTS", message: "Mobile output URL required" });
+            const { provenance } = request.body || {};
+            // Security: Reject test fixtures from transitioning jobs to READY
+            if (provenance?.type === "TEST_FIXTURE" || provenance?.isFixture) {
+                response.status(403).send({ error: "FIXTURE_NOT_ALLOWED", message: "Test fixtures cannot transition spatial walkthrough jobs to READY." });
+                return;
+            }
+            if (provenance && provenance.type !== "REAL_RECONSTRUCTION") {
+                response.status(400).send({ error: "INVALID_PROVENANCE", message: "Reconstruction provenance must be REAL_RECONSTRUCTION" });
                 return;
             }
 
-            const mobileUrl = String(outputs.mobile.url);
+            // Must have mobile output and valid outputs
+            if (!outputs || (!outputs.mobile?.url && !outputs.mobile?.storagePath)) {
+                response.status(400).send({ error: "INVALID_OUTPUTS", message: "Mobile output URL or storage path required" });
+                return;
+            }
+
+            const expectedPrefix = `${PUBLIC_PREFIX}/${mediaId}/`;
+            const mobilePath = outputs.mobile.storagePath || `${expectedPrefix}mobile.splat`;
+            if (!mobilePath.startsWith(expectedPrefix)) {
+                response.status(400).send({ error: "INVALID_OUTPUT_PATH", message: `Output storage path must be within ${expectedPrefix}` });
+                return;
+            }
+
+            // Security: Verify mobile and desktop URLs belong strictly to authorized storage
+            if (outputs.mobile?.url) {
+                const urlStr = String(outputs.mobile.url);
+                const isBucketUrl = urlStr.includes("storage.googleapis.com") || urlStr.includes("firebasestorage.googleapis.com");
+                const hasMediaId = urlStr.includes(encodeURIComponent(mediaId)) || urlStr.includes(mediaId);
+                if (!isBucketUrl || !hasMediaId) {
+                    response.status(400).send({ error: "UNTRUSTED_OUTPUT_URL", message: "Output URL must originate from Croww authorized storage and media ID" });
+                    return;
+                }
+            }
+
+            const mobileUrl = String(outputs.mobile.url || `https://storage.googleapis.com/${admin.storage().bucket().name}/${mobilePath}`);
             const posterUrl = outputs.poster?.url || mediaData.thumbnailUrl || null;
             const propertyId = mediaData.propertyId;
 
@@ -373,6 +402,16 @@ exports.finalizeSpatialAsset = onRequest({ cors: true, invoker: "public" }, asyn
             return;
         }
 
+        const resolvedUrl = String(derivedUrl || outputs?.mobile?.url || "");
+        if (decision === "READY") {
+            const isBucketUrl = resolvedUrl.includes("storage.googleapis.com") || resolvedUrl.includes("firebasestorage.googleapis.com");
+            const hasMediaId = resolvedUrl.includes(encodeURIComponent(mediaId)) || resolvedUrl.includes(mediaId);
+            if (!isBucketUrl || !hasMediaId) {
+                response.status(400).send({ error: "UNTRUSTED_OUTPUT_URL", message: "derivedUrl must point to Croww authorized storage bucket and media ID" });
+                return;
+            }
+        }
+
         if (decision === "FAILED") {
             await ref.update({
                 processingStatus: "FAILED",
@@ -389,11 +428,10 @@ exports.finalizeSpatialAsset = onRequest({ cors: true, invoker: "public" }, asyn
             return;
         }
 
-        const resolvedUrl = derivedUrl || outputs?.mobile?.url;
         await ref.update({
             processingStatus: "READY",
             visibility: "public",
-            url: String(resolvedUrl),
+            url: resolvedUrl,
             thumbnailUrl: posterUrl || outputs?.poster?.url || row.thumbnailUrl || null,
             "processing.status": "READY",
             "processing.stage": "READY",
