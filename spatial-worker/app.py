@@ -168,6 +168,12 @@ async def process_spatial_job(job: JobPayload):
             "reconstructionQuality": gate_res["quality"],
             "sourceFrameCount": source_frame_count,
             "registeredFrameCount": registered_frame_count,
+            "provenance": {
+                "type": "REAL_RECONSTRUCTION",
+                "processor": "nerfstudio_splatfacto",
+                "registeredFrames": registered_frame_count,
+                "sourceFrameCount": source_frame_count,
+            },
         })
 
     except QualityGateError as qe:
