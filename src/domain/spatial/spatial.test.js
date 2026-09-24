@@ -151,14 +151,59 @@ describe('archive, retry, private source, and client READY', () => {
                 'Clients cannot set a public 3D URL',
             ].sort()
         );
-        assert.equal(publicSpatialErrorMessage('FAILED'), '3D processing failed.');
+        assert.equal(publicSpatialErrorMessage('FAILED'), "We couldn't create this walkthrough.");
         assert.equal(publicSpatialErrorMessage('READY'), null);
         assert.match(buildSpatialSourcePath('u1', 'p1', 'm1', 'Walk Through.mp4'), /^property_spatial\/u1\/p1\/source\/m1\//);
         assert.match(buildSpatialPublicPath('m1', 'out.spz'), /^property_spatial_public\/m1\//);
-        assert.equal(dashboardSpatialLabel({ spatialTourAvailable: true }), 'Ready');
-        assert.equal(dashboardSpatialLabel({ processingStatus: 'FAILED' }), 'Failed');
+        assert.equal(dashboardSpatialLabel({ spatialTourAvailable: true }), 'Spatial Walkthrough Ready');
+        assert.equal(dashboardSpatialLabel({ processingStatus: 'FAILED' }), "We couldn't create this walkthrough");
+        assert.equal(dashboardSpatialLabel({ processingStatus: 'PROCESSING' }), 'Creating your Spatial Walkthrough');
         assert.equal(dashboardSpatialLabel({}), 'Not uploaded');
         assert.equal(exploreSpatialHint({ spatialTourAvailable: true }), '3D');
         assert.equal(exploreSpatialHint({}), null);
+    });
+});
+
+describe('capture quality and validation', () => {
+    it('validates duration, file size, empty file, and format deterministically', async () => {
+        const { evaluateCaptureQuality, isKnownCaptureType } = await import('./index.ts');
+        
+        assert.equal(isKnownCaptureType('VIDEO'), true);
+        assert.equal(isKnownCaptureType('MODEL'), true);
+        assert.equal(isKnownCaptureType('AUDIO'), false);
+
+        // Empty input
+        const emptyRes = evaluateCaptureQuality({});
+        assert.equal(emptyRes.valid, false);
+
+        // Too short (< 15s)
+        const shortRes = evaluateCaptureQuality({
+            uri: 'file:///walk.mp4',
+            sizeBytes: 1024 * 1024,
+            durationSeconds: 10,
+            mimeType: 'video/mp4',
+        });
+        assert.equal(shortRes.valid, false);
+        assert.match(shortRes.userFacingMessage, /recording more slowly/);
+
+        // Exceeds hard cap (> 120s)
+        const longRes = evaluateCaptureQuality({
+            uri: 'file:///walk.mp4',
+            sizeBytes: 1024 * 1024,
+            durationSeconds: 125,
+            mimeType: 'video/mp4',
+        });
+        assert.equal(longRes.valid, false);
+
+        // Valid walkthrough (e.g. 45 seconds, 20 MB)
+        const validRes = evaluateCaptureQuality({
+            uri: 'file:///walk.mp4',
+            sizeBytes: 20 * 1024 * 1024,
+            durationSeconds: 45,
+            mimeType: 'video/mp4',
+        });
+        assert.equal(validRes.valid, true);
+        assert.equal(validRes.issues.length, 0);
+        assert.equal(validRes.userFacingMessage, null);
     });
 });

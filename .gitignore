@@ -69,3 +69,5 @@ firebase-debug*.log
 # scratch screenshots
 scratch_*.png
 
+# validation and test artifacts
+artifacts/

@@ -9,6 +9,8 @@ export {
     validateSpatialUpload,
     validateClientSpatialCreate,
     isKnownCaptureProvider,
+    isKnownCaptureType,
 } from './validate.ts';
 export * from './authorize.ts';
 export * from './paths.ts';
+export * from './captureQuality.ts';

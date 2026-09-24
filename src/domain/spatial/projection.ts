@@ -8,6 +8,7 @@ import type { PublicSpatialTour, SpatialProcessingStatus, SpatialViewerDescripto
 const PRIVATE_KEYS = [
     'sourceStoragePath', 'derivedStoragePath', 'processor', 'processorVersion',
     'jobId', 'gpu', 'stack', 'logs', 'errorPrivate', 'captureProvider',
+    'workerUrl', 'credentials', 'internalReason', 'secret',
 ];
 
 export function isCurrentlyReadySpatial(
@@ -72,10 +73,10 @@ export function dashboardSpatialLabel(row: {
     spatialTourAvailable?: boolean | null;
     processingStatus?: string | null;
 } | null | undefined): string {
-    if (row?.spatialTourAvailable) return 'Ready';
+    if (row?.spatialTourAvailable) return 'Spatial Walkthrough Ready';
     const status = row?.processingStatus;
-    if (status === 'PROCESSING' || status === 'UPLOADING') return 'Processing';
-    if (status === 'FAILED') return 'Failed';
+    if (status === 'PROCESSING' || status === 'UPLOADING') return 'Creating your Spatial Walkthrough';
+    if (status === 'FAILED') return "We couldn't create this walkthrough";
     return 'Not uploaded';
 }
 

@@ -1,6 +1,7 @@
 import {
     SPATIAL_ASSET_FORMATS,
     SPATIAL_CAPTURE_PROVIDERS,
+    SPATIAL_CAPTURE_TYPES,
     SPATIAL_MAX_SOURCE_BYTES,
     SPATIAL_MEDIA_TYPE,
     SPATIAL_SOURCE_MIME_ALLOWLIST,
@@ -69,4 +70,8 @@ export function validateClientSpatialCreate(input: Record<string, unknown>): str
 
 export function isKnownCaptureProvider(value: unknown): boolean {
     return typeof value === 'string' && (SPATIAL_CAPTURE_PROVIDERS as readonly string[]).includes(value);
+}
+
+export function isKnownCaptureType(value: unknown): boolean {
+    return typeof value === 'string' && (SPATIAL_CAPTURE_TYPES as readonly string[]).includes(value as any);
 }

@@ -980,6 +980,7 @@ const spatialProcessing = require("./spatialProcessing");
 exports.finalizeSpatialAsset = spatialProcessing.finalizeSpatialAsset;
 exports.archiveSpatialAsset = spatialProcessing.archiveSpatialAsset;
 exports.onSpatialJobCreated = spatialProcessing.onSpatialJobCreated;
+exports.spatialWorkerCallback = spatialProcessing.spatialWorkerCallback;
 
 const locationSharing = require("./locationSharing");
 exports.requestLocationShare = locationSharing.requestLocationShare;

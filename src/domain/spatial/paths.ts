@@ -24,14 +24,14 @@ export function retriesRemaining(retryCount: number | null | undefined): number 
 }
 
 export function actorSpatialStatusLabel(status: SpatialProcessingStatus | string | null | undefined): string {
-    if (status === 'READY') return 'Ready';
-    if (status === 'PROCESSING' || status === 'UPLOADING') return 'Processing';
-    if (status === 'FAILED') return 'Failed';
+    if (status === 'READY') return 'Spatial Walkthrough Ready';
+    if (status === 'PROCESSING' || status === 'UPLOADING') return 'Creating your Spatial Walkthrough';
+    if (status === 'FAILED') return "We couldn't create this walkthrough";
     if (status === 'ARCHIVED') return 'Archived';
     return 'Not uploaded';
 }
 
 export function publicSpatialErrorMessage(status: SpatialProcessingStatus | string | null | undefined): string | null {
-    if (status === 'FAILED') return '3D processing failed.';
+    if (status === 'FAILED') return "We couldn't create this walkthrough.";
     return null;
 }

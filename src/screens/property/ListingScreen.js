@@ -274,6 +274,7 @@ const ListingScreen = ({ route, navigation }) => {
             <Property3DSection
                 propertyId={listing?.propertyId}
                 listingId={listing?.id}
+                spatialTourAvailable={Boolean(listing?.spatialTourAvailable || property?.spatialTourAvailable)}
                 posterUrl={listing?.coverThumbnailUrl || media?.[0]?.thumbnailUrl || media?.[0]?.url}
                 canManage={Boolean(currentUid && (listing?.listedByUid === currentUid || property?.ownerUid === currentUid || property?.createdByUid === currentUid))}
                 onAddTour={() => navigation.navigate('SpatialTour', {

@@ -1,75 +1,140 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import Typography from '../Typography';
-import { COLORS, SPACING } from '../../constants/theme';
-import { buildSpatialViewerHtml } from './threeD/viewerHtml';
+import { COLORS, SPACING, BORDER_RADIUS } from '../../constants/theme';
 
-/**
- * Web viewer experiment: iframe + WebGL detection.
- * Does not bundle a Gaussian Splat decoder.
- */
-const Property3DViewer = ({ descriptor, onClose, onViewPhotos, onReset }) => {
-    const [webgl, setWebgl] = useState(null);
-    const html = useMemo(() => buildSpatialViewerHtml({
-        assetUrl: descriptor?.assetUrl || '',
-        posterUrl: descriptor?.posterUrl || '',
-        assetFormat: descriptor?.assetFormat || 'gaussian_splat',
-    }), [descriptor]);
+const Property3DViewer = ({
+    descriptor,
+    onClose,
+    onViewPhotos,
+    onReset,
+}) => {
+    const [hasError, setHasError] = useState(false);
+    const assetUrl = descriptor?.assetUrl || null;
+    const posterUrl = descriptor?.posterUrl || null;
 
     useEffect(() => {
-        const onMessage = (event) => {
-            const data = event?.data;
-            if (!data || data.source !== 'croww-3d') return;
-            setWebgl(Boolean(data.webgl));
+        const handleMessage = (event) => {
+            try {
+                const data = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+                if (data?.type === 'SPATIAL_VIEWER') {
+                    if (data.action === 'close' && onClose) {
+                        onClose();
+                    } else if (data.action === 'error') {
+                        setHasError(true);
+                    }
+                }
+            } catch {}
         };
-        window.addEventListener('message', onMessage);
-        return () => window.removeEventListener('message', onMessage);
-    }, []);
+        window.addEventListener('message', handleMessage);
+        return () => window.removeEventListener('message', handleMessage);
+    }, [onClose]);
+
+    if (!assetUrl || hasError) {
+        return (
+            <View style={styles.errorContainer}>
+                {posterUrl ? (
+                    <Image source={{ uri: posterUrl }} style={styles.errorPoster} />
+                ) : (
+                    <View style={styles.errorIconCircle}>
+                        <Ionicons name="cube-outline" size={36} color={COLORS.secondary} />
+                    </View>
+                )}
+                <Typography variant="h3" style={styles.errorTitle}>
+                    {"Spatial Walkthrough isn't available on this device."}
+                </Typography>
+                <Typography variant="body" style={styles.errorBody}>
+                    Photos and property facts remain available.
+                </Typography>
+                <View style={styles.controlsRow}>
+                    {onViewPhotos ? (
+                        <TouchableOpacity
+                            onPress={onViewPhotos}
+                            style={styles.actionBtn}
+                            accessibilityRole="button"
+                            accessibilityLabel="View Photos"
+                        >
+                            <Typography variant="caption" style={styles.actionBtnText}>View photos</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                    {onClose ? (
+                        <TouchableOpacity
+                            onPress={onClose}
+                            style={styles.actionBtnSecondary}
+                            accessibilityRole="button"
+                            accessibilityLabel="Close Walkthrough"
+                        >
+                            <Typography variant="caption" style={styles.actionBtnSecondaryText}>Close</Typography>
+                        </TouchableOpacity>
+                    ) : null}
+                </View>
+            </View>
+        );
+    }
+
+    const iframeSrc = `/spatial-viewer/index.html?assetUrl=${encodeURIComponent(assetUrl)}&posterUrl=${encodeURIComponent(posterUrl || '')}`;
 
     return (
-        <View style={styles.wrap} accessibilityLabel="3D property viewer">
+        <View style={styles.container}>
             <iframe
-                title="Croww 3D viewer"
-                srcDoc={html}
-                style={styles.frame}
-                sandbox="allow-scripts"
+                src={iframeSrc}
+                style={{
+                    width: '100%',
+                    height: '100%',
+                    border: 'none',
+                    backgroundColor: '#0b0f19',
+                }}
+                allow="fullscreen; xr-spatial-tracking"
+                title="Spatial Walkthrough"
             />
-            <Typography variant="caption" style={styles.meta}>
-                {webgl === false ? 'WebGL is not available on this browser.' : 'Orbit, pan, and zoom are reserved for a future splat renderer.'}
-            </Typography>
-            <View style={styles.controls}>
-                {onReset ? (
-                    <TouchableOpacity onPress={onReset} accessibilityRole="button" accessibilityLabel="Reset 3D view" style={styles.btn}>
-                        <Typography variant="caption">Reset</Typography>
-                    </TouchableOpacity>
-                ) : null}
-                {onViewPhotos ? (
-                    <TouchableOpacity onPress={onViewPhotos} accessibilityRole="button" accessibilityLabel="View photos" style={styles.btn}>
-                        <Typography variant="caption">View photos</Typography>
-                    </TouchableOpacity>
-                ) : null}
-                {onClose ? (
-                    <TouchableOpacity onPress={onClose} accessibilityRole="button" accessibilityLabel="Close 3D viewer" style={styles.btn}>
-                        <Typography variant="caption">Close</Typography>
-                    </TouchableOpacity>
-                ) : null}
-            </View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    wrap: { padding: SPACING.l },
-    frame: { width: '100%', height: 280, border: 'none', borderRadius: 12, background: '#111' },
-    meta: { color: COLORS.secondary, marginTop: SPACING.s },
-    controls: { flexDirection: 'row', flexWrap: 'wrap', gap: SPACING.s, marginTop: SPACING.m },
-    btn: {
+    container: { flex: 1, width: '100%', height: '100%', backgroundColor: '#0b0f19' },
+    errorContainer: {
+        flex: 1,
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: SPACING.xl,
+        backgroundColor: COLORS.background,
+    },
+    errorPoster: {
+        width: '100%',
+        maxWidth: 480,
+        height: 220,
+        borderRadius: BORDER_RADIUS.m,
+        marginBottom: SPACING.l,
+    },
+    errorIconCircle: {
+        width: 64,
+        height: 64,
+        borderRadius: 32,
+        backgroundColor: COLORS.surfaceHighlight,
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginBottom: SPACING.m,
+    },
+    errorTitle: { textAlign: 'center', marginBottom: SPACING.s },
+    errorBody: { textAlign: 'center', color: COLORS.secondary, marginBottom: SPACING.l },
+    controlsRow: { flexDirection: 'row', gap: SPACING.m },
+    actionBtn: {
+        backgroundColor: COLORS.accent,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: 10,
+        borderRadius: 20,
+    },
+    actionBtnText: { color: COLORS.white, fontWeight: '600' },
+    actionBtnSecondary: {
         borderWidth: 1,
         borderColor: COLORS.border,
-        borderRadius: 999,
-        paddingHorizontal: SPACING.m,
-        paddingVertical: 8,
+        paddingHorizontal: SPACING.l,
+        paddingVertical: 10,
+        borderRadius: 20,
     },
+    actionBtnSecondaryText: { color: COLORS.primary },
 });
 
 export default Property3DViewer;

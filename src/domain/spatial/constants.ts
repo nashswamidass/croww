@@ -59,4 +59,30 @@ export const SPATIAL_SOURCE_MIME_ALLOWLIST = [
     'model/gltf+json',
 ] as const;
 
+export const SPATIAL_CAPTURE_TYPES = ['VIDEO', 'MODEL'] as const;
+
+export const SPATIAL_PROCESSING_STAGES = [
+    'QUEUED',
+    'UPLOADING',
+    'PREPARING',
+    'POSE_ESTIMATION',
+    'RECONSTRUCTING',
+    'SPLATTING',
+    'OPTIMIZING',
+    'FINALIZING',
+    'READY',
+    'FAILED',
+] as const;
+
 export const DEFAULT_SPATIAL_FORMAT = 'gaussian_splat' as const;
+
+/** Target frame rate for video keyframe extraction */
+export const SPATIAL_TARGET_FPS = 2;
+/** Mobile asset size budget (25 MB) */
+export const SPATIAL_MOBILE_MAX_ASSET_BYTES = 25 * 1024 * 1024;
+/** Video capture duration constraints in seconds */
+export const SPATIAL_MIN_DURATION_SECONDS = 15;
+export const SPATIAL_TARGET_MIN_DURATION_SECONDS = 30;
+export const SPATIAL_TARGET_MAX_DURATION_SECONDS = 90;
+export const SPATIAL_HARD_STOP_DURATION_SECONDS = 120;
+export const SPATIAL_MIN_REGISTERED_FRAMES = 25;

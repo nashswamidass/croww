@@ -69,6 +69,7 @@ import InventoryMediaScreen from '../screens/property/InventoryMediaScreen';
 import TrustOverviewScreen from '../screens/property/TrustOverviewScreen';
 import SubmitVerificationScreen from '../screens/property/SubmitVerificationScreen';
 import SpatialTourScreen from '../screens/property/SpatialTourScreen';
+import SpatialCaptureScreen from '../screens/property/SpatialCaptureScreen';
 import SavedSearchScreen from '../screens/property/SavedSearchScreen';
 import PropertyVisualQAScreen from '../screens/property/PropertyVisualQAScreen';
 import AreaMatcherScreen from '../screens/property/AreaMatcherScreen';
@@ -117,6 +118,7 @@ const MainNavigator = () => {
             <Stack.Screen name="TrustOverview" component={TrustOverviewScreen} />
             <Stack.Screen name="SubmitVerification" component={SubmitVerificationScreen} />
             <Stack.Screen name="SpatialTour" component={SpatialTourScreen} />
+            <Stack.Screen name="SpatialCapture" component={SpatialCaptureScreen} />
             <Stack.Screen name="SavedSearch" component={SavedSearchScreen} />
             <Stack.Screen name="PropertyVisualQA" component={PropertyVisualQAScreen} />
             <Stack.Screen name="AreaMatcher" component={AreaMatcherScreen} />
