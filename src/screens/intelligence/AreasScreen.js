@@ -17,15 +17,23 @@ import LocalityDetailSheet from '../../components/intelligence/LocalityDetailShe
 import { localityService } from '../../services/property/localityService';
 import { areaScoreService } from '../../services/intelligence/areaScoreService';
 import { areaScorePreferenceService } from '../../services/intelligence/areaScorePreferenceService';
+import {
+    AREA_CRITERIA_CONFIG,
+    ALL_AREA_CRITERIA,
+    matchLocalities,
+} from '../../domain/areaScore/localityMatcher';
 import { useExplore } from '../../context/ExploreContext';
 import { TABS } from '../../navigation/routeNames';
 import { BORDER_RADIUS, COLORS, FONT_SIZES, SHADOWS, TOUCH_TARGETS } from '../../constants/theme';
+
 
 const PHASES = {
     INTRO: 'INTRO',
     PREFERENCES: 'PREFERENCES',
     MAP: 'MAP',
 };
+
+const PRIORITIES_REQUIRED = 3;
 
 const STEP_OPTIONS = [
     // Step 1: What are you looking for?
@@ -77,21 +85,21 @@ const STEP_OPTIONS = [
             { id: 'walking', label: 'Walk / Cycle', description: 'Self-sufficient walkable neighborhoods', icon: 'walk-outline' },
         ],
     },
-    // Step 5: Priorities
+    // Step 5: Top 3 Priorities (all 10 canonical criteria)
     {
-        title: 'What matters most to you?',
-        subtitle: 'Pick up to 3 factors that Croww will heavily weigh.',
+        title: 'Pick your top 3 priorities',
+        subtitle: 'Select exactly 3 factors that matter most to you. These will drive your Personal Match score.',
         isMulti: true,
-        options: [
-            { id: 'flood', label: 'Zero Flood Risk', description: 'High ground, well-drained during monsoon', icon: 'shield-checkmark-outline' },
-            { id: 'transport', label: 'Metro & Public Transit', description: 'Walking distance to stations and bus hubs', icon: 'train-outline' },
-            { id: 'affordability', label: 'Best Rental Value', description: 'High space-to-cost ratio', icon: 'pricetag-outline' },
-            { id: 'schools', label: 'Schools & Family Friendly', description: 'Top education institutes & green parks', icon: 'school-outline' },
-            { id: 'healthcare', label: 'Healthcare & Hospitals', description: 'Multi-specialty emergency care nearby', icon: 'medkit-outline' },
-            { id: 'airport', label: 'Airport & Outstation Transit', description: 'Fast access to airport & bypass highways', icon: 'airplane-outline' },
-        ],
+        maxSelections: PRIORITIES_REQUIRED,
+        options: ALL_AREA_CRITERIA.map((id) => ({
+            id,
+            label: AREA_CRITERIA_CONFIG[id].label,
+            description: AREA_CRITERIA_CONFIG[id].description,
+            icon: AREA_CRITERIA_CONFIG[id].icon,
+        })),
     },
 ];
+
 
 export default function AreasScreen() {
     const insets = useSafeAreaInsets();
@@ -105,7 +113,7 @@ export default function AreasScreen() {
         1: ['12k_20k'],
         2: ['omr'],
         3: ['metro'],
-        4: ['flood', 'transport'],
+        4: [], // user must explicitly pick 3 priorities
     });
 
     const [loadingLocalities, setLoadingLocalities] = useState(false);
@@ -113,53 +121,85 @@ export default function AreasScreen() {
     const [selectedLocality, setSelectedLocality] = useState(null);
     const [selectedLocalityData, setSelectedLocalityData] = useState(null);
 
-    // Map answers to Area Score weights
+    // Map answers to Area Score weights + extract budget range for Personal Match
     const computeWeightsFromAnswers = useCallback((userAnswers) => {
-        const priorities = userAnswers[4] || [];
+        const topPriorities = userAnswers[4] || [];
         const commute = userAnswers[3]?.[0];
 
-        const weights = {
-            affordability: priorities.includes('affordability') ? 0.35 : 0.15,
-            transport: commute === 'metro' || priorities.includes('transport') ? 0.35 : 0.15,
-            flood: priorities.includes('flood') ? 0.40 : 0.15,
-            schools: priorities.includes('schools') ? 0.25 : 0.05,
-            healthcare: priorities.includes('healthcare') ? 0.25 : 0.05,
-            airport: priorities.includes('airport') ? 0.25 : 0.05,
-            connectivity: 0.15,
-            marketFit: 0.10,
-        };
+        // Map AreasScreen commute selection to CommuteMode used by localityMatcher
+        const commuteMode = commute === 'metro' ? 'metro'
+            : commute === 'two_wheeler' ? 'two_wheeler'
+            : commute === 'car_cab' ? 'car'
+            : commute === 'walking' ? 'walk'
+            : 'transit';
 
-        return weights;
+        // Map budget chip selection to a BudgetRange object
+        const budgetMap = {
+            under_12k: { id: 'under_12k', min: 4000, max: 12000 },
+            '12k_20k': { id: '12k_20k', min: 12000, max: 20000 },
+            '20k_35k': { id: '20k_35k', min: 20000, max: 35000 },
+            above_35k: { id: 'above_35k', min: 35000, max: 100000 },
+        };
+        const budgetId = userAnswers[1]?.[0] || '12k_20k';
+        const budget = budgetMap[budgetId] || budgetMap['12k_20k'];
+
+        return { topPriorities, commuteMode, budget };
     }, []);
 
-    // Load localities and score them
-    const loadAndScoreLocalities = useCallback(async (weights) => {
+
+    // Load localities and score them using matchLocalities for Personal Match + objective Area Score
+    const loadAndScoreLocalities = useCallback(async ({ topPriorities, commuteMode, budget }) => {
         setLoadingLocalities(true);
         try {
             const targetCity = city || 'Chennai';
             const localities = await localityService.listActiveByCity(targetCity);
 
-            const scored = (localities || [])
+            // Default destination: center of the city
+            const defaultDestination = {
+                id: 'city_center',
+                name: targetCity,
+                latitude: targetCity === 'Bengaluru' ? 12.9716 : 13.0827,
+                longitude: targetCity === 'Bengaluru' ? 77.5946 : 80.2707,
+            };
+
+            const matchInput = {
+                destination: defaultDestination,
+                budget,
+                commuteMode: commuteMode || 'transit',
+                topPriorities,
+                city: targetCity,
+            };
+
+            const candidateLocalities = (localities || [])
                 .filter((loc) => loc.latitude && loc.longitude)
-                .map((locality) => {
-                    const result = areaScoreService.calculate({
-                        snapshot: locality.intelligence,
-                        city: targetCity,
-                        weights,
-                    });
-                    const publishedAdminScore = locality.publishedScore?.overallScore
-                        ?? locality.intelligence?.areaScore?.score
-                        ?? null;
-                    const score = typeof publishedAdminScore === 'number'
-                        ? publishedAdminScore
-                        : (result?.score != null ? result.score : 70);
-                    return {
-                        locality,
-                        score,
-                        result,
-                    };
-                })
-                .sort((a, b) => b.score - a.score);
+                .map((loc) => ({
+                    id: loc.id,
+                    name: loc.name,
+                    city: targetCity,
+                    latitude: loc.latitude,
+                    longitude: loc.longitude,
+                    intelligence: loc.intelligence,
+                    publishedScore: loc.publishedScore,
+                    boundaries: loc.boundaries,
+                    stats: loc.stats,
+                }));
+
+            const matchResults = matchLocalities(matchInput, candidateLocalities);
+
+            const scored = matchResults.map((matchResult) => {
+                const locality = (localities || []).find((l) => l.id === matchResult.localityId);
+                return {
+                    locality: locality || {
+                        id: matchResult.localityId,
+                        name: matchResult.localityName,
+                        city: matchResult.city,
+                        latitude: matchResult.latitude,
+                        longitude: matchResult.longitude,
+                    },
+                    score: matchResult.matchScore,
+                    result: matchResult, // contains both areaScore and matchScore
+                };
+            });
 
             setScoredLocalities(scored);
             if (scored.length > 0) {
@@ -174,21 +214,25 @@ export default function AreasScreen() {
         }
     }, [city]);
 
+
     const handleStartPreferences = () => {
         setStepIndex(0);
         setPhase(PHASES.PREFERENCES);
     };
 
     const handleSkipToIntelligenceMap = async () => {
-        const weights = computeWeightsFromAnswers(answers);
-        await areaScorePreferenceService.save(weights);
+        const params = computeWeightsFromAnswers(answers);
+        try {
+            await areaScorePreferenceService.save(params.topPriorities);
+        } catch (e) { /* non-blocking */ }
         setPhase(PHASES.MAP);
-        loadAndScoreLocalities(weights);
+        loadAndScoreLocalities(params);
     };
 
     const handleToggleOption = (optionId) => {
         const currentStep = STEP_OPTIONS[stepIndex];
         const currentSelected = answers[stepIndex] || [];
+        const maxSel = currentStep.maxSelections ?? (currentStep.isMulti ? Infinity : 1);
 
         if (currentStep.isMulti) {
             if (currentSelected.includes(optionId)) {
@@ -197,7 +241,7 @@ export default function AreasScreen() {
                     [stepIndex]: currentSelected.filter((id) => id !== optionId),
                 }));
             } else {
-                if (currentSelected.length < 3) {
+                if (currentSelected.length < maxSel) {
                     setAnswers((prev) => ({
                         ...prev,
                         [stepIndex]: [...currentSelected, optionId],
@@ -217,14 +261,14 @@ export default function AreasScreen() {
             setStepIndex((prev) => prev + 1);
         } else {
             // Completed last step!
-            const weights = computeWeightsFromAnswers(answers);
+            const params = computeWeightsFromAnswers(answers);
             try {
-                await areaScorePreferenceService.save(weights);
+                await areaScorePreferenceService.save(params.topPriorities);
             } catch (e) {
                 console.warn('[AreasScreen] save preferences failed', e);
             }
             setPhase(PHASES.MAP);
-            loadAndScoreLocalities(weights);
+            loadAndScoreLocalities(params);
         }
     };
 
@@ -369,12 +413,17 @@ export default function AreasScreen() {
                         selectedValues={answers[stepIndex] || []}
                         onToggleOption={handleToggleOption}
                         onContinue={handleContinueStep}
-                        canContinue={(answers[stepIndex] || []).length > 0}
+                        canContinue={
+                            stepIndex === STEP_OPTIONS.length - 1
+                                ? (answers[stepIndex] || []).length === PRIORITIES_REQUIRED
+                                : (answers[stepIndex] || []).length > 0
+                        }
                         continueLabel={
                             stepIndex === STEP_OPTIONS.length - 1
                                 ? 'Generate My Top Areas'
                                 : 'Continue'
                         }
+                        maxSelections={STEP_OPTIONS[stepIndex].maxSelections}
                     />
                 </View>
             )}

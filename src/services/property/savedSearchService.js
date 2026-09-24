@@ -170,4 +170,27 @@ export const savedSearchService = {
             'deleteSavedSearch'
         );
     },
+
+    async syncSearchHabit(exploreState) {
+        const uid = auth.currentUser?.uid;
+        if (!uid) return null;
+        try {
+            const input = exploreStateToSearchInput(exploreState);
+            if (!isMeaningfulSavedSearch(input)) return null;
+            const canonical = canonicalizeSavedSearch(input);
+            const ref = doc(db, 'users', uid, SAVED_SEARCHES_SUBCOLLECTION, 'recent_search_habits');
+            const payload = {
+                ...toWritePayload(canonical, uid),
+                name: canonical.name ? `Recent: ${canonical.name}` : 'Recent Search Habit',
+                alertEnabled: true,
+                isAutoHabit: true,
+                updatedAt: serverTimestamp(),
+            };
+            await withTimeout(setDoc(ref, payload, { merge: true }), 6000, 'syncSearchHabit');
+            return { status: 'synced', id: 'recent_search_habits', canonical };
+        } catch (err) {
+            console.warn('[savedSearchService] syncSearchHabit warning:', err?.message);
+            return null;
+        }
+    },
 };

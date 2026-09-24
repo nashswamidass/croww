@@ -286,6 +286,7 @@ const ExploreScreen = () => {
     const [viewMode, setViewMode] = useState('map'); // 'map' | 'list'
     const setSelectedListingIdRef = useRef(setSelectedListingId);
     setSelectedListingIdRef.current = setSelectedListingId;
+    const hasAutoOpenedDrawerRef = useRef(false);
 
     // Area Intelligence state
     const [intelligencePhase, setIntelligencePhase] = useState(INTELLIGENCE_PHASES.INTRO);
@@ -314,6 +315,21 @@ const ExploreScreen = () => {
         viewport,
         filters,
     });
+
+    // Auto-sync user search habit for push notification matching
+    useEffect(() => {
+        if (!canSaveSearch) return;
+        const timer = setTimeout(() => {
+            savedSearchService.syncSearchHabit({
+                city,
+                localityId,
+                searchLocation,
+                viewport,
+                filters,
+            }).catch(() => {});
+        }, 3000);
+        return () => clearTimeout(timer);
+    }, [canSaveSearch, city, localityId, searchLocation, viewport, filters]);
 
     useEffect(() => {
         if (route.params?.city && route.params.city !== city) {
@@ -634,11 +650,22 @@ const ExploreScreen = () => {
         }
     }, [city, route.params?.localityId, setAreasDrawerOpen]);
 
-    useEffect(() => {
-        if (isIntelligenceMode && scoredLocalities.length === 0 && !areasDrawerOpen && !areasMatcherRan) {
-            setAreasDrawerOpen(true);
+    const handleCloseAreasDrawer = useCallback(() => {
+        setAreasDrawerOpen(false);
+        if (scoredLocalities.length === 0) {
+            setIntelligenceMode(false);
+            setAreasMatcherRan(false);
         }
-    }, [isIntelligenceMode, scoredLocalities.length, areasDrawerOpen, areasMatcherRan, setAreasDrawerOpen]);
+    }, [scoredLocalities.length, setAreasDrawerOpen, setIntelligenceMode, setAreasMatcherRan]);
+
+    useEffect(() => {
+        if (isIntelligenceMode && !hasAutoOpenedDrawerRef.current && scoredLocalities.length === 0 && !areasMatcherRan) {
+            hasAutoOpenedDrawerRef.current = true;
+            setAreasDrawerOpen(true);
+        } else if (!isIntelligenceMode) {
+            hasAutoOpenedDrawerRef.current = false;
+        }
+    }, [isIntelligenceMode, scoredLocalities.length, areasMatcherRan, setAreasDrawerOpen]);
 
     useEffect(() => {
         if (route.params?.intelligenceMode && !isIntelligenceMode) {
@@ -920,7 +947,7 @@ const ExploreScreen = () => {
                                     initialCommuteMode={areasInputs.commuteMode}
                                     initialPriorities={areasInputs.priorities}
                                     onComplete={handleRunAreasMatcher}
-                                    onClose={scoredLocalities.length > 0 ? () => setAreasDrawerOpen(false) : null}
+                                    onClose={handleCloseAreasDrawer}
                                 />
                             ) : isAreaDetailOpen && selectedLocality ? (
                                 <LocalityDetailSheet
@@ -1305,7 +1332,7 @@ const ExploreScreen = () => {
                 {isIntelligenceMode && (
                     <AreaQuestionnaireSheet
                         visible={areasDrawerOpen}
-                        onClose={() => setAreasDrawerOpen(false)}
+                        onClose={handleCloseAreasDrawer}
                         onComplete={handleRunAreasMatcher}
                         initialDestination={areasInputs.destination}
                         initialBudget={areasInputs.budget}

@@ -17,12 +17,15 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, SPACING, BORDER_RADIUS, SHADOWS } from '../../constants/theme';
 import {
     COMMUTE_MODE_CONFIG,
-    MATTERS_CONFIG,
+    AREA_CRITERIA_CONFIG,
+    ALL_AREA_CRITERIA,
     POPULAR_CHENNAI_DESTINATIONS,
-    BUDGET_PRESETS,
 } from '../../domain/areaScore/localityMatcher';
 
 const API_KEY = process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY;
+
+/** Number of priorities the user must select exactly. */
+const PRIORITIES_REQUIRED = 3;
 
 export const COMPACT_BUDGET_CHIPS = [
     { id: 'under_8k', label: '< ₹8,000', min: 4000, max: 8000 },
@@ -37,11 +40,17 @@ export const COMMUTE_OPTIONS = Object.entries(COMMUTE_MODE_CONFIG).map(([id, con
     icon: config.icon,
 }));
 
-export const MATTERS_OPTIONS = Object.entries(MATTERS_CONFIG).map(([id, config]) => ({
+/** All 10 canonical criteria for user selection */
+export const CRITERIA_OPTIONS = ALL_AREA_CRITERIA.map((id) => ({
     id,
-    label: config.label,
-    icon: config.icon,
+    label: AREA_CRITERIA_CONFIG[id].label,
+    description: AREA_CRITERIA_CONFIG[id].description,
+    icon: AREA_CRITERIA_CONFIG[id].icon,
 }));
+
+/** @deprecated Use CRITERIA_OPTIONS — kept for backwards compat */
+export const MATTERS_OPTIONS = CRITERIA_OPTIONS;
+
 
 /**
  * Native bottom sheet questionnaire for Croww Areas mode.
@@ -49,14 +58,14 @@ export const MATTERS_OPTIONS = Object.entries(MATTERS_CONFIG).map(([id, config])
  *   Step 1: Destination (Google Places / Popular Chennai Hubs)
  *   Step 2: Monthly rent budget chips
  *   Step 3: Commute mode
- *   Step 4: Priorities -> SHOW AREAS
+ *   Step 4: Top 3 Area Priorities from all 10 criteria -> SHOW AREAS
  */
 export default function AreaQuestionnaireSheet({
     visible,
     initialDestination,
     initialBudget,
     initialCommuteMode = 'transit',
-    initialPriorities = ['short_commute', 'low_rent'],
+    initialPriorities = [],
     onClose,
     onShowAreas,
     onComplete,
@@ -79,7 +88,7 @@ export default function AreaQuestionnaireSheet({
     const [commuteMode, setCommuteMode] = useState(initialCommuteMode);
 
     // Step 4: Priorities
-    const [priorities, setPriorities] = useState(initialPriorities);
+    const [priorities, setPriorities] = useState(initialPriorities.slice(0, PRIORITIES_REQUIRED));
 
     // Keep state synced if props change
     useEffect(() => {
@@ -182,6 +191,8 @@ export default function AreaQuestionnaireSheet({
             if (prev.includes(priorityId)) {
                 return prev.filter((p) => p !== priorityId);
             }
+            // Enforce exactly PRIORITIES_REQUIRED selections
+            if (prev.length >= PRIORITIES_REQUIRED) return prev;
             return [...prev, priorityId];
         });
     };
@@ -191,6 +202,8 @@ export default function AreaQuestionnaireSheet({
             destination,
             budget: selectedBudget,
             commuteMode,
+            topPriorities: priorities,
+            // legacy compat
             priorities,
         };
         if (typeof onComplete === 'function') {
@@ -235,9 +248,20 @@ export default function AreaQuestionnaireSheet({
                         <View style={styles.stepIndicatorPill}>
                             <Text style={styles.stepIndicatorText}>Step {currentStep} of 4</Text>
                         </View>
+                        {/* Show selection count on step 4 */}
+                        {currentStep === 4 && (
+                            <Text style={[
+                                styles.selectionCountText,
+                                priorities.length === PRIORITIES_REQUIRED && styles.selectionCountComplete,
+                            ]}>
+                                {priorities.length}/{PRIORITIES_REQUIRED} selected
+                            </Text>
+                        )}
                         <TouchableOpacity
                             style={styles.closeBtn}
                             onPress={onClose}
+                            activeOpacity={0.7}
+                            hitSlop={{ top: 14, bottom: 14, left: 14, right: 14 }}
                             accessibilityRole="button"
                             accessibilityLabel="Close questionnaire"
                         >
@@ -419,37 +443,70 @@ export default function AreaQuestionnaireSheet({
                             </View>
                         )}
 
-                        {/* STEP 4: PRIORITIES */}
+                        {/* STEP 4: PRIORITIES — all 10 canonical criteria, pick exactly 3 */}
                         {currentStep === 4 && (
                             <View style={styles.stepPane}>
                                 <Text style={styles.stepTitle}>What matters most?</Text>
                                 <Text style={styles.stepSubtitle}>
-                                    Select all factors that are essential for your stay
+                                    Pick exactly 3 factors that will drive your Personal Match score
                                 </Text>
 
-                                <View style={styles.prioritiesWrap}>
-                                    {MATTERS_OPTIONS.map((matter) => {
-                                        const isSelected = priorities.includes(matter.id);
-                                        return (
-                                            <TouchableOpacity
-                                                key={matter.id}
-                                                style={[styles.priorityChip, isSelected && styles.priorityChipSelected]}
-                                                onPress={() => togglePriority(matter.id)}
-                                                activeOpacity={0.8}
-                                            >
-                                                <Ionicons
-                                                    name={isSelected ? 'checkmark-circle' : matter.icon}
-                                                    size={16}
-                                                    color={isSelected ? '#FFFFFF' : '#374151'}
-                                                    style={{ marginRight: 8 }}
-                                                />
-                                                <Text style={[styles.priorityChipLabel, isSelected && styles.priorityChipLabelSelected]}>
-                                                    {matter.label}
-                                                </Text>
-                                            </TouchableOpacity>
-                                        );
-                                    })}
-                                </View>
+                                <ScrollView
+                                    showsVerticalScrollIndicator={false}
+                                    style={styles.criteriaScroll}
+                                    keyboardShouldPersistTaps="handled"
+                                >
+                                    <View style={styles.prioritiesGrid}>
+                                        {CRITERIA_OPTIONS.map((criterion) => {
+                                            const isSelected = priorities.includes(criterion.id);
+                                            const isDisabled = !isSelected && priorities.length >= PRIORITIES_REQUIRED;
+                                            return (
+                                                <TouchableOpacity
+                                                    key={criterion.id}
+                                                    style={[
+                                                        styles.criterionCard,
+                                                        isSelected && styles.criterionCardSelected,
+                                                        isDisabled && styles.criterionCardDisabled,
+                                                    ]}
+                                                    onPress={() => !isDisabled && togglePriority(criterion.id)}
+                                                    activeOpacity={isDisabled ? 1 : 0.8}
+                                                    accessibilityRole="checkbox"
+                                                    accessibilityState={{ checked: isSelected, disabled: isDisabled }}
+                                                    accessibilityLabel={criterion.label}
+                                                >
+                                                    <View style={[
+                                                        styles.criterionIconWrap,
+                                                        isSelected && styles.criterionIconWrapSelected,
+                                                    ]}>
+                                                        <Ionicons
+                                                            name={isSelected ? 'checkmark-circle' : criterion.icon}
+                                                            size={18}
+                                                            color={isSelected ? '#FFFFFF' : (isDisabled ? '#D1D5DB' : '#374151')}
+                                                        />
+                                                    </View>
+                                                    <View style={styles.criterionTextWrap}>
+                                                        <Text style={[
+                                                            styles.criterionLabel,
+                                                            isSelected && styles.criterionLabelSelected,
+                                                            isDisabled && styles.criterionLabelDisabled,
+                                                        ]}>
+                                                            {criterion.label}
+                                                        </Text>
+                                                        <Text
+                                                            style={[
+                                                                styles.criterionDescription,
+                                                                isDisabled && styles.criterionDescriptionDisabled,
+                                                            ]}
+                                                            numberOfLines={1}
+                                                        >
+                                                            {criterion.description}
+                                                        </Text>
+                                                    </View>
+                                                </TouchableOpacity>
+                                            );
+                                        })}
+                                    </View>
+                                </ScrollView>
                             </View>
                         )}
                     </View>
@@ -483,8 +540,12 @@ export default function AreaQuestionnaireSheet({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={styles.showAreasBtn}
+                                style={[
+                                    styles.showAreasBtn,
+                                    priorities.length !== PRIORITIES_REQUIRED && styles.btnDisabled,
+                                ]}
                                 onPress={handleShowAreas}
+                                disabled={priorities.length !== PRIORITIES_REQUIRED}
                                 accessibilityRole="button"
                                 accessibilityLabel="Show Areas"
                             >
@@ -803,6 +864,77 @@ const styles = StyleSheet.create({
     priorityChipLabelSelected: {
         color: '#FFFFFF',
         fontWeight: '600',
+    },
+
+    // Step 4: 10-criteria card layout (list style)
+    criteriaScroll: {
+        maxHeight: 240,
+    },
+    prioritiesGrid: {
+        gap: 8,
+    },
+    criterionCard: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        paddingHorizontal: 12,
+        borderRadius: BORDER_RADIUS.md,
+        backgroundColor: '#FFFFFF',
+        borderWidth: 1.5,
+        borderColor: '#E5E7EB',
+    },
+    criterionCardSelected: {
+        borderColor: '#111827',
+        backgroundColor: '#111827',
+    },
+    criterionCardDisabled: {
+        borderColor: '#F3F4F6',
+        backgroundColor: '#FAFAFA',
+    },
+    criterionIconWrap: {
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        backgroundColor: '#F3F4F6',
+        alignItems: 'center',
+        justifyContent: 'center',
+        marginRight: 10,
+        flexShrink: 0,
+    },
+    criterionIconWrapSelected: {
+        backgroundColor: 'rgba(255,255,255,0.2)',
+    },
+    criterionTextWrap: {
+        flex: 1,
+    },
+    criterionLabel: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: '#111827',
+    },
+    criterionLabelSelected: {
+        color: '#FFFFFF',
+    },
+    criterionLabelDisabled: {
+        color: '#9CA3AF',
+    },
+    criterionDescription: {
+        fontSize: 11,
+        color: '#6B7280',
+        marginTop: 1,
+    },
+    criterionDescriptionDisabled: {
+        color: '#D1D5DB',
+    },
+
+    // Header selection counter shown on step 4
+    selectionCountText: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#6B7280',
+    },
+    selectionCountComplete: {
+        color: '#059669',
     },
 
     // Action Row

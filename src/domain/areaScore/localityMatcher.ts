@@ -3,16 +3,18 @@
  *
  * Evaluates candidate localities against user's:
  * 1. Destination (office / college / landmark)
- * 2. Budget range (e.g. ₹8,000 - ₹12,000)
+ * 2. Budget range (e.g. ₹12,000 - ₹20,000)
  * 3. Commute mode (metro, bus, any public transit, walk, two_wheeler, car)
- * 4. Priority dimensions ("What matters?": low rent, short commute, safety, transit, healthcare, food)
+ * 4. Up to 3 area priority criteria from the canonical 10-criterion set
+ *    (safety, traffic, flood, pollution, groundwater, connectivity,
+ *     healthcare, education, cost_of_living, public_transport)
  *
  * Deterministic read-time scoring. Never writes back to public locality records.
+ * Personal Match and Croww Area Score are kept strictly separate.
  */
 
 import { haversineMeters } from '../property/geo.ts';
 import type { GeoCoordinate } from '../property/geo.ts';
-import { calculateAreaScore } from './score.ts';
 import { DEFAULT_AREA_SCORE_WEIGHTS } from './constants.ts';
 import type { ScoreDimensionId } from './types.ts';
 
@@ -24,13 +26,24 @@ export type CommuteMode =
     | 'two_wheeler'
     | 'car';
 
-export type MatterPriority =
-    | 'low_rent'
-    | 'short_commute'
+/**
+ * The canonical 10 area criteria that match the LocalityDetailSheet CRITERIA_CONFIG.
+ * Users select exactly 3 to form their personal priority vector.
+ */
+export type AreaPriorityId =
     | 'safety'
-    | 'transit'
+    | 'traffic'
+    | 'flood'
+    | 'pollution'
+    | 'groundwater'
+    | 'connectivity'
     | 'healthcare'
-    | 'food';
+    | 'education'
+    | 'cost_of_living'
+    | 'public_transport';
+
+/** @deprecated Use AreaPriorityId — kept for backwards compat */
+export type MatterPriority = AreaPriorityId;
 
 export type DestinationPoint = {
     id?: string;
@@ -50,8 +63,17 @@ export type LocalityMatchInput = {
     destination: DestinationPoint;
     budget: BudgetRange;
     commuteMode: CommuteMode;
-    priorities: MatterPriority[];
+    /**
+     * Exactly 3 area criteria selected by the user.
+     * Do not silently default. If fewer than 3 are present the Personal Match
+     * score will use whichever criteria were provided; the UI enforces 3.
+     */
+    topPriorities: AreaPriorityId[];
+    /** Maximum acceptable travel time in minutes. Null means unconstrained. */
+    maxTravelMinutes?: number | null;
     city?: string;
+    /** @deprecated Use topPriorities */
+    priorities?: AreaPriorityId[];
 };
 
 export type LocalityCandidate = {
@@ -74,16 +96,49 @@ export type CommuteEstimate = {
     modeDescription: string;
 };
 
+/**
+ * Deterministic breakdown of the Personal Match signal.
+ * Never conflated with the objective Croww Area Score.
+ */
+export type PersonalMatchBreakdown = {
+    /** Commute score 0-100 derived from estimated travel time */
+    commuteScore: number;
+    /** Budget fit score 0-100 */
+    budgetScore: number | null;
+    /**
+     * Priority dimension scores: up to 3 entries, one per user-selected criterion.
+     * Each score is taken from the locality's criteriaScores; null when unavailable.
+     */
+    priorityScores: { criterionId: AreaPriorityId; score: number | null }[];
+    /**
+     * Composite Personal Match 0-100.
+     * Commute 40% + Budget 30% + Average of priority criteria 30%.
+     * When budget data is unavailable, commute 50% + priority criteria 50%.
+     * Never stored on public locality documents.
+     */
+    composite: number;
+    travelMinutes: number;
+    inBudget: boolean | null;
+    commuteUnavailable: boolean;
+    budgetUnavailable: boolean;
+};
+
 export type LocalityMatchResult = {
     localityId: string;
     localityName: string;
     city: string;
+    /** Objective Croww Area Score (0-100 or null). Source: publishedScore or calculated. */
+    areaScore: number | null;
+    /**
+     * Personal Match composite score (0-100).
+     * Derived from user's commute, budget, and 3 priorities — never from areaScore.
+     */
     matchScore: number;
+    personalMatchBreakdown: PersonalMatchBreakdown;
     typicalRent: number | null;
     typicalRentFormatted: string | null;
     inBudget: boolean | null;
     commute: CommuteEstimate;
-    areaScore: number;
     highlights: string[];
     latitude: number;
     longitude: number;
@@ -101,14 +156,33 @@ export const COMMUTE_MODE_CONFIG: Record<CommuteMode, { label: string; icon: str
     car: { label: 'Car', icon: 'car-outline' },
 };
 
-export const MATTERS_CONFIG: Record<MatterPriority, { label: string; icon: string }> = {
-    low_rent: { label: 'Low rent', icon: 'pricetag-outline' },
-    short_commute: { label: 'Short commute', icon: 'time-outline' },
-    safety: { label: 'Safety', icon: 'shield-checkmark-outline' },
-    transit: { label: 'Transit', icon: 'train-outline' },
-    healthcare: { label: 'Healthcare', icon: 'medkit-outline' },
-    food: { label: 'Food', icon: 'restaurant-outline' },
+/**
+ * All 10 canonical area criteria. Users must pick exactly 3.
+ * Deterministic label + icon for each criterion.
+ */
+export const AREA_CRITERIA_CONFIG: Record<AreaPriorityId, { label: string; icon: string; description: string }> = {
+    safety:          { label: 'Safety',           icon: 'shield-checkmark-outline', description: 'Street safety, crime patterns, and night security' },
+    traffic:         { label: 'Traffic Flow',     icon: 'car-outline',              description: 'Peak-hour congestion and road ease' },
+    flood:           { label: 'Flood Safety',     icon: 'water-outline',            description: 'Monsoon flooding history and drainage quality' },
+    pollution:       { label: 'Clean Air',        icon: 'leaf-outline',             description: 'Air and noise pollution levels' },
+    groundwater:     { label: 'Groundwater',      icon: 'rainy-outline',            description: 'Water table depth and availability' },
+    connectivity:    { label: 'Connectivity',     icon: 'navigate-outline',         description: 'Major road and highway access' },
+    healthcare:      { label: 'Healthcare',       icon: 'medkit-outline',           description: 'Multi-specialty hospitals and clinics nearby' },
+    education:       { label: 'Education',        icon: 'school-outline',           description: 'Schools, colleges, and coaching centres nearby' },
+    cost_of_living:  { label: 'Cost of Living',   icon: 'wallet-outline',           description: 'General cost of services, groceries, and daily needs' },
+    public_transport:{ label: 'Public Transit',   icon: 'bus-outline',              description: 'Metro, bus, and auto-rickshaw availability' },
 };
+
+/** All 10 criteria in a stable ordered array */
+export const ALL_AREA_CRITERIA: AreaPriorityId[] = [
+    'safety', 'traffic', 'flood', 'pollution', 'groundwater',
+    'connectivity', 'healthcare', 'education', 'cost_of_living', 'public_transport',
+];
+
+/** @deprecated Use AREA_CRITERIA_CONFIG */
+export const MATTERS_CONFIG: Record<string, { label: string; icon: string }> = Object.fromEntries(
+    ALL_AREA_CRITERIA.map((id) => [id, { label: AREA_CRITERIA_CONFIG[id].label, icon: AREA_CRITERIA_CONFIG[id].icon }])
+);
 
 export const POPULAR_CHENNAI_DESTINATIONS: DestinationPoint[] = [
     {
@@ -332,53 +406,143 @@ export function computeCommuteScore(travelMinutes: number): number {
 }
 
 /**
- * Builds personalized Area Score weights from user's "What matters?" selections
+ * Maps the user's selected area criteria to Area Score dimension weights.
+ * Used only for the objective Croww Area Score calculation pathway.
+ * Do not use to compute Personal Match.
  */
-export function buildPriorityWeights(priorities: MatterPriority[]): Record<ScoreDimensionId, number> {
+export function buildPriorityWeights(priorities: AreaPriorityId[]): Record<ScoreDimensionId, number> {
     const weights: Record<ScoreDimensionId, number> = { ...DEFAULT_AREA_SCORE_WEIGHTS };
     priorities.forEach((priority) => {
         switch (priority) {
-            case 'low_rent':
+            case 'cost_of_living':
                 weights.affordability = (weights.affordability || 20) + 35;
                 break;
-            case 'safety':
+            case 'flood':
                 weights.flood = (weights.flood || 10) + 30;
                 break;
-            case 'transit':
+            case 'public_transport':
                 weights.transport = (weights.transport || 16) + 25;
                 weights.connectivity = (weights.connectivity || 10) + 15;
+                break;
+            case 'connectivity':
+                weights.connectivity = (weights.connectivity || 10) + 30;
                 break;
             case 'healthcare':
                 weights.healthcare = (weights.healthcare || 12) + 30;
                 break;
-            case 'food':
-                weights.marketFit = (weights.marketFit || 8) + 25;
+            case 'education':
+                weights.schools = (weights.schools || 14) + 25;
                 break;
-            case 'short_commute':
-                // Handled in composite weights multiplier
+            case 'safety':
+                weights.flood = (weights.flood || 10) + 15;
+                weights.connectivity = (weights.connectivity || 10) + 10;
                 break;
+            // traffic, pollution, groundwater — no direct score dimension; have no effect on weights
         }
     });
     return weights;
 }
 
 /**
+ * Extracts a published criteria score (0-100) for a given criterion from the locality.
+ * Returns null when unavailable — never fabricates a score.
+ */
+export function extractCriterionScore(locality: LocalityCandidate, criterionId: AreaPriorityId): number | null {
+    const rawCriteria = (locality as any).publishedScore?.criteriaScores
+        ?? locality.intelligence?.areaScore?.criteriaScores
+        ?? (locality as any).scoring?.criteria
+        ?? null;
+    if (!rawCriteria) return null;
+    const value = rawCriteria[criterionId];
+    if (typeof value === 'number' && Number.isFinite(value)) {
+        return Math.min(100, Math.max(0, Math.round(value)));
+    }
+    return null;
+}
+
+/**
+ * Computes the Personal Match breakdown for a single locality.
+ *
+ * Weights:
+ *   - Commute: 40%
+ *   - Budget: 30% (skipped if data unavailable)
+ *   - Priority criteria average: 30%
+ *
+ * When budget or priority criteria are unavailable the remaining weights
+ * are proportionally renormalized. This ensures the composite always reflects
+ * whatever signal is available without inventing data.
+ *
+ * The resulting score is NEVER stored on any public document.
+ */
+export function computePersonalMatch({
+    commuteScore,
+    budgetScore,
+    priorityScores,
+    travelMinutes,
+    inBudget,
+}: {
+    commuteScore: number;
+    budgetScore: number | null;
+    priorityScores: { criterionId: AreaPriorityId; score: number | null }[];
+    travelMinutes: number;
+    inBudget: boolean | null;
+}): PersonalMatchBreakdown {
+    const budgetUnavailable = budgetScore == null;
+
+    // Average of available priority criterion scores
+    const availablePriorityScores = priorityScores.filter((ps) => ps.score != null);
+    const priorityAvg = availablePriorityScores.length > 0
+        ? availablePriorityScores.reduce((sum, ps) => sum + (ps.score as number), 0) / availablePriorityScores.length
+        : null;
+    const priorityUnavailable = priorityAvg == null;
+
+    // Base weights
+    let wCommute = 0.40;
+    let wBudget = 0.30;
+    let wPriority = 0.30;
+
+    // Renormalize for unavailable signals
+    if (budgetUnavailable && priorityUnavailable) {
+        wCommute = 1.0; wBudget = 0; wPriority = 0;
+    } else if (budgetUnavailable) {
+        // Split budget's 30% equally to commute and priority
+        wCommute = 0.55; wBudget = 0; wPriority = 0.45;
+    } else if (priorityUnavailable) {
+        wCommute = 0.57; wBudget = 0.43; wPriority = 0;
+    }
+
+    let composite = commuteScore * wCommute;
+    if (!budgetUnavailable) composite += (budgetScore as number) * wBudget;
+    if (!priorityUnavailable) composite += (priorityAvg as number) * wPriority;
+
+    return {
+        commuteScore,
+        budgetScore,
+        priorityScores,
+        composite: Math.min(99, Math.max(30, Math.round(composite))),
+        travelMinutes,
+        inBudget,
+        commuteUnavailable: false,
+        budgetUnavailable,
+    };
+}
+
+/**
  * Matches and ranks localities against the destination, budget, commute, and priorities.
+ * Returns both the objective Croww Area Score and a personal Personal Match score.
+ * These two scores are kept strictly separate.
  */
 export function matchLocalities(
     input: LocalityMatchInput,
     localities: LocalityCandidate[]
 ): LocalityMatchResult[] {
-    const { destination, budget, commuteMode, priorities, city = 'Chennai' } = input;
+    // Support both topPriorities (new) and priorities (deprecated)
+    const topPriorities: AreaPriorityId[] = input.topPriorities ?? input.priorities ?? [];
+    const { destination, budget, commuteMode, maxTravelMinutes, city = 'Chennai' } = input;
     const destCoord: GeoCoordinate = {
         latitude: destination.latitude,
         longitude: destination.longitude,
     };
-
-    const hasShortCommute = priorities.includes('short_commute');
-    const hasLowRent = priorities.includes('low_rent');
-
-    const priorityWeights = buildPriorityWeights(priorities);
 
     const scored = localities.map((locality) => {
         const originCoord: GeoCoordinate = {
@@ -391,89 +555,66 @@ export function matchLocalities(
         const { score: budgetScore, inBudget } = computeBudgetScore(typicalRent, budget);
         const commuteScore = computeCommuteScore(commute.travelMinutes);
 
-        // Objective Croww Area Score (from published spreadsheet admin score if available)
+        // Objective Croww Area Score — from published admin score only, never from Personal Match
         const publishedAdminScore = (locality as any).publishedScore?.overallScore
             ?? locality.intelligence?.areaScore?.score
             ?? locality.intelligence?.publishedScore
             ?? null;
 
-        // Personalized Area Score calculation
-        const areaScoreRes = calculateAreaScore({
-            snapshot: locality.intelligence,
-            city,
-            weights: priorityWeights,
+        const areaScore: number | null = typeof publishedAdminScore === 'number'
+            ? Math.min(100, Math.max(0, Math.round(publishedAdminScore)))
+            : null;
+
+        // Personal Match — computed from commute + budget + user's 3 selected priority criteria
+        const priorityScores: { criterionId: AreaPriorityId; score: number | null }[] = topPriorities.map(
+            (criterionId) => ({
+                criterionId,
+                score: extractCriterionScore(locality, criterionId),
+            })
+        );
+
+        const personalMatchBreakdown = computePersonalMatch({
+            commuteScore,
+            budgetScore,
+            priorityScores,
+            travelMinutes: commute.travelMinutes,
+            inBudget,
         });
-        const computedPersonalScore = typeof areaScoreRes.overallScore === 'number'
-            ? areaScoreRes.overallScore
-            : 70;
+        const matchScore = personalMatchBreakdown.composite;
 
-        const areaScore = typeof publishedAdminScore === 'number'
-            ? publishedAdminScore
-            : computedPersonalScore;
-
-        // Composite scoring weights
-        let wCommute = 0.35;
-        let wBudget = 0.35;
-        let wArea = 0.30;
-
-        if (hasShortCommute && hasLowRent) {
-            wCommute = 0.40;
-            wBudget = 0.40;
-            wArea = 0.20;
-        } else if (hasShortCommute) {
-            wCommute = 0.48;
-            wBudget = 0.26;
-            wArea = 0.26;
-        } else if (hasLowRent) {
-            wBudget = 0.48;
-            wCommute = 0.26;
-            wArea = 0.26;
-        }
-
-        let sumWeights = 0;
-        let weightedSum = 0;
-        if (commuteScore != null) {
-            weightedSum += commuteScore * wCommute;
-            sumWeights += wCommute;
-        }
-        if (budgetScore != null) {
-            weightedSum += budgetScore * wBudget;
-            sumWeights += wBudget;
-        }
-        if (areaScore != null) {
-            weightedSum += areaScore * wArea;
-            sumWeights += wArea;
-        }
-        const rawScore = sumWeights > 0 ? weightedSum / sumWeights : (areaScore ?? 70);
-        const matchScore = Math.min(99, Math.max(40, Math.round(rawScore)));
-
+        // Deterministic highlights — driven only by specific criteria/commute signals, never from scores
         const highlights: string[] = [];
         if (inBudget === true) highlights.push('In budget');
         if (commute.travelMinutes <= 30) highlights.push('Quick commute');
+        if (commute.travelMinutes <= (maxTravelMinutes ?? Infinity)) {
+            // No extra tag — within user's max is baseline
+        } else if (maxTravelMinutes != null) {
+            highlights.push(`>${maxTravelMinutes} min commute`);
+        }
         if (commute.modeTag.includes('Metro')) highlights.push('Metro connected');
 
-        // Deterministic domain criteria triggers (never from overall score)
-        const criteria = (locality as any).publishedScore?.criteriaScores
+        const rawCriteria = (locality as any).publishedScore?.criteriaScores
             ?? locality.intelligence?.areaScore?.criteriaScores
             ?? (locality as any).scoring?.criteria;
-        if (criteria) {
-            if (criteria.connectivity >= 75) highlights.push('Good Connectivity');
-            if (criteria.healthcare >= 75) highlights.push('Healthcare Access');
-            if (criteria.safety >= 75) highlights.push('High Safety');
-            if (criteria.flood >= 75) highlights.push('Flood Resilient');
-            if (criteria.cost_of_living >= 75) highlights.push('Lower Cost of Living');
+        if (rawCriteria) {
+            if (rawCriteria.connectivity >= 75) highlights.push('Good Connectivity');
+            if (rawCriteria.healthcare >= 75) highlights.push('Healthcare Access');
+            if (rawCriteria.safety >= 75) highlights.push('High Safety');
+            if (rawCriteria.flood >= 75) highlights.push('Flood Resilient');
+            if (rawCriteria.cost_of_living >= 75) highlights.push('Lower Cost of Living');
         }
 
         return {
             localityId: locality.id,
             localityName: locality.name,
             city: locality.city,
+            areaScore,
             matchScore,
+            personalMatchBreakdown,
             typicalRent,
             typicalRentFormatted: formatTypicalRent(typicalRent),
             inBudget,
             commute,
-            areaScore,
             highlights,
             latitude: locality.latitude,
             longitude: locality.longitude,
@@ -483,7 +624,7 @@ export function matchLocalities(
         };
     });
 
-    // Sort descending by matchScore
+    // Sort descending by Personal Match score
     scored.sort((a, b) => b.matchScore - a.matchScore);
     return scored;
 }
