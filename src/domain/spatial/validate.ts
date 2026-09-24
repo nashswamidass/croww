@@ -75,3 +75,31 @@ export function isKnownCaptureProvider(value: unknown): boolean {
 export function isKnownCaptureType(value: unknown): boolean {
     return typeof value === 'string' && (SPATIAL_CAPTURE_TYPES as readonly string[]).includes(value as any);
 }
+
+export function validateSpatialOutputs(outputs: unknown): string[] {
+    const issues: string[] = [];
+    if (!outputs || typeof outputs !== 'object') {
+        return ['Missing processing outputs descriptor'];
+    }
+    const out = outputs as Record<string, any>;
+    if (!out.mobile || (!out.mobile.storagePath && !out.mobile.url)) {
+        issues.push('Missing mobile spatial output');
+    }
+    if (out.mobile && typeof out.mobile.bytes === 'number') {
+        if (out.mobile.bytes <= 0) {
+            issues.push('Mobile spatial output is empty');
+        } else if (out.mobile.bytes > (25 * 1024 * 1024)) {
+            issues.push('Mobile output exceeds 25MB budget');
+        }
+    }
+    if (!out.desktop || (!out.desktop.storagePath && !out.desktop.url)) {
+        issues.push('Missing desktop spatial output');
+    }
+    if (out.desktop && typeof out.desktop.bytes === 'number' && out.desktop.bytes <= 0) {
+        issues.push('Desktop spatial output is empty');
+    }
+    if (!out.poster || (!out.poster.storagePath && !out.poster.url)) {
+        issues.push('Missing poster output');
+    }
+    return issues;
+}

@@ -104,3 +104,11 @@ export function isPublicDerivedPath(path: string | null | undefined): boolean {
 export function exploreSpatialHint(listing: { spatialTourAvailable?: boolean | null } | null | undefined): string | null {
     return listing?.spatialTourAvailable ? '3D' : null;
 }
+
+export function pickSpatialVariantUrl(outputs: any, isMobile: boolean): string | null {
+    if (!outputs || typeof outputs !== 'object') return null;
+    if (isMobile) {
+        return outputs.mobile?.url || outputs.desktop?.url || null;
+    }
+    return outputs.desktop?.url || outputs.mobile?.url || null;
+}

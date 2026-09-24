@@ -207,3 +207,46 @@ describe('capture quality and validation', () => {
         assert.equal(validRes.userFacingMessage, null);
     });
 });
+
+describe('output validation, variant selection, and regression tests', () => {
+    it('validates outputs, catches missing/oversized mobile outputs, and selects variants', async () => {
+        const { validateSpatialOutputs, pickSpatialVariantUrl } = await import('./index.ts');
+
+        // Missing outputs
+        assert.ok(validateSpatialOutputs(null).some((msg) => /Missing/.test(msg)));
+        assert.ok(validateSpatialOutputs({}).some((msg) => /Missing mobile/.test(msg)));
+
+        // Missing desktop / poster
+        const missingDesktop = validateSpatialOutputs({
+            mobile: { storagePath: 'path/mobile.splat', bytes: 1000 },
+        });
+        assert.ok(missingDesktop.some((msg) => /Missing desktop/.test(msg)));
+        assert.ok(missingDesktop.some((msg) => /Missing poster/.test(msg)));
+
+        // Oversized mobile output (> 25MB)
+        const oversized = validateSpatialOutputs({
+            mobile: { storagePath: 'path/mobile.splat', bytes: 26 * 1024 * 1024 },
+            desktop: { storagePath: 'path/desktop.splat', bytes: 50 * 1024 * 1024 },
+            poster: { storagePath: 'path/poster.jpg', bytes: 30000 },
+        });
+        assert.ok(oversized.some((msg) => /25MB/.test(msg)));
+
+        // Valid outputs
+        const validOutputs = {
+            mobile: { storagePath: 'path/mobile.splat', url: 'https://cdn.example/mobile.splat', bytes: 15 * 1024 * 1024 },
+            desktop: { storagePath: 'path/desktop.splat', url: 'https://cdn.example/desktop.splat', bytes: 40 * 1024 * 1024 },
+            poster: { storagePath: 'path/poster.jpg', url: 'https://cdn.example/poster.jpg', bytes: 35000 },
+        };
+        assert.deepEqual(validateSpatialOutputs(validOutputs), []);
+
+        // Variant selection
+        assert.equal(pickSpatialVariantUrl(validOutputs, true), 'https://cdn.example/mobile.splat');
+        assert.equal(pickSpatialVariantUrl(validOutputs, false), 'https://cdn.example/desktop.splat');
+
+        // Fallback when mobile is missing
+        const desktopOnly = {
+            desktop: { url: 'https://cdn.example/desktop.splat' },
+        };
+        assert.equal(pickSpatialVariantUrl(desktopOnly, true), 'https://cdn.example/desktop.splat');
+    });
+});
