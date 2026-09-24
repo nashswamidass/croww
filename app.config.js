@@ -21,10 +21,10 @@ if (APP_ENV === "production" && FIREBASE_PROJECT_ID !== "croww-live-2026") {
 
 export default {
   "expo": {
-    "name": "Croww",
+    "name": "Croww: Rent on the map",
     "slug": "croww-app",
     "owner": "nashnewton",
-    "version": "1.0.6",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/app-icon.png",
     "scheme": "crowwapp",
@@ -33,12 +33,13 @@ export default {
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.croww.app",
-      "buildNumber": "29",
+      "buildNumber": "30",
       "googleServicesFile": process.env.APP_ENV === 'staging' ? "./GoogleService-Info.staging.plist" : "./GoogleService-Info.plist",
       "config": {
         "googleMapsApiKey": process.env.EXPO_PUBLIC_GOOGLE_MAPS_API_KEY
       },
       "infoPlist": {
+        "CFBundleDisplayName": "Croww: Rent on the map",
         "ITSAppUsesNonExemptEncryption": false,
         "LSApplicationQueriesSchemes": [
           "phonepe",
@@ -139,7 +140,8 @@ export default {
           "color": "#ffffff"
         }
       ],
-      "./plugins/withCashfree.js"
+      "./plugins/withCashfree.js",
+      "./plugins/withRiveAssets.js"
     ],
     "experiments": {
       "typedRoutes": true,

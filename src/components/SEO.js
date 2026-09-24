@@ -17,7 +17,7 @@ const SEO = ({
     // Only run on Web
     if (Platform.OS !== 'web') return null;
 
-    const siteName = 'Croww';
+    const siteName = 'Croww: Rent on the map';
     const fullTitle = title ? `${title} | ${siteName}` : siteName;
     const defaultDescription = 'Join exclusive events and find event buddies on Croww.';
     const metaDescription = description || defaultDescription;

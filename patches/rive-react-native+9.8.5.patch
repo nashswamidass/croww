@@ -1,0 +1,20 @@
+diff --git a/node_modules/rive-react-native/ios/RiveReactNativeView.swift b/node_modules/rive-react-native/ios/RiveReactNativeView.swift
+index f079107..a234a2c 100644
+--- a/node_modules/rive-react-native/ios/RiveReactNativeView.swift
++++ b/node_modules/rive-react-native/ios/RiveReactNativeView.swift
+@@ -334,6 +334,15 @@ class RiveReactNativeView: RCTView, RivePlayerDelegate, RiveStateMachineDelegate
+             url = nil
+             resourceFromBundle = true
+             
++            let hyphenatedName = name.replacingOccurrences(of: "_", with: "-")
++            let hasAsset = Bundle.main.url(forResource: name, withExtension: "riv") != nil ||
++                           Bundle.main.url(forResource: hyphenatedName, withExtension: "riv") != nil ||
++                           Bundle.main.url(forResource: name, withExtension: nil) != nil
++            guard hasAsset else {
++                handleRiveError(error: createFileNotFoundError())
++                return
++            }
++            
+             let updatedViewModel : RiveViewModel
+             if let smName = stateMachineName {
+                 updatedViewModel = RiveViewModel(fileName: name, stateMachineName: smName, fit: convertFit(fit), alignment: convertAlignment(alignment), autoPlay: autoplay, artboardName: artboardName, customLoader: weakCustomLoader)
