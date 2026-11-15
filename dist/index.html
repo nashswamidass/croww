@@ -1,0 +1,1008 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth dark">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Croww | Rent on the Map — Next-Gen Property & Living Ecosystem</title>
+  <meta name="description" content="Discover verified properties on an interactive map. Partner with Croww for 5-10 year capital leases, guaranteed monthly rent, zero vacancies, and turnkey furnishing." />
+  <meta property="og:title" content="Croww | Rent on the Map — Next-Gen Property & Living Ecosystem" />
+  <meta property="og:description" content="Map-based property discovery, 5-10 year capital leases, guaranteed rent, and furnished living. Joining cohorts in Bengaluru, Chennai & Hyderabad." />
+  <meta property="og:image" content="/croww-logo.png" />
+  <meta property="og:url" content="https://croww.ai" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <link rel="icon" href="/favicon.ico" />
+
+  <!-- Fonts & Tailwind -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'system-ui', 'sans-serif'],
+            mono: ['"Space Grotesk"', 'monospace'],
+          },
+          colors: {
+            croww: {
+              50: '#ECFDF5',
+              100: '#D1FAE5',
+              400: '#34D399',
+              500: '#10B981',
+              600: '#059669',
+              700: '#047857',
+              dark: '#080B11',
+              card: '#0F141F',
+              border: '#1F293D',
+              accent: '#38BDF8',
+            }
+          },
+          animation: {
+            'pulse-slow': 'pulse 4s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+            'float': 'float 6s ease-in-out infinite',
+            'glow': 'glow 3s ease-in-out infinite alternate',
+          },
+          keyframes: {
+            float: {
+              '0%, 100%': { transform: 'translateY(0px)' },
+              '50%': { transform: 'translateY(-10px)' },
+            },
+            glow: {
+              '0%': { opacity: 0.3, transform: 'scale(1)' },
+              '100%': { opacity: 0.6, transform: 'scale(1.05)' },
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #07090E;
+      color: #E2E8F0;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    }
+    .glass-nav {
+      background: rgba(8, 11, 17, 0.75);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card {
+      background: linear-gradient(135deg, rgba(17, 24, 39, 0.75), rgba(15, 20, 31, 0.95));
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+    }
+    .glass-card-hover:hover {
+      border-color: rgba(16, 185, 129, 0.4);
+      box-shadow: 0 10px 30px -10px rgba(16, 185, 129, 0.2);
+    }
+    .gradient-text {
+      background: linear-gradient(135deg, #FFFFFF 20%, #34D399 70%, #38BDF8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    .map-grid-bg {
+      background-size: 40px 40px;
+      background-image: 
+        linear-gradient(to right, rgba(255, 255, 255, 0.03) 1px, transparent 1px),
+        linear-gradient(to bottom, rgba(255, 255, 255, 0.03) 1px, transparent 1px);
+    }
+    /* Custom range slider */
+    input[type=range] {
+      -webkit-appearance: none;
+      background: #1F293D;
+      height: 8px;
+      border-radius: 4px;
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      background: #10B981;
+      cursor: pointer;
+      box-shadow: 0 0 12px rgba(16, 185, 129, 0.6);
+      border: 2px solid #ffffff;
+      transition: transform 0.15s ease;
+    }
+    input[type=range]::-webkit-slider-thumb:hover {
+      transform: scale(1.15);
+    }
+  </style>
+</head>
+<body class="min-h-screen font-sans antialiased selection:bg-croww-500 selection:text-black">
+
+  <!-- Glow Background Accents -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <div class="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[700px] bg-croww-600/15 rounded-full blur-[140px] animate-glow"></div>
+    <div class="absolute top-[800px] -left-40 w-[600px] h-[600px] bg-cyan-600/10 rounded-full blur-[150px]"></div>
+    <div class="absolute top-[1800px] -right-40 w-[650px] h-[650px] bg-emerald-600/10 rounded-full blur-[160px]"></div>
+  </div>
+
+  <!-- STICKY TOP NAVBAR -->
+  <header class="sticky top-0 z-50 glass-nav transition-all duration-300">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      <div class="flex items-center space-x-3 cursor-pointer" onclick="window.scrollTo({top: 0, behavior: 'smooth'})">
+        <div class="relative w-10 h-10 rounded-xl bg-gradient-to-br from-croww-500 to-emerald-700 p-0.5 shadow-lg shadow-croww-500/20">
+          <div class="w-full h-full bg-[#080B11] rounded-[10px] flex items-center justify-center overflow-hidden">
+            <img src="/croww-logo.png" alt="Croww" class="w-8 h-8 object-contain" onerror="this.onerror=null; this.src='https://api.iconify.design/lucide:map-pin.svg?color=%2310b981';" />
+          </div>
+        </div>
+        <div>
+          <div class="flex items-center space-x-2">
+            <span class="text-2xl font-bold tracking-tight text-white font-mono">croww<span class="text-croww-400">.ai</span></span>
+            <span class="px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider bg-croww-500/15 text-croww-400 border border-croww-500/30 rounded-full">Coming Soon</span>
+          </div>
+          <p class="text-[11px] text-gray-400 hidden sm:block">Rent on the Map • Next-Gen Living</p>
+        </div>
+      </div>
+
+      <nav class="hidden md:flex items-center space-x-8 text-sm font-medium text-gray-300">
+        <a href="#map-preview" class="hover:text-croww-400 transition-colors">Map Discovery</a>
+        <a href="#partner-models" class="hover:text-croww-400 transition-colors">Owner Partnerships</a>
+        <a href="#revenue-engine" class="hover:text-croww-400 transition-colors">Scale Economics</a>
+        <a href="#services" class="hover:text-croww-400 transition-colors">Furnishing & Loans</a>
+        <a href="#legal-gst" class="hover:text-croww-400 transition-colors">Legal & GST</a>
+      </nav>
+
+      <div class="flex items-center space-x-3">
+        <button onclick="openWaitlist('owner')" class="hidden sm:inline-flex items-center px-4 py-2 text-xs font-semibold rounded-lg text-gray-200 bg-white/5 hover:bg-white/10 border border-white/10 transition-all">
+          Partner Property
+        </button>
+        <button onclick="openWaitlist('tenant')" class="inline-flex items-center px-4 py-2 text-xs font-semibold rounded-lg text-black bg-croww-400 hover:bg-croww-500 shadow-md shadow-croww-500/25 transition-all">
+          Join Waitlist
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- HERO SECTION -->
+  <section class="relative z-10 pt-16 pb-20 md:pt-24 md:pb-32 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto text-center">
+    <!-- Live Cohort Badge -->
+    <div class="inline-flex items-center space-x-2 px-3.5 py-1.5 rounded-full bg-croww-500/10 border border-croww-500/25 text-croww-400 text-xs font-semibold mb-8 backdrop-blur-md animate-pulse-slow">
+      <span class="w-2 h-2 rounded-full bg-croww-400 animate-ping"></span>
+      <span>PILOT LAUNCH: 10 FOUNDING BUILDINGS IN BENGALURU & CHENNAI</span>
+    </div>
+
+    <!-- Main Headline -->
+    <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight text-white max-w-5xl mx-auto leading-[1.12]">
+      Real Estate, Visualized on the <span class="gradient-text">Map.</span><br />
+      Living, Reimagined.
+    </h1>
+
+    <p class="mt-6 text-lg sm:text-xl text-gray-300 max-w-3xl mx-auto font-normal leading-relaxed">
+      Browse verified rental and buyable homes like never before on an interactive map. 
+      For property owners: unlock <span class="text-white font-semibold">5–10 year capital leases</span>, 
+      <span class="text-white font-semibold">guaranteed monthly rent</span>, zero tenant vacancies, and turnkey institutional management.
+    </p>
+
+    <!-- CTAs & Social Proof -->
+    <div class="mt-10 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+      <button onclick="openWaitlist('tenant')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-croww-500 hover:bg-croww-400 text-black font-bold text-sm tracking-wide shadow-xl shadow-croww-500/30 transition-all transform hover:-translate-y-0.5 flex items-center justify-center space-x-2">
+        <span>Get Early Renter Access</span>
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
+      </button>
+
+      <button onclick="openWaitlist('owner')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-gray-900/80 hover:bg-gray-800 text-white font-semibold text-sm border border-gray-700 hover:border-gray-500 transition-all flex items-center justify-center space-x-2">
+        <span>Partner Your Property</span>
+      </button>
+    </div>
+
+    <!-- Micro Stats Ticker -->
+    <div class="mt-14 grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto pt-8 border-t border-white/10 text-left">
+      <div class="p-3">
+        <div class="text-2xl sm:text-3xl font-bold font-mono text-white">100%</div>
+        <div class="text-xs text-gray-400 mt-1">Map-First Real Coordinates</div>
+      </div>
+      <div class="p-3">
+        <div class="text-2xl sm:text-3xl font-bold font-mono text-croww-400">5 - 10 Yrs</div>
+        <div class="text-xs text-gray-400 mt-1">Guaranteed Capital Leases</div>
+      </div>
+      <div class="p-3">
+        <div class="text-2xl sm:text-3xl font-bold font-mono text-white">0% Brokerage</div>
+        <div class="text-xs text-gray-400 mt-1">Direct Tenant & Owner Peace</div>
+      </div>
+      <div class="p-3">
+        <div class="text-2xl sm:text-3xl font-bold font-mono text-cyan-400">₹20 Cr+</div>
+        <div class="text-xs text-gray-400 mt-1">Scale Model @ 1 Lakh Homes</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- INTERACTIVE MAP PREVIEW (AIRBNB STYLE FOR REAL ESTATE) -->
+  <section id="map-preview" class="relative z-10 py-12 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+    <div class="text-center mb-8">
+      <span class="text-xs font-mono uppercase tracking-widest text-croww-400 font-semibold">Interactive Interface Teaser</span>
+      <h2 class="text-3xl sm:text-4xl font-bold text-white mt-2">Rent on the Map. Not in endless lists.</h2>
+      <p class="text-gray-400 text-sm max-w-2xl mx-auto mt-2">
+        See exact neighborhoods, flood-safety scores, metro proximity, and 3D spatial walkthroughs right from the map canvas. Click pins below to test.
+      </p>
+    </div>
+
+    <!-- Simulated Map Container -->
+    <div class="glass-card rounded-2xl overflow-hidden border border-white/10 shadow-2xl relative">
+      <!-- Top Map Controls Bar -->
+      <div class="p-4 bg-croww-dark/90 border-b border-white/10 flex flex-wrap items-center justify-between gap-3">
+        <!-- City selector tabs -->
+        <div class="flex items-center space-x-1 bg-black/40 p-1 rounded-xl border border-white/5">
+          <button onclick="setCity('blr')" id="city-blr" class="px-3 py-1.5 rounded-lg text-xs font-semibold bg-croww-500 text-black transition-all">Bengaluru</button>
+          <button onclick="setCity('chn')" id="city-chn" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">Chennai</button>
+          <button onclick="setCity('hyd')" id="city-hyd" class="px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all">Hyderabad</button>
+        </div>
+
+        <!-- Filter chips -->
+        <div class="flex items-center space-x-2 overflow-x-auto text-xs">
+          <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-croww-400"></span>
+            <span>Croww Managed</span>
+          </span>
+          <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300">5-Yr Long Lease</span>
+          <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300">Furnished Ready</span>
+          <span class="px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-gray-300">3D Spatial Tour</span>
+        </div>
+
+        <div class="text-xs text-gray-400 font-mono hidden lg:block">
+          📍 Showing Live Pilot Pins
+        </div>
+      </div>
+
+      <!-- Map Canvas Graphic Area -->
+      <div class="relative h-[480px] sm:h-[550px] w-full bg-[#0B0F19] map-grid-bg overflow-hidden select-none" id="mapCanvas">
+        <!-- Map Water / Road Decor -->
+        <svg class="absolute inset-0 w-full h-full opacity-25 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M-50,180 Q250,120 500,260 T1100,200 T1600,320" fill="none" stroke="#1E293B" stroke-width="44" />
+          <path d="M-20,400 Q400,340 800,480 T1500,420" fill="none" stroke="#0F766E" stroke-width="18" opacity="0.4" />
+          <path d="M300,-50 L350,600 M750,-50 L700,600 M1100,-50 L1150,600" fill="none" stroke="#1E293B" stroke-width="8" stroke-dasharray="12,12" />
+        </svg>
+
+        <!-- Area Names on Map -->
+        <div class="absolute top-12 left-12 text-xs font-mono font-bold tracking-widest text-gray-600 uppercase pointer-events-none">INDIRANAGAR TECH HUB</div>
+        <div class="absolute bottom-20 left-28 text-xs font-mono font-bold tracking-widest text-gray-600 uppercase pointer-events-none">KORAMANGALA 4TH BLOCK</div>
+        <div class="absolute top-24 right-24 text-xs font-mono font-bold tracking-widest text-gray-600 uppercase pointer-events-none">WHITEFIELD EPIP ZONE</div>
+        <div class="absolute bottom-16 right-36 text-xs font-mono font-bold tracking-widest text-gray-600 uppercase pointer-events-none">HSR LAYOUT SECTOR 2</div>
+
+        <!-- PINS ON MAP (Clickable) -->
+        <!-- Pin 1: Indiranagar -->
+        <div onclick="selectPin(0)" id="pin-0" class="absolute top-[28%] left-[24%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
+          <div class="px-3 py-1.5 rounded-full bg-white text-black font-bold text-xs shadow-lg shadow-black/50 border-2 border-croww-500 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-croww-500 animate-pulse"></span>
+            <span>₹48,000</span>
+          </div>
+          <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1 border-r border-b border-black"></div>
+        </div>
+
+        <!-- Pin 2: Koramangala (Active Default) -->
+        <div onclick="selectPin(1)" id="pin-1" class="absolute top-[62%] left-[32%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-30">
+          <div class="px-3.5 py-1.5 rounded-full bg-croww-500 text-black font-black text-xs shadow-xl shadow-croww-500/50 border-2 border-white flex items-center space-x-1.5">
+            <span>₹36,000</span>
+            <span class="text-[9px] px-1 py-0.2 bg-black text-white rounded">3D</span>
+          </div>
+          <div class="w-2 h-2 bg-croww-500 rotate-45 mx-auto -mt-1 border-r border-b border-white"></div>
+        </div>
+
+        <!-- Pin 3: HSR Layout -->
+        <div onclick="selectPin(2)" id="pin-2" class="absolute top-[72%] right-[32%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
+          <div class="px-3 py-1.5 rounded-full bg-white text-black font-bold text-xs shadow-lg shadow-black/50 border-2 border-gray-400 flex items-center space-x-1.5">
+            <span>₹28,500</span>
+          </div>
+          <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1"></div>
+        </div>
+
+        <!-- Pin 4: Whitefield -->
+        <div onclick="selectPin(3)" id="pin-3" class="absolute top-[32%] right-[22%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
+          <div class="px-3 py-1.5 rounded-full bg-white text-black font-bold text-xs shadow-lg shadow-black/50 border-2 border-cyan-400 flex items-center space-x-1.5">
+            <span class="w-2 h-2 rounded-full bg-cyan-400"></span>
+            <span>₹65,000</span>
+          </div>
+          <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1"></div>
+        </div>
+
+        <!-- Pin 5: Whole Apartment Pilot -->
+        <div onclick="selectPin(4)" id="pin-4" class="absolute top-[50%] left-[55%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
+          <div class="px-3 py-1.5 rounded-full bg-purple-500 text-white font-black text-xs shadow-xl shadow-purple-500/40 border-2 border-white flex items-center space-x-1.5">
+            <span>🏢 10-Unit Complex</span>
+          </div>
+          <div class="w-2 h-2 bg-purple-500 rotate-45 mx-auto -mt-1"></div>
+        </div>
+
+        <!-- FLOATING DETAIL CARD (Dynamic on Pin Click) -->
+        <div id="propertyPreviewCard" class="absolute bottom-4 left-4 right-4 sm:right-auto sm:left-6 sm:w-96 glass-card p-4 rounded-xl border border-white/15 shadow-2xl z-40 transition-all duration-300">
+          <div class="flex items-start justify-between">
+            <div class="flex items-center space-x-2">
+              <span id="cardBadge" class="px-2 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-croww-500/20 text-croww-400 border border-croww-500/40">
+                Croww Managed • Master Lease
+              </span>
+            </div>
+            <span id="cardPrice" class="text-lg font-bold font-mono text-white">₹36,000/mo</span>
+          </div>
+
+          <h3 id="cardTitle" class="text-base font-bold text-white mt-2">Greenwood Sovereign 2BHK</h3>
+          <p id="cardLocation" class="text-xs text-gray-400">5th Cross, 4th Block, Koramangala, Bengaluru</p>
+
+          <!-- Key Amenities & Area Intelligence Chips -->
+          <div class="mt-3 grid grid-cols-3 gap-1.5 text-[11px] text-gray-300">
+            <div class="bg-black/40 p-2 rounded-lg border border-white/5 text-center">
+              <div class="text-[10px] text-gray-500 uppercase">3D Tour</div>
+              <div id="cardTour" class="font-semibold text-croww-400">Ready (Spatial)</div>
+            </div>
+            <div class="bg-black/40 p-2 rounded-lg border border-white/5 text-center">
+              <div class="text-[10px] text-gray-500 uppercase">Flood Safety</div>
+              <div id="cardFlood" class="font-semibold text-emerald-400">LOW (Class A)</div>
+            </div>
+            <div class="bg-black/40 p-2 rounded-lg border border-white/5 text-center">
+              <div class="text-[10px] text-gray-500 uppercase">Metro</div>
+              <div id="cardMetro" class="font-semibold text-cyan-300">450m Walk</div>
+            </div>
+          </div>
+
+          <div class="mt-3 pt-3 border-t border-white/10 flex items-center justify-between text-xs">
+            <span class="text-gray-400">Furnishing: <strong id="cardFurnish" class="text-white">Full Smart Pack</strong></span>
+            <button onclick="openWaitlist('tenant')" class="px-3 py-1.5 rounded-lg bg-croww-400 hover:bg-croww-500 text-black font-semibold transition-all">
+              Reserve Viewing
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVOLUTIONARY PARTNERSHIP MODELS FOR OWNERS -->
+  <section id="partner-models" class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <span class="text-xs font-mono uppercase tracking-widest text-croww-400 font-semibold">For Property Owners & Investors</span>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-2">
+        Zero Landlord Headaches.<br />
+        <span class="gradient-text">Guaranteed Yields & Long-Term Leases.</span>
+      </h2>
+      <p class="text-gray-400 mt-4 text-base">
+        Tired of tenant hunting, repair calls, deposit squabbles, and vacant months? Partner with Croww. 
+        Choose from our institutional partnership frameworks tailored for Indian property owners.
+      </p>
+    </div>
+
+    <!-- 3 Models Grid -->
+    <div class="grid grid-cols-1 md:grid-cols-3 gap-8">
+      
+      <!-- MODEL 1: 5-to-10 Year Capital Lease -->
+      <div class="glass-card glass-card-hover rounded-2xl p-7 flex flex-col justify-between border border-white/10 relative overflow-hidden group">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-croww-500/10 rounded-full blur-3xl group-hover:bg-croww-500/20 transition-all"></div>
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-croww-500/15 border border-croww-500/30 flex items-center justify-center text-croww-400 text-xl font-bold font-mono">
+            01
+          </div>
+          <div class="inline-block px-2.5 py-0.5 mt-4 rounded text-[10px] font-bold uppercase tracking-wider bg-croww-500/15 text-croww-400 border border-croww-500/30">
+            High Capital Security
+          </div>
+          <h3 class="text-xl font-bold text-white mt-3">5-to-10 Year Capital Lease</h3>
+          <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+            We lease your property upfront for 5 or 10 years. You receive the full capital return at the end of the lease period, while Croww furnishes, operates, and sub-leases the property.
+          </p>
+
+          <ul class="mt-6 space-y-3 text-xs text-gray-300">
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400">✓</span>
+              <span>Full principal return at lease completion</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400">✓</span>
+              <span>Zero maintenance and repair expenses</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400">✓</span>
+              <span>Long-term legal deed with institutional backing</span>
+            </li>
+          </ul>
+        </div>
+
+        <button onclick="openWaitlist('owner', '5-Year Capital Lease')" class="mt-8 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all">
+          Explore Capital Lease
+        </button>
+      </div>
+
+      <!-- MODEL 2: Modified Non-Returnable Upfront Lease -->
+      <div class="glass-card glass-card-hover rounded-2xl p-7 flex flex-col justify-between border border-white/10 relative overflow-hidden group">
+        <div class="absolute -right-10 -bottom-10 w-40 h-40 bg-cyan-500/10 rounded-full blur-3xl group-hover:bg-cyan-500/20 transition-all"></div>
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-cyan-500/15 border border-cyan-500/30 flex items-center justify-center text-cyan-400 text-xl font-bold font-mono">
+            02
+          </div>
+          <div class="inline-block px-2.5 py-0.5 mt-4 rounded text-[10px] font-bold uppercase tracking-wider bg-cyan-500/15 text-cyan-400 border border-cyan-500/30">
+            Immediate Liquidity
+          </div>
+          <h3 class="text-xl font-bold text-white mt-3">Modified Non-Returnable Lease</h3>
+          <p class="text-sm text-gray-400 mt-2 leading-relaxed">
+            Get significant upfront capital without the obligation to repay at lease end. Ideal for owners who need immediate funds for new ventures, education, or diversification.
+          </p>
+
+          <ul class="mt-6 space-y-3 text-xs text-gray-300">
+            <li class="flex items-center space-x-2">
+              <span class="text-cyan-400">✓</span>
+              <span>Lump-sum upfront payout to owner</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-cyan-400">✓</span>
+              <span>Zero repayment risk at the end of tenure</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-cyan-400">✓</span>
+              <span>Property handed back in pristine condition</span>
+            </li>
+          </ul>
+        </div>
+
+        <button onclick="openWaitlist('owner', 'Non-Returnable Lease')" class="mt-8 w-full py-3 rounded-xl bg-white/5 hover:bg-white/10 text-white font-semibold text-xs border border-white/10 transition-all">
+          Inquire Upfront Lease
+        </button>
+      </div>
+
+      <!-- MODEL 3: Direct Guaranteed Rental + Maintenance (Flagship) -->
+      <div class="glass-card rounded-2xl p-7 flex flex-col justify-between border-2 border-croww-500/40 shadow-xl shadow-croww-500/10 relative overflow-hidden group bg-gradient-to-b from-[#111A2E] to-[#0A0D17]">
+        <div class="absolute top-0 right-0 bg-croww-500 text-black text-[10px] font-extrabold uppercase px-3 py-1 rounded-bl-xl tracking-wider">
+          MOST POPULAR
+        </div>
+        <div>
+          <div class="w-12 h-12 rounded-xl bg-croww-500/20 border border-croww-500/40 flex items-center justify-center text-croww-400 text-xl font-bold font-mono">
+            03
+          </div>
+          <div class="inline-block px-2.5 py-0.5 mt-4 rounded text-[10px] font-bold uppercase tracking-wider bg-croww-500/20 text-croww-400 border border-croww-500/30">
+            Guaranteed Monthly Cashflow
+          </div>
+          <h3 class="text-xl font-bold text-white mt-3">Croww Guaranteed Rental</h3>
+          <p class="text-sm text-gray-300 mt-2 leading-relaxed">
+            Croww becomes your Master Tenant. We deposit your agreed rent on the 1st of every month without fail, regardless of whether a tenant occupies it. We handle all upkeep and repairs.
+          </p>
+
+          <ul class="mt-6 space-y-3 text-xs text-gray-200">
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400 font-bold">✓</span>
+              <span><strong>Guaranteed rent on the 1st</strong> (Zero vacancy loss)</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400 font-bold">✓</span>
+              <span>Complete maintenance & deep cleaning covered</span>
+            </li>
+            <li class="flex items-center space-x-2">
+              <span class="text-croww-400 font-bold">✓</span>
+              <span>Pre-vetted corporate & tech professionals only</span>
+            </li>
+          </ul>
+        </div>
+
+        <button onclick="openWaitlist('owner', 'Guaranteed Monthly Rent')" class="mt-8 w-full py-3.5 rounded-xl bg-croww-400 hover:bg-croww-500 text-black font-bold text-xs tracking-wide shadow-lg shadow-croww-500/30 transition-all">
+          Partner for Guaranteed Rent
+        </button>
+      </div>
+
+    </div>
+
+    <!-- Whole Apartment & Building Management Spotlight -->
+    <div class="mt-12 glass-card rounded-2xl p-8 border border-purple-500/30 bg-gradient-to-r from-purple-950/20 via-black to-croww-dark">
+      <div class="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div>
+          <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-purple-500/20 text-purple-300 border border-purple-500/40">
+            🏢 Whole Building & Society Management
+          </span>
+          <h3 class="text-2xl font-bold text-white mt-3">Own an entire apartment complex or building?</h3>
+          <p class="text-sm text-gray-300 mt-2 max-w-2xl">
+            We partner with builders, landlords, and asset managers to take over whole residential floors or complete buildings. 
+            We are selecting an exclusive cohort of <strong>10 pilot buildings</strong> in Bengaluru and Chennai for end-to-end master management.
+          </p>
+        </div>
+        <button onclick="openWaitlist('owner', 'Whole Building Management')" class="px-6 py-3.5 rounded-xl bg-purple-500 hover:bg-purple-400 text-white font-bold text-xs whitespace-nowrap shadow-lg shadow-purple-500/25 transition-all">
+          Submit Whole Building
+        </button>
+      </div>
+    </div>
+  </section>
+
+  <!-- REVENUE ENGINE & SCALE ECONOMICS (INTERACTIVE CALCULATOR) -->
+  <section id="revenue-engine" class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
+    <div class="text-center max-w-3xl mx-auto mb-16">
+      <span class="text-xs font-mono uppercase tracking-widest text-croww-400 font-semibold">The Growth Mathematics</span>
+      <h2 class="text-3xl sm:text-5xl font-extrabold text-white mt-2">
+        A Powerful Multi-Stream <span class="gradient-text">Revenue Engine</span>
+      </h2>
+      <p class="text-gray-400 mt-4 text-base">
+        How Croww builds sustainable, institutional cash flow through operating rent cushions, furnishing subscriptions, and NBFC loan originations.
+      </p>
+    </div>
+
+    <!-- Interactive Scale Calculator Box -->
+    <div class="glass-card rounded-3xl p-6 sm:p-10 border border-white/10 shadow-2xl">
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        
+        <!-- Controls Column -->
+        <div class="lg:col-span-6 space-y-6">
+          <div>
+            <div class="flex justify-between items-center text-sm font-semibold mb-2">
+              <span class="text-gray-300">Managed Homes Portfolio:</span>
+              <span id="homesCountText" class="text-croww-400 font-mono text-lg font-bold">1,00,000 Homes</span>
+            </div>
+            <input type="range" id="homesSlider" min="10" max="100000" step="500" value="100000" class="w-full cursor-pointer" oninput="updateCalculator()" />
+            <div class="flex justify-between text-[11px] text-gray-500 font-mono mt-1">
+              <span>10 (Pilot Cohort)</span>
+              <span>10,000</span>
+              <span>1,00,000 (Target Scale)</span>
+            </div>
+          </div>
+
+          <div>
+            <div class="flex justify-between items-center text-sm font-semibold mb-2">
+              <span class="text-gray-300">Average Monthly Operating Cushion per Home:</span>
+              <span id="cushionText" class="text-cyan-400 font-mono text-lg font-bold">₹2,000 / mo</span>
+            </div>
+            <input type="range" id="cushionSlider" min="1000" max="5000" step="250" value="2000" class="w-full cursor-pointer" oninput="updateCalculator()" />
+            <div class="flex justify-between text-[11px] text-gray-500 font-mono mt-1">
+              <span>₹1,000</span>
+              <span>₹2,000 (Base Case)</span>
+              <span>₹5,000 (Luxury/Villas)</span>
+            </div>
+          </div>
+
+          <div class="p-4 rounded-xl bg-black/40 border border-white/5 text-xs text-gray-400 leading-relaxed">
+            💡 <strong class="text-gray-200">How the Cushion Works:</strong> By master-leasing at scale, absorbing vacancy risk, and offering corporate tenants professional upkeep, Croww earns a comfortable ~₹2,000/mo operating spread. The tenant gets peace of mind; the owner gets guaranteed rent on time.
+          </div>
+        </div>
+
+        <!-- Calculated Output Column -->
+        <div class="lg:col-span-6 bg-gradient-to-br from-[#0B111D] to-[#121A2A] rounded-2xl p-6 sm:p-8 border border-croww-500/30">
+          <div class="text-xs font-mono uppercase text-gray-400">Projected Recurring Yield</div>
+          <div class="mt-2 text-4xl sm:text-5xl font-black font-mono text-croww-400" id="monthlyRevenueDisplay">
+            ₹20,00,00,000
+          </div>
+          <div class="text-sm font-semibold text-gray-300 mt-1">
+            per month in Recurring Operational Revenue (<span id="annualRevenueDisplay" class="text-white font-mono">₹240 Cr ARR</span>)
+          </div>
+
+          <!-- Revenue Streams Breakdown -->
+          <div class="mt-8 pt-6 border-t border-white/10 space-y-3 text-xs">
+            <div class="flex justify-between items-center">
+              <span class="text-gray-400">1. Master Lease Operating Cushion</span>
+              <span id="cushionShareDisplay" class="text-white font-mono font-bold">₹20.00 Cr / mo</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-400">2. Furniture & Appliance Subscriptions</span>
+              <span id="furnishingShareDisplay" class="text-cyan-400 font-mono font-bold">+ ₹6.50 Cr / mo</span>
+            </div>
+            <div class="flex justify-between items-center">
+              <span class="text-gray-400">3. NBFC Deposit Loan & Mortgage Originations</span>
+              <span id="nbfcShareDisplay" class="text-purple-400 font-mono font-bold">+ ₹2.80 Cr / mo</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- The 3 Ancillary Revenue Streams -->
+    <div id="services" class="mt-12 grid grid-cols-1 md:grid-cols-3 gap-6">
+      
+      <!-- Furniture Subscriptions -->
+      <div class="glass-card p-6 rounded-2xl border border-white/10">
+        <div class="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center font-bold text-lg mb-4">
+          🛋️
+        </div>
+        <h4 class="text-lg font-bold text-white">Furnished by Croww</h4>
+        <p class="text-xs text-gray-400 mt-2 leading-relaxed">
+          Partnering with leading furnishing brands (Furlenco / RentoMojo model) to offer plug-and-play living room, bedroom, and appliance packs on a monthly subscription or rent-to-own basis for any listing on our portal.
+        </p>
+      </div>
+
+      <!-- NBFC Financing -->
+      <div class="glass-card p-6 rounded-2xl border border-white/10">
+        <div class="w-10 h-10 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center font-bold text-lg mb-4">
+          💳
+        </div>
+        <h4 class="text-lg font-bold text-white">Instant NBFC Deposit Loans</h4>
+        <p class="text-xs text-gray-400 mt-2 leading-relaxed">
+          High 10-month rental deposits shouldn't stop great tenants. Integrated NBFC partners provide instant zero-cost deposit financing in-app, with Croww earning origination commissions on disbursements.
+        </p>
+      </div>
+
+      <!-- Building Management & Upkeep -->
+      <div class="glass-card p-6 rounded-2xl border border-white/10">
+        <div class="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center font-bold text-lg mb-4">
+          🔧
+        </div>
+        <h4 class="text-lg font-bold text-white">Turnkey Facility Care</h4>
+        <p class="text-xs text-gray-400 mt-2 leading-relaxed">
+          In-house roving maintenance crews, deep hygiene sanitization, biometric digital lock installs, and 24/7 emergency response—protecting long-term real estate asset values.
+        </p>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- LEGAL, GST & MASTER TENANCY CLARITY -->
+  <section id="legal-gst" class="relative z-10 py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto border-t border-white/10">
+    <div class="glass-card rounded-2xl p-8 sm:p-10 border border-white/10">
+      <div class="max-w-3xl">
+        <span class="text-xs font-mono uppercase tracking-widest text-croww-400 font-semibold">Institutional Compliance & Transparency</span>
+        <h2 class="text-2xl sm:text-3xl font-bold text-white mt-2">
+          Clear Contracts, Transparent GST & Total Protection
+        </h2>
+        <p class="text-sm text-gray-300 mt-3 leading-relaxed">
+          One of the biggest concerns for property owners is: <em>"How does the lease work if the tenant signs with Croww, and how are taxes and GST handled?"</em> Here is our straightforward legal blueprint:
+        </p>
+      </div>
+
+      <div class="mt-8 grid grid-cols-1 md:grid-cols-2 gap-6 text-xs text-gray-300">
+        <div class="p-5 rounded-xl bg-black/40 border border-white/5 space-y-2">
+          <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+            <span class="text-croww-400">🛡️</span>
+            <span>Master Tenancy Agreement</span>
+          </h4>
+          <p class="leading-relaxed text-gray-400">
+            The property owner executes an institutional Master Lease with Croww Technologies. The end-tenant enters into a legally vetted sub-tenancy agreement with Croww. This shields the owner from tenant disputes, non-payment, or eviction friction.
+          </p>
+        </div>
+
+        <div class="p-5 rounded-xl bg-black/40 border border-white/5 space-y-2">
+          <h4 class="font-bold text-white text-sm flex items-center space-x-2">
+            <span class="text-cyan-400">📑</span>
+            <span>GST on Residential Renting</span>
+          </h4>
+          <p class="leading-relaxed text-gray-400">
+            Under Indian GST provisions, renting of residential dwellings for use as residence to unregistered persons is exempt. For corporate or registered entities, reverse charge (RCM) applies. Croww’s legal and tax framework ensures owners have zero unexpected tax liabilities.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FAQ SECTION -->
+  <section class="relative z-10 py-16 px-4 sm:px-6 lg:px-8 max-w-4xl mx-auto border-t border-white/10">
+    <div class="text-center mb-12">
+      <h2 class="text-3xl font-bold text-white">Frequently Asked Questions</h2>
+    </div>
+
+    <div class="space-y-4 text-sm" id="faqAccordion">
+      <div class="glass-card rounded-xl p-5 border border-white/10 cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex justify-between items-center font-semibold text-white">
+          <span>When will Croww launch publicly?</span>
+          <span class="text-croww-400 text-lg">+</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 hidden leading-relaxed">
+          We are launching our private pilot in Q1 2027 starting with an initial cohort of 10 curated buildings across Bengaluru and Chennai. Waitlist members get early access to book homes or submit properties.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5 border border-white/10 cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex justify-between items-center font-semibold text-white">
+          <span>How does the 5-to-10 Year Capital Lease guarantee my capital back?</span>
+          <span class="text-croww-400 text-lg">+</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 hidden leading-relaxed">
+          The agreement is backed by registered lease deed contracts. At the conclusion of the 5 or 10-year term, Croww returns the agreed capital principal to the owner, while the owner retains full title and capital appreciation.
+        </p>
+      </div>
+
+      <div class="glass-card rounded-xl p-5 border border-white/10 cursor-pointer" onclick="toggleFaq(this)">
+        <div class="flex justify-between items-center font-semibold text-white">
+          <span>Can normal owners list without partnering with Croww?</span>
+          <span class="text-croww-400 text-lg">+</span>
+        </div>
+        <p class="text-xs text-gray-400 mt-3 hidden leading-relaxed">
+          Yes! Any individual owner can post standard rental and sale listings directly on the map. You can optionally upgrade anytime to Croww Managed or Furnished packages.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER CTA & WAITLIST SECTION -->
+  <section class="relative z-10 py-20 px-4 sm:px-6 lg:px-8 max-w-5xl mx-auto text-center">
+    <div class="glass-card rounded-3xl p-8 sm:p-12 border-2 border-croww-500/30 relative overflow-hidden">
+      <div class="relative z-10">
+        <h2 class="text-3xl sm:text-5xl font-black text-white">
+          Be part of the founding cohort.
+        </h2>
+        <p class="text-gray-300 text-sm sm:text-base max-w-xl mx-auto mt-4">
+          Whether you are looking for your next dream rental on the map, or an owner seeking guaranteed yields—join our private access list today.
+        </p>
+
+        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-4 max-w-md mx-auto">
+          <button onclick="openWaitlist('tenant')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-croww-500 hover:bg-croww-400 text-black font-bold text-sm tracking-wide shadow-xl shadow-croww-500/30 transition-all">
+            Join as a Renter
+          </button>
+          <button onclick="openWaitlist('owner')" class="w-full sm:w-auto px-8 py-4 rounded-xl bg-white/10 hover:bg-white/15 text-white font-semibold text-sm border border-white/20 transition-all">
+            Partner Your Property
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- FOOTER -->
+  <footer class="relative z-10 py-12 px-4 sm:px-6 lg:px-8 border-t border-white/10 text-xs text-gray-500">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
+      <div class="flex items-center space-x-2">
+        <span class="font-bold text-white font-mono">croww.ai</span>
+        <span>• Rent on the Map</span>
+      </div>
+      <div class="flex items-center space-x-6">
+        <a href="#partner-models" class="hover:text-gray-300">Owner Models</a>
+        <a href="#revenue-engine" class="hover:text-gray-300">Scale Economics</a>
+        <a href="/app.html" class="hover:text-gray-300">App Preview</a>
+        <span>© 2026-2027 Croww Technologies. All rights reserved.</span>
+      </div>
+    </div>
+  </footer>
+
+  <!-- WAITLIST MODAL -->
+  <div id="waitlistModal" class="fixed inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 hidden">
+    <div class="glass-card w-full max-w-lg rounded-2xl p-6 sm:p-8 border border-white/20 relative shadow-2xl animate-float" style="animation-duration: 0.3s; animation-iteration-count: 1;">
+      <!-- Close Button -->
+      <button onclick="closeWaitlist()" class="absolute top-5 right-5 text-gray-400 hover:text-white text-xl">✕</button>
+
+      <div class="text-left">
+        <!-- Tabs in Modal -->
+        <div class="flex rounded-lg bg-black/50 p-1 border border-white/10 mb-6">
+          <button id="modalTabTenant" onclick="switchModalTab('tenant')" class="flex-1 py-2 text-xs font-semibold rounded-md bg-croww-500 text-black transition-all">
+            I'm a Renter / Tenant
+          </button>
+          <button id="modalTabOwner" onclick="switchModalTab('owner')" class="flex-1 py-2 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition-all">
+            I'm an Owner / Landlord
+          </button>
+        </div>
+
+        <h3 id="modalHeading" class="text-2xl font-bold text-white">Join the Tenant Waitlist</h3>
+        <p id="modalSubheading" class="text-xs text-gray-400 mt-1">
+          Get first access to map search, ₹5,000 furnishing credit, and zero brokerage.
+        </p>
+
+        <!-- Form -->
+        <form onsubmit="handleWaitlistSubmit(event)" class="mt-6 space-y-4">
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">Full Name</label>
+            <input type="text" id="wName" required placeholder="Arjun Sharma" class="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white text-sm focus:border-croww-400 focus:outline-none" />
+          </div>
+
+          <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label class="block text-xs font-medium text-gray-300 mb-1">Email</label>
+              <input type="email" id="wEmail" required placeholder="arjun@company.com" class="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white text-sm focus:border-croww-400 focus:outline-none" />
+            </div>
+            <div>
+              <label class="block text-xs font-medium text-gray-300 mb-1">WhatsApp / Phone</label>
+              <input type="tel" id="wPhone" required placeholder="+91 98765 43210" class="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white text-sm focus:border-croww-400 focus:outline-none" />
+            </div>
+          </div>
+
+          <div>
+            <label class="block text-xs font-medium text-gray-300 mb-1">City</label>
+            <select id="wCity" class="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white text-sm focus:border-croww-400 focus:outline-none">
+              <option value="Bengaluru">Bengaluru</option>
+              <option value="Chennai">Chennai</option>
+              <option value="Hyderabad">Hyderabad</option>
+              <option value="Mumbai">Mumbai</option>
+              <option value="Pune">Pune</option>
+              <option value="Other">Other City</option>
+            </select>
+          </div>
+
+          <div id="ownerModelSelectDiv" class="hidden">
+            <label class="block text-xs font-medium text-gray-300 mb-1">Preferred Partnership Model</label>
+            <select id="wModel" class="w-full px-3.5 py-2.5 rounded-lg bg-black/60 border border-white/15 text-white text-sm focus:border-croww-400 focus:outline-none">
+              <option value="Guaranteed Monthly Rental">Guaranteed Monthly Rental (Direct 1st of month)</option>
+              <option value="5-Year Capital Lease">5-to-10 Year Capital Lease (Returnable Principal)</option>
+              <option value="Non-Returnable Upfront Lease">Modified Non-Returnable Upfront Lease</option>
+              <option value="Whole Building Management">Whole Building / Society Pilot (10 Buildings)</option>
+              <option value="Standard Free Listing">Standard Self-Managed Listing</option>
+            </select>
+          </div>
+
+          <button type="submit" class="w-full py-3.5 rounded-xl bg-croww-400 hover:bg-croww-500 text-black font-bold text-sm tracking-wide shadow-lg shadow-croww-500/30 transition-all mt-4">
+            Confirm Priority Reservation
+          </button>
+        </form>
+
+        <div id="waitlistSuccess" class="hidden mt-4 p-4 rounded-xl bg-croww-500/20 border border-croww-500/40 text-center">
+          <div class="text-2xl mb-1">🎉</div>
+          <div class="font-bold text-white text-sm">You are on the Priority Cohort!</div>
+          <div class="text-xs text-gray-300 mt-1">We will reach out to you before public launch with early credentials.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CLIENT INTERACTIVE SCRIPTS -->
+  <script>
+    // Pin dataset
+    const pins = [
+      {
+        price: '₹48,000/mo',
+        title: 'Indiranagar Urban Loft 3BHK',
+        location: '100ft Road, Indiranagar, Bengaluru',
+        tour: 'Ready (Spatial)',
+        flood: 'LOW (Class A)',
+        metro: '200m Walk',
+        furnish: 'Fully Furnished Design Pack',
+        badge: 'Croww Managed • Master Lease'
+      },
+      {
+        price: '₹36,000/mo',
+        title: 'Greenwood Sovereign 2BHK',
+        location: '5th Cross, 4th Block, Koramangala, Bengaluru',
+        tour: 'Ready (Spatial)',
+        flood: 'LOW (Class A)',
+        metro: '450m Walk',
+        furnish: 'Full Smart Pack',
+        badge: 'Croww Managed • Master Lease'
+      },
+      {
+        price: '₹28,500/mo',
+        title: 'HSR Serene Residences 2BHK',
+        location: '27th Main, Sector 2, HSR Layout, Bengaluru',
+        tour: 'Video Verified',
+        flood: 'LOW (Class A)',
+        metro: '800m Walk',
+        furnish: 'Semi-Furnished + Appliance Option',
+        badge: '5-Year Capital Lease'
+      },
+      {
+        price: '₹65,000/mo',
+        title: 'The Palm Heights 3BHK Penthouse',
+        location: 'EPIP Zone, Whitefield, Bengaluru',
+        tour: 'Ready (Spatial 3D)',
+        flood: 'LOW (Class A)',
+        metro: 'Connected',
+        furnish: 'Luxury Italian Furnished',
+        badge: 'Verified Owner Listing'
+      },
+      {
+        price: '🏢 10 Units',
+        title: 'Sunrise Enclave Tower B (Whole Complex)',
+        location: 'Koramangala 1st Block, Bengaluru',
+        tour: 'Full 3D Building Twin',
+        flood: 'LOW (Class A)',
+        metro: '600m Walk',
+        furnish: 'Turnkey Fitted by Croww',
+        badge: 'Pilot Building Cohort'
+      }
+    ];
+
+    function selectPin(index) {
+      const data = pins[index];
+      document.getElementById('cardPrice').innerText = data.price;
+      document.getElementById('cardTitle').innerText = data.title;
+      document.getElementById('cardLocation').innerText = data.location;
+      document.getElementById('cardTour').innerText = data.tour;
+      document.getElementById('cardFlood').innerText = data.flood;
+      document.getElementById('cardMetro').innerText = data.metro;
+      document.getElementById('cardFurnish').innerText = data.furnish;
+      document.getElementById('cardBadge').innerText = data.badge;
+
+      // Highlight pin
+      for (let i = 0; i < pins.length; i++) {
+        const p = document.getElementById('pin-' + i);
+        if (p) {
+          if (i === index) {
+            p.classList.add('scale-125', 'z-50');
+          } else {
+            p.classList.remove('scale-125', 'z-50');
+          }
+        }
+      }
+    }
+
+    function setCity(city) {
+      ['blr', 'chn', 'hyd'].forEach(c => {
+        const el = document.getElementById('city-' + c);
+        if (c === city) {
+          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold bg-croww-500 text-black transition-all';
+        } else {
+          el.className = 'px-3 py-1.5 rounded-lg text-xs font-semibold text-gray-400 hover:text-white transition-all';
+        }
+      });
+      selectPin(city === 'chn' ? 3 : 1);
+    }
+
+    // Revenue Calculator
+    function updateCalculator() {
+      const homes = parseInt(document.getElementById('homesSlider').value, 10);
+      const cushion = parseInt(document.getElementById('cushionSlider').value, 10);
+
+      document.getElementById('homesCountText').innerText = Number(homes).toLocaleString('en-IN') + ' Homes';
+      document.getElementById('cushionText').innerText = '₹' + Number(cushion).toLocaleString('en-IN') + ' / mo';
+
+      const monthlyCushion = homes * cushion;
+      const annualCushion = monthlyCushion * 12;
+
+      // Currency format in Crores or Lakhs
+      const inCr = (monthlyCushion / 10000000).toFixed(2);
+      const annualCr = (annualCushion / 10000000).toFixed(0);
+
+      document.getElementById('monthlyRevenueDisplay').innerText = '₹' + Number(monthlyCushion).toLocaleString('en-IN');
+      document.getElementById('annualRevenueDisplay').innerText = '₹' + annualCr + ' Cr ARR';
+      document.getElementById('cushionShareDisplay').innerText = '₹' + inCr + ' Cr / mo';
+
+      // Ancillary streams approximation
+      const furnishing = (monthlyCushion * 0.325).toFixed(2);
+      const nbfc = (monthlyCushion * 0.14).toFixed(2);
+      document.getElementById('furnishingShareDisplay').innerText = '+ ₹' + (furnishing / 10000000).toFixed(2) + ' Cr / mo';
+      document.getElementById('nbfcShareDisplay').innerText = '+ ₹' + (nbfc / 10000000).toFixed(2) + ' Cr / mo';
+    }
+
+    // FAQ Toggle
+    function toggleFaq(card) {
+      const p = card.querySelector('p');
+      const icon = card.querySelector('span:last-child');
+      if (p.classList.contains('hidden')) {
+        p.classList.remove('hidden');
+        icon.innerText = '−';
+      } else {
+        p.classList.add('hidden');
+        icon.innerText = '+';
+      }
+    }
+
+    // Waitlist Modal
+    let currentRole = 'tenant';
+    function openWaitlist(role = 'tenant', presetModel = null) {
+      currentRole = role;
+      document.getElementById('waitlistModal').classList.remove('hidden');
+      switchModalTab(role);
+      if (presetModel && document.getElementById('wModel')) {
+        document.getElementById('wModel').value = presetModel;
+      }
+    }
+
+    function closeWaitlist() {
+      document.getElementById('waitlistModal').classList.add('hidden');
+    }
+
+    function switchModalTab(role) {
+      currentRole = role;
+      const btnTenant = document.getElementById('modalTabTenant');
+      const btnOwner = document.getElementById('modalTabOwner');
+      const ownerDiv = document.getElementById('ownerModelSelectDiv');
+
+      if (role === 'tenant') {
+        btnTenant.className = 'flex-1 py-2 text-xs font-semibold rounded-md bg-croww-500 text-black transition-all';
+        btnOwner.className = 'flex-1 py-2 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition-all';
+        document.getElementById('modalHeading').innerText = 'Join the Tenant Waitlist';
+        document.getElementById('modalSubheading').innerText = 'Get early map search access, ₹5,000 furnishing credit, and zero brokerage.';
+        ownerDiv.classList.add('hidden');
+      } else {
+        btnOwner.className = 'flex-1 py-2 text-xs font-semibold rounded-md bg-croww-500 text-black transition-all';
+        btnTenant.className = 'flex-1 py-2 text-xs font-semibold rounded-md text-gray-400 hover:text-white transition-all';
+        document.getElementById('modalHeading').innerText = 'Partner Your Property with Croww';
+        document.getElementById('modalSubheading').innerText = 'Explore 5-10 year capital leases, guaranteed monthly rent, or whole building management.';
+        ownerDiv.classList.remove('hidden');
+      }
+    }
+
+    function handleWaitlistSubmit(e) {
+      e.preventDefault();
+      const payload = {
+        name: document.getElementById('wName').value,
+        email: document.getElementById('wEmail').value,
+        phone: document.getElementById('wPhone').value,
+        city: document.getElementById('wCity').value,
+        role: currentRole,
+        model: currentRole === 'owner' ? document.getElementById('wModel').value : 'Tenant Early Access',
+        submittedAt: new Date().toISOString()
+      };
+
+      try {
+        const saved = JSON.parse(localStorage.getItem('croww_waitlist') || '[]');
+        saved.push(payload);
+        localStorage.setItem('croww_waitlist', JSON.stringify(saved));
+      } catch (err) {
+        console.warn('LocalStorage save:', err);
+      }
+
+      document.getElementById('waitlistSuccess').classList.remove('hidden');
+      setTimeout(() => {
+        closeWaitlist();
+      }, 2500);
+    }
+  </script>
+</body>
+</html>
