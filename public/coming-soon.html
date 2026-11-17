@@ -3,55 +3,32 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>Croww | Rent on the Map — Next-Gen Property & Living Ecosystem</title>
+  <title>Croww | Rent on the Map</title>
   <meta name="description" content="Discover verified properties on an interactive map. Partner with Croww for 5-10 year capital leases, guaranteed monthly rent, zero vacancies, and turnkey furnishing." />
-  <meta property="og:title" content="Croww | Rent on the Map — Next-Gen Property & Living Ecosystem" />
-  <meta property="og:description" content="Map-based property discovery, 5-10 year capital leases, guaranteed rent, and furnished living. Joining cohorts in Bengaluru, Chennai & Hyderabad." />
-  <meta property="og:image" content="/croww-logo.png" />
-  <meta property="og:url" content="https://croww.ai" />
-  <meta name="twitter:card" content="summary_large_image" />
   <link rel="icon" href="/favicon.ico" />
 
-  <!-- Fonts & Tailwind -->
+  <!-- Fonts: Plus Jakarta Sans & Inter -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
       theme: {
         extend: {
           fontFamily: {
-            sans: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', 'sans-serif'],
-            heading: ['"Plus Jakarta Sans"', 'sans-serif'],
-            mono: ['"Space Grotesk"', 'monospace'],
+            sans: ['"Plus Jakarta Sans"', '"Inter"', 'system-ui', '-apple-system', 'sans-serif'],
           },
           colors: {
-            sky: {
-              400: '#38BDF8',
-              500: '#0EA5E9',
-              600: '#0284C7',
-              700: '#0369A1',
-              brand: '#0070F3',
-              deep: '#0058C6',
-            },
-            lime: {
-              brand: '#D4FF00',
-              hover: '#BCE600',
-              accent: '#A3E635',
-            },
-            surface: {
-              page: '#F8FAFC',
-              card: '#FFFFFF',
-              dark: '#0A0D14',
-              muted: '#F1F5F9',
+            brand: {
+              blue: '#0070F3',
+              deepBlue: '#0058C6',
+              sky: '#1E88E5',
+              lime: '#D5F934',
+              limeHover: '#C2E822',
             }
-          },
-          boxShadow: {
-            'bento': '0 4px 20px -2px rgba(0, 0, 0, 0.05), 0 2px 6px -1px rgba(0, 0, 0, 0.02)',
-            'bento-hover': '0 20px 35px -5px rgba(0, 0, 0, 0.08), 0 10px 15px -5px rgba(0, 0, 0, 0.04)',
-            'lime-glow': '0 10px 25px -5px rgba(212, 255, 0, 0.4)',
-            'blue-card': '0 12px 30px -8px rgba(0, 112, 243, 0.35)',
           }
         }
       }
@@ -59,39 +36,152 @@
   </script>
 
   <style>
+    * {
+      box-sizing: border-box;
+    }
     body {
-      background-color: #F8FAFC;
+      background-color: #FFFFFF;
       color: #0F172A;
-      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      font-family: 'Plus Jakarta Sans', 'Inter', system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
       -webkit-font-smoothing: antialiased;
     }
 
-    /* Hero Background with Sky Blue Gradient and Photorealistic Fluffy Clouds */
-    .hero-sky-card {
-      background: 
-        linear-gradient(180deg, 
-          rgba(0, 112, 243, 0.95) 0%, 
-          rgba(14, 165, 233, 0.88) 42%, 
-          rgba(255, 255, 255, 0.2) 85%,
-          rgba(255, 255, 255, 0.95) 100%),
-        url('https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=2400&q=85') center bottom / cover no-repeat;
+    /* Outer margin container matching Framer template */
+    .site-wrapper {
+      max-width: 1440px;
+      margin: 0 auto;
+      padding: 16px;
+    }
+    @media (min-width: 768px) {
+      .site-wrapper {
+        padding: 24px;
+      }
     }
 
-    /* 3D Perspective Card Arc Container */
-    .cards-arc-perspective {
-      perspective: 1200px;
-      perspective-origin: center bottom;
+    /* The Sky Blue Hero Container with Rounded Corners */
+    .hero-container {
+      background: linear-gradient(180deg, #0A72F6 0%, #1682FD 35%, #4298FE 65%, #6EAEFD 82%, #B1D5FE 94%, #FFFFFF 100%);
+      border-radius: 36px;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 20px 45px -15px rgba(10, 114, 246, 0.25);
+    }
+
+    /* Fluffy Clouds Layer at the bottom of the hero */
+    .clouds-backdrop {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 48%;
+      background: url('https://images.unsplash.com/photo-1534088568595-a066f410bcda?auto=format&fit=crop&w=2400&q=85') center bottom / cover no-repeat;
+      mix-blend-mode: screen;
+      opacity: 0.95;
+      pointer-events-none;
+      z-index: 1;
+    }
+
+    .clouds-gradient-fade {
+      position: absolute;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      height: 180px;
+      background: linear-gradient(to top, #FFFFFF 15%, rgba(255, 255, 255, 0.8) 50%, rgba(255, 255, 255, 0) 100%);
+      pointer-events-none;
+      z-index: 2;
+    }
+
+    /* 3D Arc Card Perspective */
+    .arc-container {
+      perspective: 1000px;
+      display: flex;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 12px;
+      position: relative;
+      z-index: 10;
     }
 
     .arc-card {
-      transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-      transform-style: preserve-3d;
-      box-shadow: 0 18px 40px -10px rgba(0, 0, 0, 0.18), 0 6px 12px -4px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.16), 0 4px 12px -2px rgba(0, 0, 0, 0.08);
+      border-radius: 18px;
+      flex-shrink: 0;
+      cursor: pointer;
     }
     .arc-card:hover {
-      transform: translateY(-12px) scale(1.05) !important;
-      z-index: 40 !important;
-      box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+      transform: translateY(-16px) scale(1.06) !important;
+      z-index: 30 !important;
+      box-shadow: 0 24px 48px -10px rgba(0, 0, 0, 0.24);
+    }
+
+    /* Buttons from reference picture */
+    .btn-view-demo {
+      background: rgba(0, 36, 100, 0.38);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      backdrop-filter: blur(12px);
+      color: #FFFFFF;
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 14px 28px;
+      border-radius: 9999px;
+      transition: all 0.2s ease;
+    }
+    .btn-view-demo:hover {
+      background: rgba(0, 36, 100, 0.55);
+      border-color: rgba(255, 255, 255, 0.4);
+    }
+
+    .btn-get-started {
+      background: #D5F934;
+      color: #000000;
+      font-weight: 800;
+      font-size: 11px;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      padding: 10px 10px 10px 24px;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 12px;
+      box-shadow: 0 10px 24px -4px rgba(213, 249, 52, 0.5);
+      transition: all 0.2s ease;
+    }
+    .btn-get-started:hover {
+      background: #C2E822;
+      transform: translateY(-1px);
+    }
+    .btn-get-started .arrow-bubble {
+      width: 32px;
+      height: 32px;
+      border-radius: 50%;
+      background: #000000;
+      color: #D5F934;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 13px;
+    }
+
+    .btn-buy-template {
+      background: #D5F934;
+      color: #000000;
+      font-weight: 800;
+      font-size: 10px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      padding: 10px 22px;
+      border-radius: 9999px;
+      box-shadow: 0 4px 14px rgba(213, 249, 52, 0.35);
+      transition: all 0.2s ease;
+    }
+    .btn-buy-template:hover {
+      background: #C2E822;
     }
 
     /* Range slider custom styling */
@@ -104,196 +194,183 @@
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      width: 26px;
-      height: 26px;
+      width: 24px;
+      height: 24px;
       border-radius: 50%;
       background: #0070F3;
       cursor: pointer;
       box-shadow: 0 2px 8px rgba(0, 112, 243, 0.4);
       border: 3px solid #ffffff;
-      transition: transform 0.15s ease, background 0.15s ease;
+      transition: transform 0.15s ease;
     }
     input[type=range]::-webkit-slider-thumb:hover {
       transform: scale(1.15);
-      background: #D4FF00;
-    }
-
-    /* Custom scrollbar */
-    ::-webkit-scrollbar {
-      width: 8px;
-    }
-    ::-webkit-scrollbar-track {
-      background: #F1F5F9;
-    }
-    ::-webkit-scrollbar-thumb {
-      background: #CBD5E1;
-      border-radius: 4px;
-    }
-    ::-webkit-scrollbar-thumb:hover {
-      background: #94A3B8;
+      background: #D5F934;
     }
   </style>
 </head>
-<body class="selection:bg-lime-brand selection:text-black">
+<body>
 
-  <!-- OUTER PADDING CONTAINER (Creates the framed modern template aesthetic) -->
-  <div class="p-3 sm:p-5 lg:p-6 max-w-[1600px] mx-auto">
-    
+  <div class="site-wrapper">
+
     <!-- ======================================================== -->
-    <!-- HERO SKY SECTION WITH CLOUDS & ARC OF FLOATING CARDS -->
+    <!-- 1. HERO SECTION (1:1 COLOR SCHEME & LAYOUT OF PICTURE)   -->
     <!-- ======================================================== -->
-    <section class="hero-sky-card rounded-[32px] sm:rounded-[44px] overflow-hidden relative shadow-xl pt-6 pb-20 sm:pb-28 px-4 sm:px-8 lg:px-14 border border-sky-400/30">
+    <div class="hero-container pt-7 pb-20 sm:pb-28 px-4 sm:px-8 lg:px-12">
       
-      <!-- TOP NAVIGATION BAR -->
-      <nav class="flex items-center justify-between h-16 sm:h-20 max-w-7xl mx-auto relative z-20">
+      <!-- Realistic Soft Clouds in Background -->
+      <div class="clouds-backdrop"></div>
+      <div class="clouds-gradient-fade"></div>
+
+      <!-- TOP NAVBAR -->
+      <nav class="flex items-center justify-between max-w-6xl mx-auto relative z-20">
+        
         <!-- BRAND LOGO (ONLY the logo image, strictly no text name written next to it) -->
-        <a href="#" class="flex items-center cursor-pointer transition-opacity hover:opacity-90">
+        <a href="#" class="flex items-center cursor-pointer">
           <img 
             src="/croww-logo.png" 
-            alt="Croww Logo" 
-            class="h-8 sm:h-9 md:h-10 w-auto object-contain brightness-0 invert drop-shadow-sm" 
+            alt="Croww" 
+            class="h-8 sm:h-9 w-auto object-contain brightness-0 invert drop-shadow-sm" 
           />
         </a>
 
-        <!-- CENTER NAVIGATION LINKS -->
-        <div class="hidden md:flex items-center space-x-7 lg:space-x-9 text-xs font-bold uppercase tracking-wider text-white/90">
-          <a href="#about" class="hover:text-white transition-colors">About Us</a>
-          <a href="#map-section" class="hover:text-white transition-colors">Map Discovery</a>
-          <a href="#owner-models" class="hover:text-white transition-colors">Owner Leases</a>
-          <a href="#scale-engine" class="hover:text-white transition-colors">Revenue Model</a>
-          <a href="#services" class="hover:text-white transition-colors">Furnishing & Loans</a>
+        <!-- NAV LINKS -->
+        <div class="hidden md:flex items-center space-x-8 text-xs font-bold uppercase tracking-wider text-white">
+          <a href="#about" class="hover:text-white/80 transition-colors">Home</a>
+          <a href="#map-section" class="hover:text-white/80 transition-colors">Map Discovery</a>
+          <a href="#owner-models" class="hover:text-white/80 transition-colors">Owner Models</a>
+          <a href="#scale-engine" class="hover:text-white/80 transition-colors">Scale Model</a>
+          <a href="#services" class="hover:text-white/80 transition-colors">Furnishing & Loans</a>
         </div>
 
-        <!-- RIGHT CTA: BRIGHT NEON LIME PILL BUTTON -->
+        <!-- TOP RIGHT PILL BUTTON (In matching yellow-lime) -->
         <div class="flex items-center space-x-3">
-          <button 
-            onclick="openWaitlist('owner')" 
-            class="hidden sm:inline-flex items-center px-4 py-2.5 rounded-full text-xs font-bold uppercase tracking-wider text-white bg-white/15 hover:bg-white/25 backdrop-blur-md border border-white/25 transition-all">
-            Partner Property
-          </button>
-          <button 
-            onclick="openWaitlist('tenant')" 
-            class="inline-flex items-center px-5 sm:px-6 py-2.5 rounded-full text-xs font-black uppercase tracking-wider text-black bg-lime-brand hover:bg-lime-hover shadow-lime-glow transition-all transform hover:-translate-y-0.5">
-            Join Waitlist
+          <button onclick="openWaitlist('owner')" class="btn-buy-template">
+            Partner With Us
           </button>
         </div>
       </nav>
 
       <!-- HERO HEADLINE & TEXT -->
-      <div class="text-center max-w-4xl mx-auto pt-14 sm:pt-20 pb-10 sm:pb-14 relative z-10">
+      <div class="text-center max-w-4xl mx-auto pt-16 sm:pt-24 pb-12 relative z-20">
         
-        <!-- Pilot Cohort Pill -->
-        <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-white/20 backdrop-blur-md border border-white/30 text-white text-xs font-bold tracking-wide uppercase mb-6 shadow-sm">
-          <span class="w-2 h-2 rounded-full bg-lime-brand animate-pulse"></span>
-          <span>Pilot Launch • 10 Founding Buildings in Bengaluru & Chennai</span>
-        </div>
-
-        <!-- Big Clean Headline -->
         <h1 class="text-4xl sm:text-6xl lg:text-7xl font-extrabold text-white tracking-tight leading-[1.12]">
-          Building the future of living with <br class="hidden sm:inline"/>
-          <span class="text-white drop-shadow-sm">map-first living & leases</span>
+          Building the future with <br />
+          map-first homes and leases
         </h1>
 
-        <p class="mt-6 text-base sm:text-lg text-white/90 max-w-2xl mx-auto font-medium leading-relaxed">
-          We help tenants discover verified properties on an Airbnb-style interactive map, 
-          and empower property owners with guaranteed 5–10 year leases, zero vacancies, and institutional care.
+        <p class="mt-6 text-base sm:text-lg text-white/95 max-w-2xl mx-auto font-medium leading-relaxed drop-shadow-sm">
+          We help tenants discover verified homes on an interactive map, and empower owners with guaranteed 5–10 year leases, zero vacancies, and institutional care.
         </p>
 
-        <!-- Action Buttons -->
-        <div class="mt-9 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <a href="#map-section" class="w-full sm:w-auto px-7 py-3.5 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider border border-white/35 transition-all text-center">
+        <!-- CTAs (Matching View Demo + Get Started) -->
+        <div class="mt-9 flex items-center justify-center gap-3.5">
+          <a href="#map-section" class="btn-view-demo">
             View Map Demo
           </a>
 
-          <button onclick="openWaitlist('tenant')" class="w-full sm:w-auto px-7 py-3.5 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-black text-xs uppercase tracking-wider shadow-lime-glow transition-all flex items-center justify-center space-x-3 group">
+          <button onclick="openWaitlist('tenant')" class="btn-get-started">
             <span>Get Started</span>
-            <span class="w-6 h-6 rounded-full bg-black text-lime-brand flex items-center justify-center text-xs group-hover:translate-x-0.5 group-hover:-translate-y-0.5 transition-transform">↗</span>
+            <div class="arrow-bubble">↗</div>
           </button>
         </div>
 
       </div>
 
       <!-- ======================================================== -->
-      <!-- 3D FLOATING ARC OF CARDS OVER CLOUDS (Like Reference Pic) -->
+      <!-- 3D FLOATING ARC OF 8 PERSPECTIVE CARDS OVER CLOUDS       -->
       <!-- ======================================================== -->
-      <div class="cards-arc-perspective relative z-20 max-w-6xl mx-auto mt-4 sm:mt-8 pt-4 pb-8 overflow-x-auto sm:overflow-visible flex items-center justify-center gap-3 sm:gap-4 px-2 no-scrollbar">
+      <div class="arc-container max-w-6xl mx-auto pt-4 pb-6 overflow-x-auto sm:overflow-visible px-2 no-scrollbar">
         
-        <!-- Card 1 (Far Left, Tilted Left) -->
-        <div class="arc-card w-48 sm:w-56 bg-white rounded-2xl p-4 border border-slate-100 flex-shrink-0" style="transform: rotate(-10deg) translateY(18px);">
-          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Map Pin Radar</div>
-          <div class="mt-2 text-xl font-extrabold text-slate-900">₹48,000<span class="text-xs font-normal text-slate-500">/mo</span></div>
-          <div class="text-xs font-semibold text-slate-700 mt-1">Indiranagar 3BHK</div>
-          <div class="mt-3 flex items-center space-x-1.5">
-            <span class="px-2 py-0.5 text-[9px] font-bold rounded bg-emerald-100 text-emerald-800">Flood: Safe</span>
-            <span class="px-2 py-0.5 text-[9px] font-bold rounded bg-sky-100 text-sky-800">3D Tour</span>
-          </div>
+        <!-- Card 1: Far Left -->
+        <div class="arc-card w-40 sm:w-44 bg-white p-3.5 border border-slate-100 hidden lg:block" style="transform: rotate(-12deg) translateY(24px);">
+          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Map Pin</div>
+          <div class="mt-1 text-base font-extrabold text-slate-900">₹48,000</div>
+          <div class="text-[10px] font-semibold text-slate-700">Indiranagar 3BHK</div>
+          <span class="inline-block mt-2 px-1.5 py-0.5 text-[8px] font-bold rounded bg-emerald-100 text-emerald-800">Flood: Safe</span>
         </div>
 
-        <!-- Card 2 (Mid Left, Slight Tilt) -->
-        <div class="arc-card w-48 sm:w-56 bg-white rounded-2xl p-4 border border-slate-100 flex-shrink-0" style="transform: rotate(-5deg) translateY(6px);">
-          <div class="text-[10px] font-bold text-sky-600 uppercase tracking-wider">Capital Lease</div>
-          <div class="mt-2 text-2xl font-black text-slate-900">100%</div>
-          <div class="text-xs font-semibold text-slate-700 mt-1">Principal Return</div>
-          <p class="text-[10px] text-slate-500 mt-1 leading-tight">5 to 10 year lease with zero landlord repairs.</p>
+        <!-- Card 2: Mid-Left -->
+        <div class="arc-card w-44 sm:w-48 bg-white p-4 border border-slate-100" style="transform: rotate(-7deg) translateY(12px);">
+          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Capital Lease</div>
+          <div class="mt-1 text-xl font-black text-slate-900">100%</div>
+          <div class="text-[10px] font-bold text-sky-600">Principal Return</div>
+          <p class="text-[9px] text-slate-500 mt-1">5-10 yr guaranteed capital return.</p>
         </div>
 
-        <!-- Card 3 (Center Highlight, Upright with Photo/Profile) -->
-        <div class="arc-card w-56 sm:w-64 bg-white rounded-2xl p-4 border-2 border-sky-500 shadow-2xl flex-shrink-0 z-30" style="transform: rotate(0deg) translateY(-8px);">
-          <div class="flex items-center justify-between">
-            <span class="px-2 py-0.5 text-[9px] font-extrabold rounded-full bg-lime-brand text-black uppercase">Croww Managed</span>
-            <span class="text-xs font-bold text-sky-600">Verified Pin</span>
-          </div>
-          <div class="mt-3 w-full h-24 rounded-xl overflow-hidden relative">
+        <!-- Card 3: Photo Resident Card (Matches Picture) -->
+        <div class="arc-card w-48 sm:w-52 bg-white p-3 border border-slate-200" style="transform: rotate(-3deg) translateY(2px);">
+          <div class="w-full h-24 rounded-xl overflow-hidden relative">
             <img 
-              src="https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?auto=format&fit=crop&w=600&q=80" 
-              alt="Apartment" 
+              src="https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?auto=format&fit=crop&w=400&q=80" 
+              alt="Resident" 
               class="w-full h-full object-cover" 
             />
-            <div class="absolute bottom-1.5 left-1.5 bg-black/70 backdrop-blur-sm text-white px-2 py-0.5 rounded text-[10px] font-bold">
-              Koramangala 4th Block
-            </div>
           </div>
-          <div class="mt-3 flex justify-between items-center text-xs">
+          <div class="mt-2 flex justify-between items-center text-[10px]">
             <span class="font-bold text-slate-900">₹36,000/mo</span>
-            <span class="text-[10px] font-semibold text-emerald-600">Zero Deposit EMI</span>
+            <span class="font-bold text-emerald-600">Verified Pin</span>
           </div>
         </div>
 
-        <!-- Card 4 (Mid Right, Slight Tilt Right) -->
-        <div class="arc-card w-48 sm:w-56 bg-surface-dark text-white rounded-2xl p-4 flex-shrink-0" style="transform: rotate(5deg) translateY(6px);">
-          <div class="flex items-center justify-between">
-            <span class="text-[10px] font-mono text-lime-brand uppercase tracking-wider">Pilot Cohort</span>
-            <span class="text-[10px] bg-white/20 px-1.5 py-0.5 rounded">10 Units</span>
+        <!-- Card 4: Center Metric Chart (Matches Picture) -->
+        <div class="arc-card w-52 sm:w-56 bg-white p-4 border-2 border-brand-blue shadow-2xl z-30" style="transform: rotate(0deg) translateY(-8px);">
+          <div class="text-[9px] font-bold text-sky-600 uppercase tracking-wider">Area Intelligence</div>
+          <div class="text-xs font-bold text-slate-800 mt-0.5">Koramangala 4th Block</div>
+          
+          <!-- Simulated sparkline -->
+          <div class="mt-2 h-10 w-full flex items-end space-x-1 border-b border-slate-100 pb-1">
+            <div class="flex-1 bg-sky-200 rounded-t h-4"></div>
+            <div class="flex-1 bg-sky-300 rounded-t h-6"></div>
+            <div class="flex-1 bg-sky-400 rounded-t h-5"></div>
+            <div class="flex-1 bg-sky-500 rounded-t h-8"></div>
+            <div class="flex-1 bg-brand-blue rounded-t h-10"></div>
           </div>
-          <div class="mt-3 text-lg font-bold">Whole Building</div>
-          <div class="text-xs text-slate-400 mt-0.5">Complex Master Lease</div>
-          <div class="mt-3 pt-2 border-t border-white/10 text-[10px] text-slate-300">
-            End-to-end society management.
+          <div class="mt-2 flex justify-between text-[9px] font-semibold text-slate-500">
+            <span>Class A Safe</span>
+            <span class="text-brand-blue font-bold">350m Metro</span>
           </div>
         </div>
 
-        <!-- Card 5 (Far Right, Tilted Right) -->
-        <div class="arc-card w-48 sm:w-56 bg-white rounded-2xl p-4 border border-slate-100 flex-shrink-0" style="transform: rotate(10deg) translateY(18px);">
-          <div class="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Scale Target</div>
-          <div class="mt-2 text-2xl font-black text-sky-600">₹20 Cr+</div>
-          <div class="text-xs font-semibold text-slate-700 mt-1">Monthly Cushion</div>
-          <p class="text-[10px] text-slate-500 mt-1 leading-tight">Projected @ 1,00,000 homes at ₹2k spread.</p>
+        <!-- Card 5: Dark Card (Matches Picture) -->
+        <div class="arc-card w-48 sm:w-52 bg-[#0F172A] text-white p-4" style="transform: rotate(4deg) translateY(2px);">
+          <div class="text-[9px] font-mono text-[#D5F934] uppercase tracking-wider">Pilot Cohort</div>
+          <div class="mt-1 text-sm font-bold">10 Buildings</div>
+          <div class="text-[9px] text-slate-400 mt-1">Whole Complex Leases</div>
+          <div class="mt-3 pt-2 border-t border-white/10 text-[9px] text-slate-300">
+            Bengaluru & Chennai Tech Hubs
+          </div>
+        </div>
+
+        <!-- Card 6: Blue Gradient Card (Matches Picture) -->
+        <div class="arc-card w-44 sm:w-48 bg-gradient-to-br from-brand-blue to-sky-600 text-white p-4" style="transform: rotate(8deg) translateY(12px);">
+          <div class="text-[9px] font-bold text-white/80 uppercase tracking-wider">Furnished Pack</div>
+          <div class="mt-1 text-sm font-black">Furlenco / RentoMojo</div>
+          <div class="text-[9px] text-white/90 mt-1">Rent-to-own packages</div>
+        </div>
+
+        <!-- Card 7: Far Right Metric Card -->
+        <div class="arc-card w-40 sm:w-44 bg-white p-3.5 border border-slate-100 hidden lg:block" style="transform: rotate(12deg) translateY(24px);">
+          <div class="text-[9px] font-bold text-slate-400 uppercase tracking-wider">Scale Cushion</div>
+          <div class="mt-1 text-base font-extrabold text-brand-blue">₹20 Cr+</div>
+          <div class="text-[9px] font-semibold text-slate-600">Monthly Yield</div>
+          <div class="text-[8px] text-slate-400 mt-1">@ 1 Lakh Homes</div>
         </div>
 
       </div>
 
       <!-- Rating & Social Proof Under Arc -->
-      <div class="text-center mt-6 relative z-10 text-white/90 text-xs font-semibold flex items-center justify-center space-x-1.5">
-        <span>Rated 4.9/5 by 4,900+ early tenants & owners</span>
-        <span class="text-lime-brand text-sm tracking-widest">★★★★★</span>
+      <div class="text-center mt-6 relative z-20 text-white font-semibold text-xs flex items-center justify-center space-x-1.5 drop-shadow-sm">
+        <span>Rated 4.9/5 by 4,900+ clients</span>
+        <span class="text-[#D5F934] text-sm tracking-widest">★★★★★</span>
       </div>
 
-    </section>
+    </div>
 
     <!-- ======================================================== -->
-    <!-- ECOSYSTEM & PARTNER MARQUEE (Clean Subtle Monochrome) -->
+    <!-- 2. LOGO ROW (Matches Gray Logoipsum Row in Picture)       -->
     <!-- ======================================================== -->
-    <div class="py-10 px-4 max-w-6xl mx-auto flex flex-wrap items-center justify-center gap-8 sm:gap-14 text-slate-400 text-xs font-bold uppercase tracking-widest opacity-70">
+    <div class="py-10 px-4 flex flex-wrap items-center justify-center gap-8 sm:gap-14 text-slate-400 text-xs font-bold uppercase tracking-widest opacity-80 border-b border-slate-100">
       <div class="flex items-center space-x-2">
         <span class="text-base">🏢</span>
         <span>Prestige Group</span>
@@ -312,44 +389,50 @@
       </div>
       <div class="flex items-center space-x-2">
         <span class="text-base">🏦</span>
-        <span>HDFC & NBFC Lending</span>
+        <span>HDFC Capital</span>
+      </div>
+      <div class="flex items-center space-x-2">
+        <span class="text-base">💳</span>
+        <span>ICICI Lending</span>
       </div>
     </div>
 
     <!-- ======================================================== -->
-    <!-- BENTO GRID SECTION: "ABOUT US / THE PLATFORM" -->
+    <!-- 3. BENTO GRID SECTION (1:1 STRUCTURE OF PICTURE)         -->
     <!-- ======================================================== -->
-    <section id="about" class="py-12 sm:py-16 px-4 max-w-7xl mx-auto">
+    <section id="about" class="py-14 sm:py-20 px-2 sm:px-4 max-w-6xl mx-auto">
       
-      <!-- Section Tag & Big Title with Inline Badges (Matching Screenshot) -->
+      <!-- Section Tag & Title with Inline Pill Badges -->
       <div class="text-center max-w-3xl mx-auto mb-14">
-        <div class="text-xs font-bold text-sky-600 uppercase tracking-widest mb-3">
-          • About Croww
+        <div class="text-xs font-bold text-slate-400 uppercase tracking-widest mb-3">
+          • About Us
         </div>
         <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 tracking-tight leading-tight">
-          A map-first property platform dedicated to renting 
-          <span class="inline-flex items-center align-middle mx-1.5 px-3 py-1 rounded-full bg-sky-500 text-white text-base sm:text-xl font-bold shadow-sm">
+          A map-based property platform <br />
+          dedicated to building 
+          <span class="inline-flex items-center align-middle mx-1 px-3 py-1 rounded-full bg-brand-sky text-white text-base sm:text-xl font-bold">
             🔵 smarter
           </span>
           and 
-          <span class="inline-flex items-center align-middle mx-1.5 px-3 py-1 rounded-full bg-lime-brand text-black text-base sm:text-xl font-bold shadow-sm">
+          <span class="inline-flex items-center align-middle mx-1 px-3 py-1 rounded-full bg-[#D5F934] text-black text-base sm:text-xl font-bold">
             🟢 more adaptive
           </span>
         </h2>
       </div>
 
-      <!-- BENTO GRID -->
+      <!-- BENTO GRID (4 Cards matching picture layout) -->
       <div class="grid grid-cols-1 md:grid-cols-12 gap-5 sm:gap-6">
         
-        <!-- BENTO CARD 1: ELECTRIC BLUE HERO CARD (Matches Reference Image) -->
-        <div class="md:col-span-4 bg-sky-600 rounded-[28px] p-6 text-white flex flex-col justify-between shadow-blue-card relative overflow-hidden group min-h-[340px]">
-          <div class="relative z-10 flex justify-between items-center">
-            <span class="text-xs font-black tracking-widest uppercase text-sky-100">CROWW MAP</span>
-            <span class="w-8 h-8 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center text-white text-xs">🗺️</span>
+        <!-- CARD 1 (LEFT): VIBRANT BLUE CARD WITH PHOTO & WHITE BADGE -->
+        <div class="md:col-span-4 bg-[#1E88E5] rounded-[28px] p-6 text-white flex flex-col justify-between shadow-lg relative min-h-[380px]">
+          <div class="flex justify-between items-center">
+            <span class="font-extrabold tracking-wider text-white text-lg">CROWW</span>
+            <span class="w-8 h-8 rounded-full bg-white/20 flex items-center justify-center text-xs">🗺️</span>
           </div>
 
-          <div class="my-auto py-6 relative z-10">
-            <div class="w-20 h-20 rounded-full mx-auto overflow-hidden border-2 border-white/60 shadow-lg">
+          <!-- Photo in center -->
+          <div class="my-auto py-4 flex justify-center">
+            <div class="w-24 h-24 rounded-full overflow-hidden border-2 border-white/60 shadow-md">
               <img 
                 src="https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80" 
                 alt="Resident" 
@@ -358,61 +441,59 @@
             </div>
           </div>
 
-          <!-- White badge at bottom -->
-          <div class="bg-white rounded-2xl p-4 text-slate-900 shadow-md relative z-10">
-            <div class="text-2xl font-black text-sky-600">100%</div>
-            <div class="text-xs font-bold text-slate-900 mt-0.5">Map-First Real Coordinates</div>
-            <p class="text-[11px] text-slate-500 mt-1 leading-snug">
-              Unlike legacy portals cluttered with fake broker spam, browse real properties visually on the map.
+          <!-- White stat badge at bottom -->
+          <div class="bg-white rounded-2xl p-5 text-slate-900 shadow-sm">
+            <div class="text-3xl font-black text-slate-900">100%</div>
+            <p class="text-xs text-slate-500 mt-1 font-medium leading-relaxed">
+              Map-first property exploration. Verified coordinates, zero fake broker listings, 3D spatial tours.
             </p>
           </div>
         </div>
 
-        <!-- BENTO CARD 2: CLEAN WHITE STAT & SOCIAL PROOF CARD -->
-        <div class="md:col-span-4 bg-white rounded-[28px] p-6 sm:p-7 border border-slate-200/80 shadow-bento flex flex-col justify-between">
+        <!-- CARD 2 (CENTER): WHITE CARD WITH 100% & AVATARS -->
+        <div class="md:col-span-4 bg-white rounded-[28px] p-6 sm:p-7 border border-slate-200 shadow-sm flex flex-col justify-between min-h-[380px]">
           <div>
-            <div class="text-xs font-bold text-slate-400 uppercase tracking-wider">Commitment to measurable</div>
-            <div class="text-4xl sm:text-5xl font-black text-slate-900 mt-2">100%</div>
-            <div class="text-sm font-bold text-slate-800 mt-1">Capital Return on 5-Yr Leases</div>
+            <div class="text-xs font-semibold text-slate-400">Commitment to measurable</div>
+            <div class="text-5xl font-black text-slate-900 mt-2">100%</div>
+            <div class="text-sm font-bold text-slate-800 mt-1">Capital Return on 5-Year Leases</div>
             <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-              Property owners get their full principal returned at term conclusion, with zero repair deductions.
+              Property owners get their full agreed principal returned at term end, with zero landlord maintenance deductions.
             </p>
           </div>
 
-          <div class="mt-6 pt-5 border-t border-slate-100 flex items-center space-x-3">
-            <div class="flex -space-x-2 overflow-hidden">
+          <div class="mt-8 pt-6 border-t border-slate-100">
+            <div class="flex -space-x-2 overflow-hidden mb-3">
               <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=120&q=80" alt="Avatar"/>
               <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=120&q=80" alt="Avatar"/>
               <img class="inline-block h-8 w-8 rounded-full ring-2 ring-white object-cover" src="https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=120&q=80" alt="Avatar"/>
             </div>
-            <div class="text-[11px] text-slate-600 font-medium">
-              <em>"Zero vacancy headache and rent on the 1st without fail."</em>
-            </div>
+            <p class="text-xs text-slate-600 italic">
+              "Their master lease completely reshaped how we manage rentals. Guaranteed rent on the 1st with zero vacancies."
+            </p>
           </div>
         </div>
 
-        <!-- BENTO CARD 3 & 4: BRIGHT LIME CARD & SLEEK BLACK CARD -->
-        <div class="md:col-span-4 flex flex-col gap-5 sm:gap-6">
+        <!-- CARD 3 & 4 (RIGHT): LIME YELLOW CARD & BLACK PILL CARD -->
+        <div class="md:col-span-4 flex flex-col gap-5 justify-between">
           
           <!-- Bright Neon Lime Card -->
-          <div class="bg-lime-brand rounded-[28px] p-6 sm:p-7 flex-1 shadow-bento flex flex-col justify-between">
+          <div class="bg-[#D5F934] rounded-[28px] p-6 sm:p-7 flex-1 shadow-sm flex flex-col justify-between">
             <div>
-              <div class="text-xs font-black text-black/70 uppercase tracking-wider">Unit Economics Spread</div>
-              <div class="text-4xl font-black text-black mt-2">₹20 Cr+</div>
-              <div class="text-xs font-bold text-black/80 mt-1">Monthly Cushion @ 1 Lakh Homes</div>
+              <div class="text-xs font-black text-black/70 uppercase tracking-wider">Unit Economics</div>
+              <div class="text-5xl font-black text-black mt-2">₹20 Cr+</div>
+              <p class="text-xs text-black/80 mt-3 font-medium leading-relaxed">
+                Analyzed monthly operating cushion at 1,00,000 managed homes at a modest ₹2,000/mo spread.
+              </p>
             </div>
-            <p class="text-xs text-black/80 mt-3 leading-relaxed font-medium">
-              A manageable ₹2,000 monthly operating spread per home scales into a recurring institutional cashflow engine.
-            </p>
+            <div class="text-[10px] font-bold text-black/60 uppercase tracking-wider mt-4">
+              Scalable Institutional Cashflow
+            </div>
           </div>
 
-          <!-- Sleek Dark Pill Card -->
-          <div class="bg-surface-dark text-white rounded-[24px] p-5 flex items-center justify-between shadow-bento">
-            <div>
-              <div class="text-[10px] font-mono text-lime-brand uppercase tracking-wider">Pilot Cohort</div>
-              <div class="text-base font-bold">10 Founding Buildings</div>
-            </div>
-            <div class="text-2xl font-black font-mono text-white">10</div>
+          <!-- Black Pill Card -->
+          <div class="bg-[#0A0D14] text-white rounded-[24px] p-5 flex items-center justify-between shadow-sm">
+            <span class="text-xs font-bold text-slate-300">Pilot Cohort</span>
+            <span class="text-xl font-black text-white">10 Buildings</span>
           </div>
 
         </div>
@@ -421,49 +502,37 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- INTERACTIVE MAP SIMULATION (Apple/Airbnb Style Light UI) -->
+    <!-- 4. INTERACTIVE MAP PREVIEW (Airbnb Style on Map)          -->
     <!-- ======================================================== -->
-    <section id="map-section" class="py-12 px-4 max-w-7xl mx-auto">
+    <section id="map-section" class="py-12 px-2 sm:px-4 max-w-6xl mx-auto">
       
-      <div class="text-center max-w-2xl mx-auto mb-10">
-        <span class="text-xs font-bold text-sky-600 uppercase tracking-widest">• Visual Exploration</span>
-        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-2">
-          Airbnb's Map Simplicity. For Long-Term Living.
+      <div class="text-center max-w-2xl mx-auto mb-8">
+        <span class="text-xs font-bold text-brand-blue uppercase tracking-widest">• Interactive Map</span>
+        <h2 class="text-3xl font-extrabold text-slate-900 mt-1">
+          Explore on the Map. Click pins to preview.
         </h2>
-        <p class="text-slate-500 text-sm mt-2">
-          Pick your neighborhood, see verified public pins, flood vulnerability ratings, and 3D walkthroughs.
-        </p>
       </div>
 
-      <div class="bg-white rounded-[32px] border border-slate-200/90 shadow-bento overflow-hidden relative">
+      <div class="bg-white rounded-[32px] border border-slate-200 shadow-sm overflow-hidden relative">
         
         <!-- Top Toolbar -->
-        <div class="p-4 bg-slate-50/90 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
+        <div class="p-4 bg-slate-50 border-b border-slate-200 flex flex-wrap items-center justify-between gap-3">
           <div class="flex items-center space-x-1.5 bg-white p-1 rounded-full border border-slate-200 shadow-sm">
-            <button onclick="setCity('blr')" id="city-blr" class="px-4 py-1.5 rounded-full text-xs font-bold bg-sky-600 text-white transition-all">Bengaluru</button>
+            <button onclick="setCity('blr')" id="city-blr" class="px-4 py-1.5 rounded-full text-xs font-bold bg-brand-blue text-white transition-all">Bengaluru</button>
             <button onclick="setCity('chn')" id="city-chn" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Chennai</button>
             <button onclick="setCity('hyd')" id="city-hyd" class="px-4 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all">Hyderabad</button>
           </div>
 
-          <div class="flex items-center space-x-2 text-xs font-medium text-slate-600 overflow-x-auto">
-            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 font-bold border border-emerald-200 flex items-center space-x-1">
-              <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
-              <span>Croww Managed</span>
-            </span>
-            <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700">5-Yr Long Lease</span>
-            <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700">Furnished Ready</span>
-            <span class="px-3 py-1 rounded-full bg-slate-100 text-slate-700">3D Spatial Tour</span>
-          </div>
-
-          <div class="text-xs text-slate-500 font-mono hidden md:block">
-            📍 Interactive Canvas
+          <div class="flex items-center space-x-2 text-xs font-semibold text-slate-600">
+            <span class="px-3 py-1 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-200">Croww Managed</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100">5-Yr Lease</span>
+            <span class="px-3 py-1 rounded-full bg-slate-100">Furnished</span>
           </div>
         </div>
 
-        <!-- Map Graphic Body -->
-        <div class="relative h-[480px] sm:h-[520px] w-full bg-[#EBF2F7] overflow-hidden select-none" id="mapCanvas">
+        <!-- Map Canvas Graphic Area -->
+        <div class="relative h-[440px] sm:h-[480px] w-full bg-[#EBF2F7] overflow-hidden select-none" id="mapCanvas">
           
-          <!-- Vector streets and river lines -->
           <svg class="absolute inset-0 w-full h-full opacity-40 pointer-events-none" xmlns="http://www.w3.org/2000/svg">
             <path d="M-50,180 Q250,120 500,260 T1100,200 T1600,320" fill="none" stroke="#CBD5E1" stroke-width="48" />
             <path d="M-20,400 Q400,340 800,480 T1500,420" fill="none" stroke="#93C5FD" stroke-width="26" opacity="0.6" />
@@ -471,84 +540,74 @@
           </svg>
 
           <!-- Area Labels -->
-          <div class="absolute top-10 left-12 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">INDIRANAGAR TECH HUB</div>
-          <div class="absolute bottom-20 left-24 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">KORAMANGALA 4TH BLOCK</div>
-          <div class="absolute top-20 right-24 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">WHITEFIELD EPIP ZONE</div>
-          <div class="absolute bottom-16 right-36 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">HSR LAYOUT SECTOR 2</div>
+          <div class="absolute top-8 left-10 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">INDIRANAGAR</div>
+          <div class="absolute bottom-16 left-20 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">KORAMANGALA</div>
+          <div class="absolute top-16 right-20 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">WHITEFIELD</div>
+          <div class="absolute bottom-14 right-28 text-xs font-mono font-bold tracking-widest text-slate-400 uppercase pointer-events-none">HSR LAYOUT</div>
 
-          <!-- MAP PINS -->
           <!-- Pin 0: Indiranagar -->
           <div onclick="selectPin(0)" id="pin-0" class="absolute top-[28%] left-[24%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
-            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-lg border border-slate-200 flex items-center space-x-1.5">
-              <span class="w-2 h-2 rounded-full bg-sky-500"></span>
-              <span>₹48,000</span>
+            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-md border border-slate-200">
+              ₹48,000
             </div>
             <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1 border-r border-b border-slate-200"></div>
           </div>
 
           <!-- Pin 1: Koramangala (Active) -->
           <div onclick="selectPin(1)" id="pin-1" class="absolute top-[60%] left-[34%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-30 scale-125">
-            <div class="px-4 py-1.5 rounded-full bg-sky-600 text-white font-black text-xs shadow-xl border-2 border-white flex items-center space-x-1.5">
+            <div class="px-4 py-1.5 rounded-full bg-brand-blue text-white font-black text-xs shadow-lg border-2 border-white flex items-center space-x-1">
               <span>₹36,000</span>
-              <span class="text-[9px] px-1 py-0.2 bg-lime-brand text-black font-extrabold rounded">3D</span>
+              <span class="text-[9px] px-1 bg-[#D5F934] text-black font-extrabold rounded">3D</span>
             </div>
-            <div class="w-2 h-2 bg-sky-600 rotate-45 mx-auto -mt-1 border-r border-b border-white"></div>
+            <div class="w-2 h-2 bg-brand-blue rotate-45 mx-auto -mt-1 border-r border-b border-white"></div>
           </div>
 
-          <!-- Pin 2: HSR Layout -->
+          <!-- Pin 2: HSR -->
           <div onclick="selectPin(2)" id="pin-2" class="absolute top-[72%] right-[32%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
-            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-lg border border-slate-200 flex items-center space-x-1.5">
-              <span>₹28,500</span>
+            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-md border border-slate-200">
+              ₹28,500
             </div>
             <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1 border-r border-b border-slate-200"></div>
           </div>
 
           <!-- Pin 3: Whitefield -->
           <div onclick="selectPin(3)" id="pin-3" class="absolute top-[32%] right-[22%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
-            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-lg border border-slate-200 flex items-center space-x-1.5">
-              <span>₹65,000</span>
+            <div class="px-3.5 py-1.5 rounded-full bg-white text-slate-900 font-extrabold text-xs shadow-md border border-slate-200">
+              ₹65,000
             </div>
             <div class="w-2 h-2 bg-white rotate-45 mx-auto -mt-1 border-r border-b border-slate-200"></div>
           </div>
 
-          <!-- Pin 4: Whole Building Complex -->
-          <div onclick="selectPin(4)" id="pin-4" class="absolute top-[48%] left-[55%] transform -translate-x-1/2 -translate-y-1/2 cursor-pointer transition-transform hover:scale-110 z-20">
-            <div class="px-4 py-1.5 rounded-full bg-surface-dark text-white font-extrabold text-xs shadow-xl border-2 border-lime-brand flex items-center space-x-1.5">
-              <span>🏢 10-Unit Complex</span>
-            </div>
-            <div class="w-2 h-2 bg-surface-dark rotate-45 mx-auto -mt-1 border-r border-b border-lime-brand"></div>
-          </div>
-
           <!-- Floating Property Preview Card -->
-          <div id="propertyPreviewCard" class="absolute bottom-4 left-4 right-4 sm:right-auto sm:left-6 sm:w-96 bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xl z-40 transition-all duration-300">
+          <div id="propertyPreviewCard" class="absolute bottom-4 left-4 right-4 sm:right-auto sm:left-6 sm:w-96 bg-white p-5 rounded-2xl border border-slate-200 shadow-xl z-40">
             <div class="flex items-start justify-between">
-              <span id="cardBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold tracking-wider uppercase bg-sky-100 text-sky-700">
+              <span id="cardBadge" class="px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase bg-sky-100 text-sky-700">
                 Croww Managed • Master Lease
               </span>
               <span id="cardPrice" class="text-xl font-black text-slate-900">₹36,000/mo</span>
             </div>
 
-            <h3 id="cardTitle" class="text-base font-bold text-slate-900 mt-2.5">Greenwood Sovereign 2BHK</h3>
+            <h3 id="cardTitle" class="text-base font-bold text-slate-900 mt-2">Greenwood Sovereign 2BHK</h3>
             <p id="cardLocation" class="text-xs text-slate-500">5th Cross, 4th Block, Koramangala, Bengaluru</p>
 
-            <div class="mt-3.5 grid grid-cols-3 gap-2 text-center">
-              <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+            <div class="mt-3 grid grid-cols-3 gap-2 text-center text-xs">
+              <div class="bg-slate-50 p-2 rounded-xl">
                 <div class="text-[9px] text-slate-400 font-bold uppercase">3D Tour</div>
-                <div id="cardTour" class="text-xs font-bold text-sky-600">Spatial Ready</div>
+                <div id="cardTour" class="font-bold text-brand-blue">Spatial Ready</div>
               </div>
-              <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+              <div class="bg-slate-50 p-2 rounded-xl">
                 <div class="text-[9px] text-slate-400 font-bold uppercase">Flood Risk</div>
-                <div id="cardFlood" class="text-xs font-bold text-emerald-600">LOW (Class A)</div>
+                <div id="cardFlood" class="font-bold text-emerald-600">LOW (Class A)</div>
               </div>
-              <div class="bg-slate-50 p-2 rounded-xl border border-slate-100">
+              <div class="bg-slate-50 p-2 rounded-xl">
                 <div class="text-[9px] text-slate-400 font-bold uppercase">Metro</div>
-                <div id="cardMetro" class="text-xs font-bold text-slate-800">450m Walk</div>
+                <div id="cardMetro" class="font-bold text-slate-800">450m Walk</div>
               </div>
             </div>
 
             <div class="mt-4 pt-3 border-t border-slate-100 flex items-center justify-between text-xs">
-              <span class="text-slate-500 font-medium">Furnishing: <strong id="cardFurnish" class="text-slate-800">Smart Pack</strong></span>
-              <button onclick="openWaitlist('tenant')" class="px-4 py-2 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-extrabold text-xs shadow-sm transition-all">
+              <span class="text-slate-500">Furnishing: <strong id="cardFurnish" class="text-slate-800">Smart Pack</strong></span>
+              <button onclick="openWaitlist('tenant')" class="px-4 py-2 rounded-full bg-[#D5F934] text-black font-extrabold text-xs shadow-sm">
                 Reserve Viewing
               </button>
             </div>
@@ -560,297 +619,162 @@
     </section>
 
     <!-- ======================================================== -->
-    <!-- 3 OWNER PARTNERSHIP MODELS (Clean Bento Presentation) -->
+    <!-- 5. THREE OWNER PARTNERSHIP MODELS                         -->
     <!-- ======================================================== -->
-    <section id="owner-models" class="py-14 px-4 max-w-7xl mx-auto">
+    <section id="owner-models" class="py-14 px-2 sm:px-4 max-w-6xl mx-auto">
       
-      <div class="text-center max-w-3xl mx-auto mb-14">
-        <span class="text-xs font-bold text-sky-600 uppercase tracking-widest">• For Landlords & Investors</span>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 mt-2 tracking-tight">
+      <div class="text-center max-w-3xl mx-auto mb-12">
+        <span class="text-xs font-bold text-brand-blue uppercase tracking-widest">• Owner Leases</span>
+        <h2 class="text-3xl sm:text-4xl font-extrabold text-slate-900 mt-1">
           Three Revolutionary Partnership Models
         </h2>
-        <p class="text-slate-500 text-base mt-3">
-          Whether you want guaranteed capital return, instant upfront liquidity, or recurring 1st-of-month rent without tenant hassles.
+        <p class="text-slate-500 text-sm mt-2">
+          Pick the ideal structure for your property: capital return, upfront liquidity, or guaranteed rent.
         </p>
       </div>
 
-      <div class="grid grid-cols-1 md:grid-cols-3 gap-6 sm:gap-8">
+      <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
         
-        <!-- MODEL 1: 5-to-10 Year Capital Lease -->
-        <div class="bg-white rounded-[28px] p-7 sm:p-8 border border-slate-200/90 shadow-bento flex flex-col justify-between hover:shadow-bento-hover transition-all">
+        <!-- Model 1 -->
+        <div class="bg-white rounded-[28px] p-7 border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
-            <div class="w-12 h-12 rounded-2xl bg-sky-100 text-sky-700 flex items-center justify-center text-lg font-black font-mono">
-              01
-            </div>
-            <div class="inline-block px-3 py-1 mt-4 rounded-full text-[10px] font-black uppercase tracking-wider bg-sky-50 text-sky-700 border border-sky-200">
-              Guaranteed Capital Return
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 mt-3">5-to-10 Year Capital Lease</h3>
+            <div class="w-10 h-10 rounded-xl bg-sky-100 text-brand-blue flex items-center justify-center font-black">01</div>
+            <h3 class="text-lg font-bold text-slate-900 mt-4">5-to-10 Year Capital Lease</h3>
             <p class="text-xs text-slate-500 mt-2 leading-relaxed">
               We lease your property upfront for 5 or 10 years. You receive the full capital return at the end of the lease period, while Croww furnishes, operates, and sub-leases the home.
             </p>
-
-            <ul class="mt-6 space-y-2.5 text-xs text-slate-700 font-medium">
-              <li class="flex items-center space-x-2">
-                <span class="text-sky-600 font-bold">✓</span>
-                <span>Full principal returned at lease end</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-sky-600 font-bold">✓</span>
-                <span>Zero repair or maintenance deductions</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-sky-600 font-bold">✓</span>
-                <span>Institutional registered lease deed</span>
-              </li>
+            <ul class="mt-5 space-y-2 text-xs text-slate-700">
+              <li>✓ Full principal returned at lease completion</li>
+              <li>✓ Zero repair or upkeep deductions</li>
+              <li>✓ Institutional registered deed</li>
             </ul>
           </div>
-
-          <button onclick="openWaitlist('owner', '5-Year Capital Lease')" class="mt-8 w-full py-3.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wider transition-all">
+          <button onclick="openWaitlist('owner', '5-Year Capital Lease')" class="mt-7 w-full py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase">
             Inquire Capital Lease
           </button>
         </div>
 
-        <!-- MODEL 2: Modified Non-Returnable Lease -->
-        <div class="bg-white rounded-[28px] p-7 sm:p-8 border border-slate-200/90 shadow-bento flex flex-col justify-between hover:shadow-bento-hover transition-all">
+        <!-- Model 2 -->
+        <div class="bg-white rounded-[28px] p-7 border border-slate-200 shadow-sm flex flex-col justify-between">
           <div>
-            <div class="w-12 h-12 rounded-2xl bg-slate-100 text-slate-800 flex items-center justify-center text-lg font-black font-mono">
-              02
-            </div>
-            <div class="inline-block px-3 py-1 mt-4 rounded-full text-[10px] font-black uppercase tracking-wider bg-slate-100 text-slate-800 border border-slate-200">
-              Immediate Upfront Liquidity
-            </div>
-            <h3 class="text-xl font-bold text-slate-900 mt-3">Modified Upfront Lease</h3>
+            <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center font-black">02</div>
+            <h3 class="text-lg font-bold text-slate-900 mt-4">Modified Upfront Lease</h3>
             <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-              Get significant upfront capital without any obligation to repay at lease end. Ideal for owners who need immediate funds for new ventures, family needs, or portfolio expansion.
+              Get significant upfront capital without any obligation to repay at lease end. Ideal for owners who need immediate funds for new ventures, family needs, or diversification.
             </p>
-
-            <ul class="mt-6 space-y-2.5 text-xs text-slate-700 font-medium">
-              <li class="flex items-center space-x-2">
-                <span class="text-slate-800 font-bold">✓</span>
-                <span>Lump-sum upfront liquidity payout</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-slate-800 font-bold">✓</span>
-                <span>Zero repayment liability at end of tenure</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-slate-800 font-bold">✓</span>
-                <span>Asset handed back in pristine state</span>
-              </li>
+            <ul class="mt-5 space-y-2 text-xs text-slate-700">
+              <li>✓ Lump-sum upfront liquidity payout</li>
+              <li>✓ Zero repayment liability at end of term</li>
+              <li>✓ Handed back in pristine state</li>
             </ul>
           </div>
-
-          <button onclick="openWaitlist('owner', 'Non-Returnable Lease')" class="mt-8 w-full py-3.5 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase tracking-wider transition-all">
+          <button onclick="openWaitlist('owner', 'Non-Returnable Lease')" class="mt-7 w-full py-3 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-900 font-bold text-xs uppercase">
             Inquire Upfront Lease
           </button>
         </div>
 
-        <!-- MODEL 3: Croww Guaranteed Rental (Flagship) -->
-        <div class="bg-sky-600 text-white rounded-[28px] p-7 sm:p-8 shadow-blue-card flex flex-col justify-between relative overflow-hidden">
-          <div class="absolute top-4 right-4 bg-lime-brand text-black text-[9px] font-black uppercase px-3 py-1 rounded-full tracking-wider">
-            MOST POPULAR
+        <!-- Model 3 -->
+        <div class="bg-brand-blue text-white rounded-[28px] p-7 shadow-lg flex flex-col justify-between relative">
+          <div class="absolute top-4 right-4 bg-[#D5F934] text-black text-[9px] font-black uppercase px-2.5 py-0.5 rounded-full">
+            FLAGSHIP
           </div>
-
           <div>
-            <div class="w-12 h-12 rounded-2xl bg-white/20 text-white flex items-center justify-center text-lg font-black font-mono">
-              03
-            </div>
-            <div class="inline-block px-3 py-1 mt-4 rounded-full text-[10px] font-black uppercase tracking-wider bg-white/20 text-white">
-              Guaranteed Monthly Rent
-            </div>
-            <h3 class="text-xl font-bold text-white mt-3">Croww Guaranteed Rental</h3>
+            <div class="w-10 h-10 rounded-xl bg-white/20 text-white flex items-center justify-center font-black">03</div>
+            <h3 class="text-lg font-bold text-white mt-4">Croww Guaranteed Rental</h3>
             <p class="text-xs text-sky-100 mt-2 leading-relaxed">
-              Croww becomes your Master Tenant. We deposit your agreed rent on the 1st of every month without fail, whether occupied or vacant. We take care of all maintenance and deep cleaning.
+              Croww becomes your Master Tenant. We deposit your agreed rent on the 1st of every month without fail, whether occupied or vacant. We take care of all maintenance and repairs.
             </p>
-
-            <ul class="mt-6 space-y-2.5 text-xs text-white font-medium">
-              <li class="flex items-center space-x-2">
-                <span class="text-lime-brand font-bold">✓</span>
-                <span><strong>Rent deposited on the 1st</strong> (Zero vacancy loss)</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-lime-brand font-bold">✓</span>
-                <span>Complete upkeep & repair expenses covered</span>
-              </li>
-              <li class="flex items-center space-x-2">
-                <span class="text-lime-brand font-bold">✓</span>
-                <span>Pre-vetted corporate & tech professionals</span>
-              </li>
+            <ul class="mt-5 space-y-2 text-xs text-white">
+              <li>✓ <strong>Rent on the 1st</strong> (Zero vacancy loss)</li>
+              <li>✓ Complete upkeep & repairs covered</li>
+              <li>✓ Pre-vetted corporate & tech professionals</li>
             </ul>
           </div>
-
-          <button onclick="openWaitlist('owner', 'Guaranteed Monthly Rent')" class="mt-8 w-full py-3.5 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-black text-xs uppercase tracking-wider shadow-lime-glow transition-all">
+          <button onclick="openWaitlist('owner', 'Guaranteed Monthly Rent')" class="mt-7 w-full py-3 rounded-full bg-[#D5F934] hover:bg-[#C2E822] text-black font-black text-xs uppercase shadow-sm">
             Partner for Guaranteed Rent
           </button>
         </div>
 
       </div>
-
-      <!-- Whole Building Complex Spotlight -->
-      <div class="mt-8 bg-surface-dark text-white rounded-[28px] p-7 sm:p-9 shadow-bento flex flex-col md:flex-row items-center justify-between gap-6">
-        <div>
-          <span class="px-3 py-1 rounded-full text-xs font-mono font-bold uppercase tracking-wider bg-white/10 text-lime-brand">
-            🏢 Whole Building & Society Management
-          </span>
-          <h3 class="text-2xl font-bold mt-3">Own an entire apartment tower or complex?</h3>
-          <p class="text-xs sm:text-sm text-slate-300 mt-2 max-w-2xl leading-relaxed">
-            We partner with builders, landlords, and asset managers to take over whole residential floors or full complexes. 
-            We are onboarding an exclusive pilot cohort of <strong>10 founding buildings</strong> in Bengaluru & Chennai.
-          </p>
-        </div>
-        <button onclick="openWaitlist('owner', 'Whole Building Management')" class="px-6 py-3.5 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-black text-xs uppercase tracking-wider whitespace-nowrap shadow-lime-glow transition-all">
-          Submit Whole Building
-        </button>
-      </div>
-
     </section>
 
     <!-- ======================================================== -->
-    <!-- SCALE ECONOMICS & INTERACTIVE CALCULATOR -->
+    <!-- 6. SCALE UNIT ECONOMICS CALCULATOR                        -->
     <!-- ======================================================== -->
-    <section id="scale-engine" class="py-14 px-4 max-w-7xl mx-auto">
+    <section id="scale-engine" class="py-12 px-2 sm:px-4 max-w-6xl mx-auto">
       
-      <div class="text-center max-w-3xl mx-auto mb-14">
-        <span class="text-xs font-bold text-sky-600 uppercase tracking-widest">• Scale Economics</span>
-        <h2 class="text-3xl sm:text-5xl font-extrabold text-slate-900 mt-2 tracking-tight">
-          The Unit Economics Mathematics
-        </h2>
-        <p class="text-slate-500 text-base mt-3">
-          How Croww generates institutional recurring yields through master-tenancy rent spreads, furniture leasing, and NBFC loan commissions.
-        </p>
-      </div>
-
-      <!-- Interactive Calculator Card -->
-      <div class="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200/90 shadow-bento">
+      <div class="bg-white rounded-[32px] p-6 sm:p-10 border border-slate-200 shadow-sm">
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
           
-          <!-- Slider Controls -->
-          <div class="lg:col-span-6 space-y-7">
+          <div class="lg:col-span-6 space-y-6">
+            <div>
+              <div class="text-xs font-bold text-brand-blue uppercase tracking-widest mb-1">• Scale Economics</div>
+              <h3 class="text-2xl font-black text-slate-900">Interactive Cushion Engine</h3>
+            </div>
+
             <div>
               <div class="flex justify-between items-center text-sm font-bold mb-2">
                 <span class="text-slate-700">Managed Homes Portfolio:</span>
-                <span id="homesCountText" class="text-sky-600 font-mono text-xl font-black">1,00,000 Homes</span>
+                <span id="homesCountText" class="text-brand-blue font-mono text-xl font-black">1,00,000 Homes</span>
               </div>
               <input type="range" id="homesSlider" min="10" max="100000" step="500" value="100000" class="w-full cursor-pointer" oninput="updateCalculator()" />
               <div class="flex justify-between text-[11px] text-slate-400 font-mono mt-1">
                 <span>10 (Pilot Cohort)</span>
-                <span>10,000</span>
                 <span>1,00,000 (Target)</span>
               </div>
             </div>
 
             <div>
               <div class="flex justify-between items-center text-sm font-bold mb-2">
-                <span class="text-slate-700">Average Monthly Operating Cushion per Home:</span>
+                <span class="text-slate-700">Monthly Cushion Spread per Home:</span>
                 <span id="cushionText" class="text-slate-900 font-mono text-xl font-black">₹2,000 / mo</span>
               </div>
               <input type="range" id="cushionSlider" min="1000" max="5000" step="250" value="2000" class="w-full cursor-pointer" oninput="updateCalculator()" />
               <div class="flex justify-between text-[11px] text-slate-400 font-mono mt-1">
                 <span>₹1,000</span>
                 <span>₹2,000 (Base Case)</span>
-                <span>₹5,000 (Luxury)</span>
+                <span>₹5,000</span>
               </div>
             </div>
 
-            <div class="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600 leading-relaxed">
-              💡 <strong class="text-slate-900">How the Cushion Works:</strong> By master-leasing at scale, absorbing vacancy risk, and providing corporate tenants with hassle-free digital contracts, Croww earns a comfortable ~₹2,000/mo operating spread. The tenant gets institutional peace; the owner gets guaranteed rent.
+            <div class="p-3.5 rounded-2xl bg-slate-50 border border-slate-200 text-xs text-slate-600">
+              💡 By master-leasing at scale, absorbing vacancy risk, and providing corporate tenants with hassle-free digital contracts, Croww earns a comfortable ~₹2,000/mo operating spread.
             </div>
           </div>
 
-          <!-- Calculated Display Output -->
-          <div class="lg:col-span-6 bg-slate-900 text-white rounded-[28px] p-7 sm:p-9 shadow-xl">
-            <div class="text-xs font-mono uppercase tracking-wider text-lime-brand">Projected Recurring Yield</div>
+          <div class="lg:col-span-6 bg-[#0F172A] text-white rounded-[28px] p-7 sm:p-9 shadow-lg">
+            <div class="text-xs font-mono uppercase tracking-wider text-[#D5F934]">Projected Recurring Yield</div>
             <div class="mt-2 text-4xl sm:text-5xl font-black font-mono text-white" id="monthlyRevenueDisplay">
               ₹20,00,00,000
             </div>
             <div class="text-xs sm:text-sm font-semibold text-slate-300 mt-1">
-              per month in Recurring Operational Revenue (<span id="annualRevenueDisplay" class="text-lime-brand font-mono font-bold">₹240 Cr ARR</span>)
+              per month in Recurring Operational Revenue (<span id="annualRevenueDisplay" class="text-[#D5F934] font-mono font-bold">₹240 Cr ARR</span>)
             </div>
 
-            <div class="mt-8 pt-6 border-t border-white/10 space-y-3 text-xs">
+            <div class="mt-7 pt-5 border-t border-white/10 space-y-2.5 text-xs">
               <div class="flex justify-between items-center">
                 <span class="text-slate-400">1. Master Lease Operating Spread</span>
                 <span id="cushionShareDisplay" class="text-white font-mono font-bold">₹20.00 Cr / mo</span>
               </div>
               <div class="flex justify-between items-center">
-                <span class="text-slate-400">2. Furniture & Appliance Subscriptions</span>
+                <span class="text-slate-400">2. Furniture Subscriptions (Furlenco model)</span>
                 <span id="furnishingShareDisplay" class="text-sky-400 font-mono font-bold">+ ₹6.50 Cr / mo</span>
               </div>
               <div class="flex justify-between items-center">
                 <span class="text-slate-400">3. NBFC Deposit Loan Originations</span>
-                <span id="nbfcShareDisplay" class="text-lime-brand font-mono font-bold">+ ₹2.80 Cr / mo</span>
+                <span id="nbfcShareDisplay" class="text-[#D5F934] font-mono font-bold">+ ₹2.80 Cr / mo</span>
               </div>
             </div>
           </div>
 
         </div>
       </div>
-
-      <!-- Ancillary Services Bento -->
-      <div id="services" class="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-        
-        <div class="bg-white rounded-[24px] p-6 border border-slate-200/90 shadow-bento">
-          <div class="w-10 h-10 rounded-xl bg-sky-100 text-sky-700 flex items-center justify-center text-xl font-bold mb-4">
-            🛋️
-          </div>
-          <h4 class="text-base font-bold text-slate-900">Furnished by Croww</h4>
-          <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-            Partnering with top brands (Furlenco / RentoMojo model) to offer plug-and-play living room, bedroom, and appliance packs on a rent-to-own or monthly subscription for any home on the portal.
-          </p>
-        </div>
-
-        <div class="bg-white rounded-[24px] p-6 border border-slate-200/90 shadow-bento">
-          <div class="w-10 h-10 rounded-xl bg-lime-100 text-lime-800 flex items-center justify-center text-xl font-bold mb-4">
-            💳
-          </div>
-          <h4 class="text-base font-bold text-slate-900">NBFC Rental Financing</h4>
-          <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-            High 10-month rental deposits shouldn't block great tenants. Integrated NBFC partners provide instant zero-cost deposit financing in-app, with Croww earning origination commissions.
-          </p>
-        </div>
-
-        <div class="bg-white rounded-[24px] p-6 border border-slate-200/90 shadow-bento">
-          <div class="w-10 h-10 rounded-xl bg-slate-100 text-slate-800 flex items-center justify-center text-xl font-bold mb-4">
-            🛡️
-          </div>
-          <h4 class="text-base font-bold text-slate-900">Master Tenancy & GST Clarity</h4>
-          <p class="text-xs text-slate-500 mt-2 leading-relaxed">
-            The tenant signs directly with Croww; Croww indemnifies the owner against default. Residential renting to individuals is exempt from GST, protecting owners from tax ambiguity.
-          </p>
-        </div>
-
-      </div>
-
     </section>
 
     <!-- ======================================================== -->
-    <!-- FINAL PRE-FOOTER CTA -->
+    <!-- 7. FOOTER                                                -->
     <!-- ======================================================== -->
-    <section class="py-14 px-4 max-w-5xl mx-auto text-center">
-      <div class="bg-gradient-to-r from-sky-600 via-sky-500 to-sky-700 rounded-[32px] p-8 sm:p-14 text-white shadow-blue-card relative overflow-hidden">
-        <h2 class="text-3xl sm:text-5xl font-black tracking-tight">
-          Be part of the founding cohort.
-        </h2>
-        <p class="text-white/90 text-sm sm:text-base max-w-xl mx-auto mt-4 font-medium">
-          Whether you are looking for your next dream rental on the map, or an owner seeking guaranteed yields—join our private access list today.
-        </p>
-
-        <div class="mt-8 flex flex-col sm:flex-row items-center justify-center gap-3.5">
-          <button onclick="openWaitlist('tenant')" class="w-full sm:w-auto px-8 py-4 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-black text-xs uppercase tracking-wider shadow-lime-glow transition-all">
-            Join as a Renter
-          </button>
-          <button onclick="openWaitlist('owner')" class="w-full sm:w-auto px-8 py-4 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md text-white font-bold text-xs uppercase tracking-wider border border-white/30 transition-all">
-            Partner Your Property
-          </button>
-        </div>
-      </div>
-    </section>
-
-    <!-- ======================================================== -->
-    <!-- FOOTER (Clean Light Mode) -->
-    <!-- ======================================================== -->
-    <footer class="py-10 px-4 border-t border-slate-200 max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
+    <footer class="py-10 px-4 border-t border-slate-200 max-w-6xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4 text-xs text-slate-500">
       <div class="flex items-center space-x-3">
         <img src="/croww-logo.png" alt="Croww" class="h-6 w-auto object-contain opacity-70" />
         <span>• Rent on the Map</span>
@@ -858,7 +782,7 @@
       <div class="flex items-center space-x-6 font-medium">
         <a href="#about" class="hover:text-slate-900 transition-colors">About Us</a>
         <a href="#owner-models" class="hover:text-slate-900 transition-colors">Owner Models</a>
-        <a href="#scale-engine" class="hover:text-slate-900 transition-colors">Scale Economics</a>
+        <a href="#scale-engine" class="hover:text-slate-900 transition-colors">Scale Model</a>
         <a href="/app.html" class="hover:text-slate-900 transition-colors">App Preview</a>
         <span>© 2026-2027 Croww Technologies.</span>
       </div>
@@ -866,16 +790,14 @@
 
   </div>
 
-  <!-- ======================================================== -->
-  <!-- WAITLIST MODAL (Light / Sky-Blue Style) -->
-  <!-- ======================================================== -->
+  <!-- WAITLIST MODAL -->
   <div id="waitlistModal" class="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 hidden">
     <div class="bg-white w-full max-w-lg rounded-[28px] p-6 sm:p-8 border border-slate-200 shadow-2xl relative">
       <button onclick="closeWaitlist()" class="absolute top-5 right-5 text-slate-400 hover:text-slate-800 text-xl font-bold">✕</button>
 
       <div class="text-left">
         <div class="flex rounded-full bg-slate-100 p-1 mb-6">
-          <button id="modalTabTenant" onclick="switchModalTab('tenant')" class="flex-1 py-2 text-xs font-bold rounded-full bg-sky-600 text-white transition-all">
+          <button id="modalTabTenant" onclick="switchModalTab('tenant')" class="flex-1 py-2 text-xs font-bold rounded-full bg-brand-blue text-white transition-all">
             I'm a Renter / Tenant
           </button>
           <button id="modalTabOwner" onclick="switchModalTab('owner')" class="flex-1 py-2 text-xs font-semibold rounded-full text-slate-600 hover:text-slate-900 transition-all">
@@ -891,23 +813,23 @@
         <form onsubmit="handleWaitlistSubmit(event)" class="mt-6 space-y-4">
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">Full Name</label>
-            <input type="text" id="wName" required placeholder="Arjun Sharma" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-sky-500 focus:bg-white focus:outline-none" />
+            <input type="text" id="wName" required placeholder="Arjun Sharma" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-brand-blue focus:bg-white focus:outline-none" />
           </div>
 
           <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">Email</label>
-              <input type="email" id="wEmail" required placeholder="arjun@company.com" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-sky-500 focus:bg-white focus:outline-none" />
+              <input type="email" id="wEmail" required placeholder="arjun@company.com" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-brand-blue focus:bg-white focus:outline-none" />
             </div>
             <div>
               <label class="block text-xs font-bold text-slate-700 mb-1">WhatsApp / Phone</label>
-              <input type="tel" id="wPhone" required placeholder="+91 98765 43210" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-sky-500 focus:bg-white focus:outline-none" />
+              <input type="tel" id="wPhone" required placeholder="+91 98765 43210" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-brand-blue focus:bg-white focus:outline-none" />
             </div>
           </div>
 
           <div>
             <label class="block text-xs font-bold text-slate-700 mb-1">City</label>
-            <select id="wCity" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-sky-500 focus:bg-white focus:outline-none">
+            <select id="wCity" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-brand-blue focus:bg-white focus:outline-none">
               <option value="Bengaluru">Bengaluru</option>
               <option value="Chennai">Chennai</option>
               <option value="Hyderabad">Hyderabad</option>
@@ -919,7 +841,7 @@
 
           <div id="ownerModelSelectDiv" class="hidden">
             <label class="block text-xs font-bold text-slate-700 mb-1">Preferred Partnership Model</label>
-            <select id="wModel" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-sky-500 focus:bg-white focus:outline-none">
+            <select id="wModel" class="w-full px-4 py-2.5 rounded-xl bg-slate-50 border border-slate-200 text-slate-900 text-sm focus:border-brand-blue focus:bg-white focus:outline-none">
               <option value="Guaranteed Monthly Rental">Guaranteed Monthly Rental (Direct 1st of month)</option>
               <option value="5-Year Capital Lease">5-to-10 Year Capital Lease (Returnable Principal)</option>
               <option value="Non-Returnable Upfront Lease">Modified Non-Returnable Upfront Lease</option>
@@ -928,7 +850,7 @@
             </select>
           </div>
 
-          <button type="submit" class="w-full py-3.5 rounded-full bg-lime-brand hover:bg-lime-hover text-black font-black text-xs uppercase tracking-wider shadow-lime-glow transition-all mt-4">
+          <button type="submit" class="w-full py-3.5 rounded-full bg-[#D5F934] hover:bg-[#C2E822] text-black font-black text-xs uppercase tracking-wider shadow-sm transition-all mt-4">
             Confirm Priority Reservation ↗
           </button>
         </form>
@@ -942,7 +864,6 @@
     </div>
   </div>
 
-  <!-- SCRIPT LOGIC -->
   <script>
     const pins = [
       {
@@ -984,16 +905,6 @@
         metro: 'Connected',
         furnish: 'Italian Furnished',
         badge: 'Verified Owner Listing'
-      },
-      {
-        price: '🏢 10 Units',
-        title: 'Sunrise Enclave Tower B (Whole Complex)',
-        location: 'Koramangala 1st Block, Bengaluru',
-        tour: 'Building Twin',
-        flood: 'LOW (Class A)',
-        metro: '600m Walk',
-        furnish: 'Turnkey Fitted',
-        badge: 'Pilot Building Cohort'
       }
     ];
 
@@ -1016,14 +927,14 @@
             const inner = p.querySelector('div:first-child');
             if (inner) {
               inner.classList.remove('bg-white', 'text-slate-900');
-              inner.classList.add('bg-sky-600', 'text-white');
+              inner.classList.add('bg-[#0070F3]', 'text-white');
             }
           } else {
             p.classList.remove('scale-125', 'z-50');
             const inner = p.querySelector('div:first-child');
-            if (inner && i !== 4) {
+            if (inner) {
               inner.classList.add('bg-white', 'text-slate-900');
-              inner.classList.remove('bg-sky-600', 'text-white');
+              inner.classList.remove('bg-[#0070F3]', 'text-white');
             }
           }
         }
@@ -1034,7 +945,7 @@
       ['blr', 'chn', 'hyd'].forEach(c => {
         const el = document.getElementById('city-' + c);
         if (c === city) {
-          el.className = 'px-4 py-1.5 rounded-full text-xs font-bold bg-sky-600 text-white transition-all';
+          el.className = 'px-4 py-1.5 rounded-full text-xs font-bold bg-[#0070F3] text-white transition-all';
         } else {
           el.className = 'px-4 py-1.5 rounded-full text-xs font-semibold text-slate-600 hover:text-slate-900 transition-all';
         }
@@ -1086,13 +997,13 @@
       const ownerDiv = document.getElementById('ownerModelSelectDiv');
 
       if (role === 'tenant') {
-        btnTenant.className = 'flex-1 py-2 text-xs font-bold rounded-full bg-sky-600 text-white transition-all';
+        btnTenant.className = 'flex-1 py-2 text-xs font-bold rounded-full bg-[#0070F3] text-white transition-all';
         btnOwner.className = 'flex-1 py-2 text-xs font-semibold rounded-full text-slate-600 hover:text-slate-900 transition-all';
         document.getElementById('modalHeading').innerText = 'Join the Tenant Waitlist';
         document.getElementById('modalSubheading').innerText = 'Get early map search access, ₹5,000 furnishing credit, and zero brokerage.';
         ownerDiv.classList.add('hidden');
       } else {
-        btnOwner.className = 'flex-1 py-2 text-xs font-bold rounded-full bg-sky-600 text-white transition-all';
+        btnOwner.className = 'flex-1 py-2 text-xs font-bold rounded-full bg-[#0070F3] text-white transition-all';
         btnTenant.className = 'flex-1 py-2 text-xs font-semibold rounded-full text-slate-600 hover:text-slate-900 transition-all';
         document.getElementById('modalHeading').innerText = 'Partner Your Property with Croww';
         document.getElementById('modalSubheading').innerText = 'Explore 5-10 year capital leases, guaranteed monthly rent, or whole building management.';
